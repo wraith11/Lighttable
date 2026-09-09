@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>LightTable Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css?v=10">
+</head>
+<body :class="{'is-player': !isGM}">
+    <div id="app" @contextmenu.prevent>
+        <div id="pixi-container"></div>
+        
+        <!-- NEU: Blackout Media Screen -->
+        <div v-if="!isGM && scene.player_view_blackout" class="player-blackout">
+            <div class="bo-grid" :class="scene.blackout_config.mode">
+                <!-- Helper for creating cells based on mode -->
+                <div v-for="(screen, idx) in scene.blackout_config.screens" :key="idx" class="bo-cell"
+                     v-show="scene.blackout_config.mode === 'quad' || (scene.blackout_config.mode === 'split' && (idx === 0 || idx === 2)) || (scene.blackout_config.mode === 'full' && idx === 0)">
+                     
+                     <template v-if="screen.url">
+                        <img v-if="screen.type === 'image'" :src="screen.url" class="bo-media" :class="{'bo-flipped': screen.flipped}">
+                        <video v-else :src="screen.url" class="bo-media" :class="{'bo-flipped': screen.flipped}" :loop="screen.loop" autoplay muted playsinline></video>
+                     </template>
+                     <i v-else class="fas fa-eye-slash" style="font-size: 3em; color: #333;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div v-show="showColorPicker" class="color-picker-popover" @click.stop>
+            <div id="color-picker-widget"></div>
+            <div style="width:100%; text-align:right; margin-top:10px;">
+                <button class="btn" style="padding:2px 10px;" @click="showColorPicker=false">OK</button>
+            </div>
+        </div>
+
+        <div v-show="showTokenColorPopup" class="color-picker-popover" @click.stop>
+            <div id="token-picker-widget"></div>
+            <div style="width:100%; text-align:right; margin-top:10px;">
+                <button class="btn" style="padding:2px 10px;" @click="showTokenColorPopup=false">Fertig</button>
+            </div>
+        </div>
+
+        <div id="context-menu" v-if="isGM && (selectedObj || ['wall','column','brush','light'].includes(tool))">
+            <template v-if="selectedObj">
+                <template v-if="!selectedObjIsLight && !selectedObjIsColumn">
+                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">{{selectedObjIsWall ? 'Mauer' : 'Objekt'}}</span>
+                    <div class="control-group">
+                        <label>Ebene: {{ selectedObj.z !== undefined ? selectedObj.z : 5 }}</label>
+                        <div style="display:flex; gap:2px;">
+                            <button class="btn" style="padding:2px 8px" @click="changeLayer(-1)">-</button>
+                            <button class="btn" style="padding:2px 8px" @click="changeLayer(1)">+</button>
+                        </div>
+                    </div>
+                    <div v-if="!selectedObjIsWall" class="control-group" style="width:100px;">
+                         <label>Z-Index</label>
+                         <input type="range" min="-5" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
+                    </div>
+                    <div v-else class="control-group" style="width:100px;">
+                         <label>Z-Index</label>
+                         <input type="range" min="0" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
+                    </div>
+                    <div v-if="selectedObjIsWall" class="control-group" style="width:130px;">
+                        <label>Breite</label>
+                        <input type="range" min="5" max="100" v-model.number="selectedObj.width" @input="sync">
+                        <span>{{selectedObj.width}}px</span>
+                    </div>
+                    <div v-if="selectedObjIsWall" class="control-group" style="width:150px;">
+                        <label>Biegung</label>
+                        <input type="range" min="-10" max="10" step="0.5" v-model.number="selectedObj.curve" @input="sync">
+                        <span>{{selectedObj.curve}}</span>
+                    </div>
+                </template>
+
+                <template v-if="selectedObjIsColumn">
+                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">Säule</span>
+                    <div class="control-group">
+                        <label>Ebene: {{ selectedObj.z !== undefined ? selectedObj.z : 10 }}</label>
+                        <div style="display:flex; gap:2px;">
+                            <button class="btn" style="padding:2px 8px" @click="changeLayer(-1)">-</button>
+                            <button class="btn" style="padding:2px 8px" @click="changeLayer(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="control-group" style="width:100px;">
+                         <label>Z-Index</label>
+                         <input type="range" min="0" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
+                    </div>
+                    <div class="control-group" style="width:150px;">
+                        <label>Ecken (0=Rund)</label>
+                        <input type="range" min="0" max="8" step="1" v-model.number="selectedObj.vertices" @input="fixVerticesSelected">
+                        <span>{{selectedObj.vertices === 0 ? 'Rund' : selectedObj.vertices}}</span>
+                    </div>
+                </template>
+            </template>
+
+            <template v-if="selectedObjIsLight || tool === 'light'">
+                <span style="font-weight:bold; font-size:0.9em; color:#eec; margin-right:10px;"><i class="fas fa-lightbulb"></i> Licht</span>
+                <div id="light-cp" style="margin-bottom:5px;"></div>
+                <div class="control-group" style="width:140px;">
+                    <label>Radius</label>
+                    <input type="range" min="50" max="2000" v-model.number="activeLightSettings.radius" @input="sync">
+                    <span>{{activeLightSettings.radius}}px</span>
+                </div>
+                <div class="control-group" style="width:100px;">
+                    <label>Falloff</label>
+                    <input type="range" min="0.1" max="1" step="0.05" v-model.number="activeLightSettings.brightness" @input="sync">
+                    <span>{{activeLightSettings.brightness}}</span>
+                </div>
+                <div class="control-group" style="width:100px;">
+                    <label>Farb-Stärke</label>
+                    <input type="range" min="0" max="0.6" step="0.05" v-model.number="activeLightSettings.color_intensity" @input="sync">
+                    <span>{{activeLightSettings.color_intensity}}</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:2px; margin-left:10px; min-width: 100px;">
+                    <label style="font-size:0.8em; display:flex; align-items:center; gap:3px">
+                        <input type="checkbox" v-model="activeLightSettings.flicker" @change="sync"> Flackern
+                    </label>
+                    <div v-if="activeLightSettings.flicker" style="display:flex; flex-direction:column;">
+                        <label style="font-size:0.6em; margin:0">Stärke</label>
+                        <input type="range" min="50" max="500" step="10" v-model.number="activeLightSettings.flicker_strength" @input="sync" style="height:5px;">
+                    </div>
+                </div>
+            </template>
+
+            <template v-if="!selectedObj && tool !== 'light'">
+                 <template v-if="tool=='wall'">
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-border-all"></i> Wand</span>
+                     <div class="control-group" style="width:130px;">
+                        <label>Dicke</label>
+                        <input type="range" min="5" max="50" v-model.number="toolSettings.wallWidth">
+                        <span>{{toolSettings.wallWidth}}px</span>
+                     </div>
+                     <label style="font-size:0.8em; display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;">
+                         <input type="checkbox" v-model="toolSettings.invisibleWall"> Unsichtbar
+                     </label>
+                 </template>
+                 <template v-if="tool=='brush'">
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-paint-brush"></i> Pinsel</span>
+                     <div class="control-group" style="width:130px;">
+                        <label>Strichdicke</label>
+                        <input type="range" min="1" max="200" v-model.number="toolSettings.brushSize">
+                        <span>{{toolSettings.brushSize}}px</span>
+                     </div>
+                 </template>
+                 <template v-if="tool=='column'">
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-square"></i> Säule</span>
+                     <div class="control-group" style="width:150px;">
+                        <label>Ecken (0=Rund)</label>
+                        <input type="range" min="0" max="8" step="1" v-model.number="toolSettings.columnVertices" @input="fixVerticesTool">
+                        <span>{{toolSettings.columnVertices === 0 ? 'Rund' : toolSettings.columnVertices}}</span>
+                     </div>
+                 </template>
+            </template>
+
+            <div v-if="selectedObj" style="width:1px; height:20px; background:#444; margin:0 10px;"></div>
+            <button v-if="selectedObj" class="btn danger" style="padding:2px 8px" @click="deleteSelected"><i class="fas fa-trash"></i></button>
+        </div>
+
+        <div id="ui-overlay" v-if="isGM">
+            <div class="modal-overlay" v-if="showCalibration">
+                <div class="modal-content calib-modal">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <h3 style="margin:0">Kamera & Tracking Setup</h3>
+                        <button class="btn danger" style="flex:0" @click="showCalibration=false">Schließen</button>
+                    </div>
+                    <div class="calib-container" ref="calibContainer">
+                        <img src="/video_feed" class="calib-img" ref="calibImg" draggable="false">
+                        <div v-for="(c, i) in tempCorners" :key="i" class="handle"
+                             :style="{left: (c[0]/imgW)*100 + '%', top: (c[1]/imgH)*100 + '%'}"
+                             @mousedown.stop="startDragCorner($event, i)">{{i+1}}</div>
+                    </div>
+                    <div class="calib-settings">
+                        <div class="calib-grid">
+                            <div class="calib-group">
+                                <label>Videoeinstellungen</label>
+                                <button class="btn" @click="openCameraSettings">Treiber Dialog öffnen</button>
+                            </div>
+                            <div class="calib-group">
+                                <label>Kamera Auswahl</label>
+                                <div style="display:flex; gap:5px;">
+                                    <select v-model.number="camParams.camera_index" @change="setCamera(camParams.camera_index)" style="flex:1">
+                                        <option :value="0">Kamera 0 (Default)</option>
+                                        <option v-for="c in availableCameras" :key="c" :value="c">Kamera {{c}}</option>
+                                    </select>
+                                    <button class="btn" @click="refreshCameras" title="Scan"><i class="fas fa-sync"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="calib-group">
+                                <label>Threshold (Binarize): {{camParams.threshold}}</label>
+                                <input type="range" min="0" max="255" v-model.number="camParams.threshold" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Merge Distance: {{camParams.merge_distance}}px</label>
+                                <input type="range" min="0" max="70" v-model.number="camParams.merge_distance" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Min Area: {{camParams.min_area}}</label>
+                                <input type="range" min="1" max="500" v-model.number="camParams.min_area" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Max Area: {{camParams.max_area}}</label>
+                                <input type="range" min="100" max="10000" v-model.number="camParams.max_area" @change="updateCamParams">
+                            </div>
+                            
+                            <div class="calib-group">
+                                <label>Parallax Stärke: {{camParams.parallax_strength.toFixed(2)}}</label>
+                                <input type="range" min="-0.1" max="0.1" step="0.001" v-model.number="camParams.parallax_strength" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Cam Pos X: {{camParams.cam_pos_x.toFixed(2)}}</label>
+                                <input type="range" min="-2.0" max="3.0" step="0.1" v-model.number="camParams.cam_pos_x" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Cam Pos Y: {{camParams.cam_pos_y.toFixed(2)}}</label>
+                                <input type="range" min="-2.0" max="3.0" step="0.1" v-model.number="camParams.cam_pos_y" @change="updateCamParams">
+                            </div>
+
+                            <div class="calib-group">
+                                <label>Hotspot: {{camParams.hotspot_compensation}}</label>
+                                <input type="range" min="0" max="1" step="0.1" v-model.number="camParams.hotspot_compensation" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group">
+                                <label>Glättung: {{camParams.smoothing}}</label>
+                                <input type="range" min="0" max="0.95" step="0.05" v-model.number="camParams.smoothing" @change="updateCamParams">
+                            </div>
+                            <div class="calib-group" style="display:flex; align-items:center; justify-content:space-around;">
+                                <label><input type="checkbox" v-model="camParams.flip_x" @change="updateCamParams"> Flip X</label>
+                                <label><input type="checkbox" v-model="camParams.flip_y" @change="updateCamParams"> Flip Y</label>
+                            </div>
+                            <div class="calib-group">
+                                <label>Reset</label>
+                                <button class="btn danger" @click="resetCamera">Kamera Resetten</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sidebar">
+                <div class="tabs">
+                    <div class="tab" :class="{active: tab=='tools'}" @click="tab='tools'"><i class="fas fa-tools"></i></div>
+                    <div class="tab" :class="{active: tab=='tokens'}" @click="tab='tokens'"><i class="fas fa-users"></i></div>
+                    <div class="tab" :class="{active: tab=='map'}" @click="tab='map'"><i class="fas fa-map"></i></div>
+                    <div class="tab" :class="{active: tab=='settings'}" @click="tab='settings'"><i class="fas fa-cog"></i></div>
+                </div>
+
+                <!-- Tab: Tools -->
+                <div class="panel-content" v-if="tab=='tools'" style="display:flex; flex-direction:column; height:100%;">
+                    <div style="flex-shrink: 0;">
+                        <div class="btn-group" style="margin-bottom:0px">
+                            <button class="btn" :class="{active: scene.objects_locked}" @click="toggleLock" title="Verhindert das Verschieben von Objekten"><i class="fas" :class="scene.objects_locked ? 'fa-lock' : 'fa-lock-open'"></i> Karte sperren</button>
+                            <button class="btn" :class="{active: scene.background_locked}" @click="scene.background_locked = !scene.background_locked; sync()" title="Verhindert das Selektieren von Hintergrundobjekten"><i class="fas" :class="scene.background_locked ? 'fa-lock' : 'fa-lock-open'"></i> Hintergrund sperren</button>
+                        </div>
+                        <div class="separator-line"></div>
+                        <div class="btn-group" style="margin-bottom:10px">
+                            <button class="btn" :class="{active: scene.time_of_day === 'night'}" @click="scene.time_of_day = (scene.time_of_day === 'night' ? 'day' : 'night'); sync()" :disabled="!scene.lights_active"><i class="fas" :class="scene.time_of_day === 'night' ? 'fa-moon' : 'fa-sun'"></i> {{scene.time_of_day === 'night' ? 'Nacht' : 'Tag'}}</button>
+                            <button class="btn" :class="{active: scene.lights_active}" @click="toggleLightsActive" title="Lichter An/Aus"><i class="fas fa-lightbulb"></i> {{scene.lights_active ? 'Lichter AN' : 'Lichter AUS'}}</button>
+                        </div>
+                        <div class="btn-group" style="margin-bottom:10px">
+                            <button class="btn" :class="{active: scene.show_light_icons}" @click="toggleLightIcons"><i class="fas fa-lightbulb"></i> Licht Icons</button>
+                        </div>
+                        <div class="section-title">Navigation & Tools</div>
+                        <div class="btn-group">
+                            <button class="btn" :class="{active: tool=='select'}" @click="setTool('select')" title="Select"><i class="fas fa-mouse-pointer"></i> Select</button>
+                        </div>
+                        <div class="btn-group" style="margin-top:5px">
+                            <button class="btn" :class="{active: snapMode}" @click="snapMode=!snapMode"><i class="fas fa-magnet"></i> Snapping: {{snapMode ? 'AN' : 'AUS'}}</button>
+                        </div>
+                        <div class="section-title">Farbe & Textur</div>
+                        <div class="row" style="margin-bottom:10px; position:relative;">
+                            <div v-if="brushTexture" class="texture-preview" :style="{backgroundImage: 'url('+brushTexture+')'}" title="Aktuelle Textur" @click="brushTexture=null"></div>
+                            <div v-else class="texture-preview" :style="{backgroundColor: drawColor}" title="Farbe wählen" @click="showColorPicker=!showColorPicker"></div>
+                            <div v-if="brushTexture" style="display:flex; flex-direction:column; margin-left:5px">
+                                <label style="font-size:0.6em; color:#888">Tiles</label>
+                                <input type="number" v-model.number="tilesPerAxis" min="1" max="10" style="height:20px; width:40px; padding:0">
+                            </div>
+                            <button v-if="brushTexture" class="btn danger" @click="brushTexture=null" style="flex:0; margin-left:5px"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn" :class="{active: tool=='wall'}" @click="setTool('wall')" :disabled="scene.objects_locked"><i class="fas fa-border-all"></i> Wand</button>
+                            <button class="btn" :class="{active: tool=='column'}" @click="setTool('column')" :disabled="scene.objects_locked"><i class="fas fa-square"></i> Säule</button>
+                            <button class="btn" :class="{active: tool=='light'}" @click="setTool('light')" :disabled="scene.objects_locked || !scene.show_light_icons"><i class="fas fa-lightbulb"></i> Licht</button>
+                            <button class="btn danger" :class="{active: tool=='eraser'}" @click="setTool('eraser')" :disabled="scene.objects_locked"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn" :class="{active: tool=='brush'}" @click="setTool('brush')" :disabled="scene.objects_locked || scene.background_locked"><i class="fas fa-paint-brush"></i></button>
+                            <button class="btn" :class="{active: tool=='circle_paint'}" @click="setTool('circle_paint')" :disabled="scene.objects_locked || scene.background_locked"><i class="far fa-circle"></i></button>
+                            <button class="btn" :class="{active: tool=='rect_paint'}" @click="setTool('rect_paint')" :disabled="scene.objects_locked || scene.background_locked"><i class="far fa-square"></i></button>
+                            <button class="btn" :class="{active: tool=='grid_paint'}" @click="setTool('grid_paint')" :disabled="scene.objects_locked || scene.background_locked"><i class="fas fa-th"></i></button>
+                        </div>
+                        <div class="section-title">Assets</div>
+                        <div class="asset-browser-nav">
+                            <span v-if="!currentAssetPath" style="color:#666">Root</span>
+                            <span v-else style="cursor:pointer; color:var(--accent)" @click="navigateAssets('')">Root</span>
+                            <span v-for="(p, i) in assetBreadcrumbs" :key="i"> / <span style="cursor:pointer; color:var(--accent)" @click="navigateAssets(p.full)">{{p.name}}</span></span>
+                        </div>
+                    </div>
+                    <div class="asset-wrapper">
+                        <div class="asset-grid">
+                            <div v-if="currentAssetPath" class="asset-item folder" @click="navigateUp()"><i class="fas fa-level-up-alt"></i><span>..</span></div>
+                            <div v-for="a in assetList" :key="a.name" class="asset-item" :class="{folder: a.type=='folder', selected: brushTexture === a.url}" @click="clickAsset(a)" draggable="true" @dragstart="onAssetDragStart(a, $event)">
+                                <i v-if="a.type=='folder'" class="fas fa-folder"></i>
+                                <img v-else :src="a.url">
+                                <span>{{a.name}}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex-shrink:0;">
+                        <div class="drop-zone">
+                            <i class="fas fa-cloud-upload-alt"></i> Drop File here
+                            <input type="file" @change="handleFileUpload" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;" :disabled="scene.objects_locked">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Tokens -->
+                <div class="panel-content" v-if="tab=='tokens'">
+                    <button class="btn full" @click="createToken()">+ Token (Manuell)</button>
+                    <div class="section-title">Token Liste</div>
+                    
+                    <div v-for="t in sortedTokens" :key="t.uuid" class="token-card" :class="{active: t.uuid === openTokenId}">
+                        <details :open="openTokenId === t.uuid">
+                            <summary style="display:flex; align-items:center; cursor: default; list-style: none;">
+                                <div style="display:flex; align-items:center; gap:10px; width:100%">
+                                    <span style="flex:1; cursor:pointer;" @click.prevent="toggleTokenDetails(t.uuid, {newState: openTokenId === t.uuid ? 'closed' : 'open'})">
+                                        {{t.name}} <span v-if="t.blob_id" style="font-size:0.7em; color:#0f0">ID:{{t.blob_id}}</span>
+                                    </span>
+                                    <button class="btn" style="padding:2px 5px; font-size:0.7em; flex:0 0 auto; margin-left:auto; width:auto;" @click.stop="blinkToken(t)">Blink</button>
+                                </div>
+                            </summary>
+                            <div class="token-details-content">
+                                <label>Name:</label>
+                                <input v-model.lazy="t.name" @change="markTokenModified(t)" placeholder="Token Name">
+                                <label>Blob:</label>
+                                <select v-model="t.blob_id" @change="linkBlob(t)">
+                                    <option :value="null">-- Keine --</option>
+                                    <option v-for="bid in availableBlobs" :key="bid" :value="bid">Blob {{bid}}</option>
+                                    <option v-if="t.blob_id && !availableBlobs.includes(t.blob_id)" :value="t.blob_id">Blob {{t.blob_id}}</option>
+                                </select>
+                                <div class="row" style="margin-top:5px">
+                                    <label>Größe:</label> <input type="range" min="20" max="200" v-model.number="t.size" @input="markTokenModified(t)">
+                                </div>
+                                <div class="row">
+                                    <label>Farbe:</label>
+                                    <div class="texture-preview" :style="{backgroundColor: t.spotlight_color || '#aaaaaa'}" @click="openTokenSpotlightPicker()" title="Farbe wählen"></div>
+                                    <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" title="Farbe zurücksetzen"><i class="fas fa-undo"></i></button>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top:10px; font-size:0.7em">Ringe</div>
+                                <div v-for="(ring, idx) in t.rings" :key="idx" class="row" style="background:#222; padding:5px; border-radius:4px; margin-bottom:2px;">
+                                    <div class="texture-preview" :style="{backgroundColor: ring.color, width:'30px', height:'30px'}" @click="openRingColorPicker(t, idx)" title="Ringfarbe wählen"></div>
+                                    <input type="text" v-model.lazy="ring.text" @change="sync" placeholder="Text" style="flex:1; min-width:0; margin:0">
+                                    <button class="btn danger" style="padding:0 10px;" @click="removeTokenRing(t, idx)">X</button>
+                                </div>
+                                <button class="btn full" style="margin-top:5px" @click="addTokenRing(t)">+ Ring</button>
+
+                                <hr style="border:0; border-top:1px solid #333; margin:8px 0">
+                                <div class="row"><button class="btn" @click="t.has_vision=!t.has_vision; markTokenModified(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> Vision</button></div>
+                                <div v-if="t.has_vision" class="row"><label>Reichweite:</label><input type="number" v-model.number="t.vision_range" @change="markTokenModified(t)"></div>
+                                <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(t.uuid)">Löschen</button></div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Tab: Map -->
+                <div class="panel-content" v-if="tab=='map'">
+                    <div class="section-title">Blackout</div>
+                    <button class="btn full" @click="toggleBlackout" :class="scene.player_view_blackout ? 'danger active' : 'btn'">{{scene.player_view_blackout ? 'BLACKOUT AKTIV' : 'Blackout Anschalten'}}</button>
+                    
+                    <!-- Blackout Manager UI -->
+                    <div v-if="scene.player_view_blackout" style="background:#222; padding:10px; margin-top:10px; border-radius:4px; border:1px solid #444;">
+                        <label style="color:var(--accent); font-weight:bold; margin-bottom:5px; display:block;">Blackout Media</label>
+                        
+                        <!-- Layout Selector -->
+                        <div class="btn-group">
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'full'}" @click="setBlackoutMode('full')">Full</button>
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'split'}" @click="setBlackoutMode('split')">Split</button>
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'quad'}" @click="setBlackoutMode('quad')">Quad</button>
+                        </div>
+                        
+                        <!-- Visual Grid Selector for GM -->
+                        <div class="gm-bo-grid" :style="{
+                            gridTemplateColumns: scene.blackout_config.mode === 'quad' ? '1fr 1fr' : '1fr',
+                            gridTemplateRows: scene.blackout_config.mode === 'full' ? '1fr' : '1fr 1fr'
+                        }">
+                            <!-- Grid Logic Correction: 
+                                 Full: 1 col 1 row
+                                 Split: 1 col 2 rows (Top/Bottom)
+                                 Quad: 2 cols 2 rows
+                            -->
+                            <div v-for="i in [0,1,2,3]" :key="i" 
+                                 class="gm-bo-cell" 
+                                 :class="{selected: selectedMediaSlot === i}"
+                                 v-show="scene.blackout_config.mode === 'quad' || (scene.blackout_config.mode === 'split' && (i === 0 || i === 2)) || (scene.blackout_config.mode === 'full' && i === 0)"
+                                 @click="selectMediaSlot(i)">
+                                 
+                                <template v-if="scene.blackout_config.screens[i].url">
+                                    <video v-if="scene.blackout_config.screens[i].type === 'video'" :src="scene.blackout_config.screens[i].url" :class="{'bo-flipped': scene.blackout_config.screens[i].flipped}"></video>
+                                    <img v-else :src="scene.blackout_config.screens[i].url" :class="{'bo-flipped': scene.blackout_config.screens[i].flipped}">
+                                </template>
+                                <span v-else>{{i+1}}</span>
+                            </div>
+                        </div>
+
+                        <!-- Controls for Selected Slot -->
+                        <div class="row" style="margin-top:5px;">
+                            <label style="font-size:0.8em; white-space:nowrap;">Slot {{selectedMediaSlot+1}}:</label>
+                            <button class="btn" :class="{active: scene.blackout_config.screens[selectedMediaSlot].flipped}" @click="toggleMediaFlip(selectedMediaSlot)" title="Flip" :disabled="scene.blackout_config.mode !== 'full'"><i class="fas fa-retweet"></i></button>
+                            <button class="btn" :class="{active: scene.blackout_config.screens[selectedMediaSlot].loop}" @click="toggleMediaLoop(selectedMediaSlot)" title="Loop"><i class="fas fa-sync"></i></button>
+                            <button class="btn danger" @click="clearMediaSlot(selectedMediaSlot)"><i class="fas fa-trash"></i></button>
+                        </div>
+                        
+                        <div class="sync-row">
+                            <label><input type="checkbox" v-model="scene.blackout_config.sync" @change="sync"> Sync All Slots</label>
+                            <button class="btn danger" style="flex:0;" @click="clearMediaSlot(-1)">Clear</button>
+                        </div>
+
+                        <!-- Media Browser -->
+                        <div class="section-title" style="margin-top:5px;">Media (Click to Assign)</div>
+                        <button class="btn full" style="font-size:0.8em; margin-bottom:5px;" @click="refreshMedia">Reload Media Folder</button>
+                        <div style="max-height:100px; overflow-y:auto; background:#111; padding:5px;">
+                            <div v-for="m in mediaList" :key="m.name" 
+                                 style="cursor:pointer; font-size:0.8em; padding:2px; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                                 @click="assignMediaToSlot(m)">
+                                <i :class="m.type === 'video' ? 'fas fa-video' : 'fas fa-image'"></i> {{m.name}}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Player View</div>
+                    <button class="btn full" :class="{active: tool=='move_player'}" @click="setTool('move_player')" title="Player View Verschieben" style="margin-top:10px;"><i class="fas fa-video"></i> View Verschieben</button>
+                    <div class="row" style="margin-top:5px"><input type="checkbox" v-model="scene.show_player_frame" @change="sync"> <label>Rahmen zeigen</label></div>
+
+                    <div class="row" style="margin-top:15px"><label>Zoom:</label><input type="number" v-model.number="scene.player_view.width_cells" @change="sync" min="5" max="200"></div>
+                    <div class="row"><label>Format:</label><select v-model.number="scene.player_view.aspect" @change="sync"><option :value="1.777">16:9</option><option :value="1.6">16:10</option><option :value="1.333">4:3</option></select></div>
+                    
+                    <div class="section-title">Tracking Control</div>
+                    <button class="btn full" @click="toggleTracking" :class="scene.tracking_paused ? 'active' : 'btn'"><i class="fas" :class="scene.tracking_paused ? 'fa-pause' : 'fa-play'"></i> {{scene.tracking_paused ? 'Tracking PAUSIERT' : 'Tracking Aktiv'}}</button>
+                    
+                    <div class="section-title">Einstellungen</div>
+                    <div class="row"><input type="checkbox" v-model="scene.show_blob_ids" @change="sync"> <label>Blob IDs (GM)</label></div>
+                    <div class="section-title">Atmosphäre & FOW</div>
+                    <div class="row"><label>Fog of War:</label><input type="checkbox" v-model="scene.fow_active" @change="sync"></div>
+                    <div v-if="scene.fow_active" style="margin-top:10px; padding:10px; background:#111; border-radius:4px;">
+                        <label>Modus:</label><select v-model="scene.fow_mode" @change="sync"><option value="temporary">Modus 2 (Temporär)</option><option value="permanent">Modus 1 (Permanent)</option></select>
+                        <button class="btn danger full" style="margin-top:5px" @click="resetFoW">FOW Reset</button>
+                    </div>
+                    <div class="section-title">Hintergrund</div>
+                    <div class="drop-zone" style="padding:10px; font-size:0.8em; cursor:pointer;" onclick="document.getElementById('bg-upload').click()">Bild hochladen<input id="bg-upload" type="file" @change="handleBgUpload" style="display:none;"></div>
+                    <div v-if="scene.background_image && scene.background_image.url"><div class="row"><label>Skalierung:</label><input type="number" step="0.01" v-model.number="scene.background_image.scale" @change="sync"></div><button class="btn danger" @click="scene.background_image.url=null; sync()">Entfernen</button></div>
+                </div>
+
+                <!-- Tab: Settings -->
+                <div class="panel-content" v-if="tab=='settings'">
+                    <button class="btn full active" @click="openCalibration" style="padding:20px; margin-bottom:20px;"><i class="fas fa-camera"></i> Kamera Setup</button>
+                    
+                    <div class="section-title">Karten Management</div>
+                    <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
+                        <div style="display:flex; gap:5px; margin-bottom:5px;">
+                            <input v-model="saveMapName" placeholder="Kartenname" style="flex:1; margin:0;">
+                            <button class="btn" @click="saveMap" :disabled="!saveMapName">Speichern</button>
+                        </div>
+                        <div style="max-height:150px; overflow-y:auto; border:1px solid #444; border-radius:4px;">
+                            <div v-for="m in mapList" :key="m" class="row" style="padding:5px; border-bottom:1px solid #333; cursor:pointer;" @click="loadMap(m)">
+                                <span style="flex:1">{{m}}</span>
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">System</div>
+                    <div class="row" style="margin-bottom:20px; color:#aaa; font-size:0.9em;">
+                        Player Link: <a :href="'http://'+serverIp+':8080/'" target="_blank" style="color:var(--accent); text-decoration:none;">http://{{serverIp}}:8080/</a>
+                    </div>
+                    <button class="btn full" style="margin-top:10px" @click="saveGame"><i class="fas fa-save"></i> Einstellungen Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/app.js?v=10"></script>
+</body>
+</html>

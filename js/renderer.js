@@ -1,0 +1,1303 @@
+import { getWallPoints, getWallPoly, calculateVisibility } from './utils.js';
+
+// Lineare Interpolation für smoothe Bewegung
+function lerp(start, end, amt) {
+    return (1 - amt) * start + amt * end;
+}
+
+function startAngleFromOffset(offset) {
+    return -Math.PI/2 + offset;
+}
+
+export class GameRenderer {
+    constructor(sceneData, isGM) {
+        this.scene = sceneData;
+        this.isGM = isGM;
+        
+        this.pixiApp = null;
+        this.world = null;
+        this.containers = {};
+        this.entityCache = {};
+        this.textureCache = {};
+        this.tokenCache = {};
+        this.drawingCache = {};
+
+        // --- FoW Internals ---
+        this.fowScreenTexture = null; 
+        this.fowMemoryTexture = null; 
+        
+        this.depthRenderTexture = null;
+        this.depthSprite = null;
+        this.depthGraphics = new PIXI.Graphics(); 
+
+        this.darknessTexture = null; 
+        this.currentDarkness = 0.0;
+        
+        this.lightMaskContainer = new PIXI.Container();
+        this.lightTintContainer = new PIXI.Container();
+        
+        this.depthLayer = new PIXI.Container();
+        // Statischer Blur für Konsistenz beim Zoomen
+        this.wallDepthBlur = new PIXI.BlurFilter(4, 3); 
+        this.depthLayer.filters = [this.wallDepthBlur];
+        this.depthLayer.alpha = 0.35; 
+
+        this.nightSprite = null;
+        this.darknessBg = new PIXI.Graphics();
+        
+        // Statischer Blur für Konsistenz beim Zoomen
+        this.shadowFilter = new PIXI.BlurFilter(8, 3);
+
+        this.mapDirty = true; 
+        this.lightsDirty = true;
+        this.drawingsDirty = true; 
+        this.fowDirty = true; 
+        this._cachedSegments = null;
+        this.shadowsNeedCaching = false;
+        
+        this._lastScale = -1;
+        this._lastViewX = -99999;
+        this._lastViewY = -99999;
+        this._renderDirty = true; 
+        this.lastFlickerUpdate = 0;
+        this.lastFoWPathLength = 0;
+        this.lastPlayerViewHash = ""; 
+        
+        this._cacheState = { grid: '', overlay: '', pFrame: '' };
+
+        this.toolSettings = { wallWidth: 15, brushSize: 15 }; 
+        this.drawColor = '#ffffff';
+        this.brushTexture = null;
+        this.tilesPerAxis = 2;
+        this.dragState = { mode: null, temp: null };
+        this.selectedObjId = null;
+        this.lastDragHash = "";
+        
+        // --- PERFORMANCE: Event Driven Rendering ---
+        this.renderBound = this.render.bind(this);
+        this._renderPending = false;
+        this._lightLoopRunning = false;
+    }
+
+    init() {
+        this.pixiApp = new PIXI.Application({ 
+            resizeTo: window, 
+            backgroundColor: 0x000000, 
+            antialias: true,
+            autoDensity: true,
+            resolution: 1, 
+            autoStart: false // Disable autoStart for event-driven rendering
+        });
+        document.getElementById('pixi-container').appendChild(this.pixiApp.view);
+        
+        // Ensure no ticker is running
+        this.pixiApp.ticker.stop();
+        this.pixiApp.ticker.destroy();
+
+        this.world = new PIXI.Container(); 
+        this.world.sortableChildren = true;
+        this.pixiApp.stage.addChild(this.world);
+        
+        this.pixiApp.stage.addChild(this.depthLayer);
+        this.pixiApp.stage.eventMode = 'static'; 
+        this.pixiApp.stage.hitArea = this.pixiApp.screen;
+        
+        this.depthRenderTexture = PIXI.RenderTexture.create({ width: this.pixiApp.screen.width, height: this.pixiApp.screen.height });
+        this.depthSprite = new PIXI.Sprite(this.depthRenderTexture);
+        this.depthLayer.addChild(this.depthSprite);
+
+        this.containers = {
+            bgImage: new PIXI.Container(), 
+            bg: new PIXI.Container(),      
+            grid: new PIXI.Graphics(),     
+            draw: new PIXI.Container(),    
+            preview: new PIXI.Graphics(),  
+            mapLow: new PIXI.Container(),   
+            shadows: new PIXI.Container(),  
+            mapOutline: new PIXI.Graphics(),
+            structure: new PIXI.Container(), 
+            objectsHigh: new PIXI.Container(), 
+            tokens: new PIXI.Container(), 
+            nightLayer: new PIXI.Container(), 
+            lights: new PIXI.Container(),     
+            fow: new PIXI.Container(),        
+            overlay: new PIXI.Graphics(),     
+            pFrame: new PIXI.Graphics(),      
+            debug: new PIXI.Graphics()        
+        };
+        
+        let z = 0;
+        this.containers.bgImage.zIndex = ++z;
+        this.containers.bg.zIndex = ++z;       
+        this.containers.draw.zIndex = ++z;     
+        this.containers.preview.zIndex = ++z;  
+        this.containers.grid.zIndex = ++z;
+        this.containers.mapLow.zIndex = ++z; 
+        this.containers.shadows.zIndex = ++z;
+        this.containers.mapOutline.zIndex = ++z; 
+        this.containers.structure.zIndex = ++z; 
+        this.containers.objectsHigh.zIndex = ++z;
+        this.containers.lights.zIndex = ++z;     
+        this.containers.fow.zIndex = 1000;      
+        this.containers.tokens.zIndex = 1100;
+        this.containers.overlay.zIndex = 1200; 
+        this.containers.pFrame.zIndex = 1300; 
+        this.containers.debug.zIndex = 1400;
+        
+        Object.values(this.containers).forEach(c => { if(c.eventMode !== 'static') c.eventMode = 'none'; });
+
+        this.containers.mapLow.sortableChildren = true;
+        this.containers.structure.sortableChildren = true;
+        this.containers.objectsHigh.sortableChildren = true;
+
+        Object.entries(this.containers).forEach(([key, c]) => {
+            if (key !== 'nightLayer') this.world.addChild(c);
+        });
+        
+        this.pixiApp.stage.addChild(this.containers.nightLayer);
+        this.containers.nightLayer.addChild(this.lightTintContainer);
+
+        this.containers.shadows.filters = [this.shadowFilter];
+        this.containers.shadows.alpha = 0.5;
+        this.containers.shadows.cacheAsBitmap = true; 
+        
+        this.requestRender();
+    }
+
+    requestRender() {
+        if (this._renderPending) return;
+        this._renderPending = true;
+        requestAnimationFrame(this.renderBound);
+    }
+
+    startLightLoop() {
+        if (this._lightLoopRunning) return;
+        this._lightLoopRunning = true;
+        
+        const loop = () => {
+            // Check if we need to animate (flicker active or darkness transition incomplete)
+            const animating = this.animateLights();
+            if (animating) {
+                this.requestRender();
+                requestAnimationFrame(loop);
+            } else {
+                this._lightLoopRunning = false;
+            }
+        };
+        loop();
+    }
+
+    rebuildFoW() {
+        this.fowDirty = true;
+        this.updateFoWMemory(true);
+    }
+
+    getWorldPos(e) {
+        const rect = this.pixiApp.view.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        return {
+            x: (mouseX - this.world.x) / this.world.scale.x,
+            y: (mouseY - this.world.y) / this.world.scale.y
+        };
+    }
+
+    getSegments() {
+        if (!this._cachedSegments || (this.scene.walls && this.scene.walls.length > 0 && this._cachedSegments.length === 0)) {
+             const segments = [];
+             (this.scene.walls||[]).forEach(wa => {
+                if(wa.invisible) return; 
+                const isArr = Array.isArray(wa);
+                const a = {x:isArr?wa[0]:wa.x1, y:isArr?wa[1]:wa.y1};
+                const b = {x:isArr?wa[2]:wa.x2, y:isArr?wa[3]:wa.y2};
+                if(wa.curve) {
+                    const pts = getWallPoints(a, b, wa.curve);
+                    for(let i=0; i<pts.length-1; i++) segments.push({a:pts[i], b:pts[i+1]});
+                } else segments.push({a,b});
+            });
+            (this.scene.columns||[]).forEach(c => {
+                const count = (c.vertices && c.vertices > 0) ? c.vertices : 16;
+                const rot = (c.rotation || 0) * (Math.PI/180);
+                const pts = []; const r = c.radius * 0.9;
+                for(let i=0; i<count; i++) { const a = (i/count)*Math.PI*2 + rot; pts.push({x: c.x + Math.cos(a)*r, y: c.y + Math.sin(a)*r}); }
+                for(let i=0; i<count; i++) { segments.push({a: pts[i], b: pts[(i+1)%count]}); }
+            });
+            this._cachedSegments = segments;
+        }
+        return this._cachedSegments;
+    }
+
+    setToolSettings(settings, color, texture, tiles) {
+        let changed = false;
+        if (this.drawColor !== color) changed = true;
+        if (this.brushTexture !== texture) changed = true;
+        if (this.tilesPerAxis !== tiles) changed = true;
+        if (this.toolSettings.brushSize !== settings.brushSize) changed = true;
+        if (changed) {
+            this.toolSettings = settings;
+            this.drawColor = color;
+            this.brushTexture = texture;
+            this.tilesPerAxis = tiles;
+            if (this.dragState.active) this._renderDirty = true;
+        }
+    }
+
+    setDragState(drag, selId) {
+        if (drag.active) {
+            this._renderDirty = true;
+            // Disable shadow caching ONLY for structural changes (walls/columns)
+            // BUGFIX: Removed 'obj' from here to prevent shadow flickering when moving furniture
+            if(drag.mode === 'wall_move' || drag.mode === 'wall_drag' || drag.mode === 'column_move') {
+                this.containers.shadows.cacheAsBitmap = false;
+            }
+        } else {
+             const newHash = `${drag.mode}_${selId}`;
+             if (this.lastDragHash !== newHash) {
+                 this._renderDirty = true;
+                 this.lastDragHash = newHash;
+             }
+             // Re-enable caching on drop handled via shadowsNeedCaching logic in render()
+             this.shadowsNeedCaching = true;
+        }
+        this.dragState = drag;
+        this.selectedObjId = selId;
+    }
+    
+    setBlobs(blobs) { this.activeBlobs = blobs; }
+
+    updateFoWMemory(forceRebuild = false) {
+        if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
+        
+        const pv = this.scene.player_view;
+        const gs = this.scene.grid_size;
+        const w = Math.max(1, pv.width_cells * gs);
+        const h = Math.max(1, w / pv.aspect);
+        
+        // OPTIMIZATION: Round values to prevent micro-jitter rebuilds
+        const viewHash = `${Math.round(pv.x)}_${Math.round(pv.y)}_${Math.round(w)}_${Math.round(h)}`;
+        if (viewHash !== this.lastPlayerViewHash) forceRebuild = true;
+        this.lastPlayerViewHash = viewHash;
+
+        if (!this.fowMemoryTexture || forceRebuild) {
+             if (this.fowMemoryTexture) this.fowMemoryTexture.destroy(true);
+             this.fowMemoryTexture = PIXI.RenderTexture.create({ 
+                 width: Math.ceil(w), 
+                 height: Math.ceil(h),
+                 scaleMode: PIXI.SCALE_MODES.LINEAR
+             });
+             this.lastFoWPathLength = 0; 
+        }
+        
+        const visited = this.scene.fow_visited || [];
+        
+        // Safety check: if visited array was reset, force rebuild
+        if (visited.length < this.lastFoWPathLength) {
+            forceRebuild = true;
+            this.lastFoWPathLength = 0;
+        }
+
+        if (visited.length === this.lastFoWPathLength && !forceRebuild) return;
+
+        const segments = this.getSegments();
+        const brush = new PIXI.Graphics();
+        brush.beginFill(0xFFFFFF, 1.0); 
+
+        // OPTIMIZATION: Only draw new segments unless forced
+        const startIdx = forceRebuild ? 0 : this.lastFoWPathLength;
+        const viewX = pv.x - w/2;
+        const viewY = pv.y - h/2;
+
+        for (let i = startIdx; i < visited.length; i++) {
+            const pt = visited[i];
+            const relX = pt.x - viewX;
+            const relY = pt.y - viewY;
+            
+            // Loose culling for drawing bounds
+            if (relX < -pt.radius || relX > w + pt.radius || relY < -pt.radius || relY > h + pt.radius) continue;
+
+            const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments);
+            if (poly.length > 0) {
+                brush.moveTo(poly[0].x - viewX, poly[0].y - viewY);
+                for (let j=1; j<poly.length; j++) brush.lineTo(poly[j].x - viewX, poly[j].y - viewY);
+                brush.closePath();
+            } else {
+                brush.drawCircle(relX, relY, pt.radius);
+            }
+        }
+        brush.endFill();
+        brush.filters = [new PIXI.BlurFilter(15)]; 
+
+        // OPTIMIZATION: clear: false preserves history (baking)
+        this.pixiApp.renderer.render(brush, { 
+            renderTexture: this.fowMemoryTexture, 
+            clear: forceRebuild, 
+            transform: null
+        });
+
+        this.lastFoWPathLength = visited.length;
+    }
+
+    renderFoW() {
+        this.containers.fow.removeChildren();
+        if (!this.scene.fow_active) return;
+
+        const segments = this.getSegments();
+        this.updateFoWMemory(this.fowDirty);
+        this.fowDirty = false;
+
+        const screenW = this.pixiApp.screen.width;
+        const screenH = this.pixiApp.screen.height;
+
+        if (!this.fowScreenTexture || this.fowScreenTexture.width !== screenW || this.fowScreenTexture.height !== screenH) {
+             if(this.fowScreenTexture) this.fowScreenTexture.destroy(true);
+             this.fowScreenTexture = PIXI.RenderTexture.create({ width: screenW, height: screenH });
+        }
+
+        const opacity = this.isGM ? 0.6 : 1.0;
+        const blackRect = new PIXI.Graphics();
+        blackRect.beginFill(0x000000, opacity);
+        blackRect.drawRect(0, 0, screenW, screenH);
+        blackRect.endFill();
+        this.pixiApp.renderer.render(blackRect, { renderTexture: this.fowScreenTexture, clear: true });
+
+        const visionContainer = new PIXI.Container();
+        visionContainer.position.set(this.world.x, this.world.y);
+        visionContainer.scale.set(this.world.scale.x, this.world.scale.y);
+        visionContainer.rotation = this.world.rotation;
+
+        // Permanent Memory Layer
+        if (this.scene.fow_mode === 'permanent' && this.fowMemoryTexture) {
+             const pv = this.scene.player_view;
+             const gs = this.scene.grid_size;
+             const w = pv.width_cells * gs;
+             const h = w / pv.aspect;
+             
+             const permSprite = new PIXI.Sprite(this.fowMemoryTexture);
+             permSprite.position.set(pv.x - w/2, pv.y - h/2);
+             permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
+             visionContainer.addChild(permSprite);
+        }
+
+        // Live Vision (applies to both Temporary and Permanent modes)
+        Object.values(this.scene.tokens).forEach(t => {
+            if (t.has_vision) { 
+                const poly = calculateVisibility({x:t.x, y:t.y, radius: t.vision_range}, segments);
+                if(poly.length > 0) {
+                    // Create gradient texture (brightness 1.0 = fully clear)
+                    const tex = this.createVisionTexture(t.vision_range);
+                    const matrix = new PIXI.Matrix();
+                    matrix.translate(-tex.width / 2, -tex.height / 2);
+                    // No flicker for vision usually, so scale is 1
+                    matrix.scale(1, 1);
+                    matrix.translate(t.x, t.y);
+
+                    const visionG = new PIXI.Graphics();
+                    visionG.beginTextureFill({ texture: tex, matrix: matrix });
+                    visionG.drawPolygon(poly); 
+                    visionG.endFill();
+                    // Cut hole in the fog
+                    visionG.blendMode = PIXI.BLEND_MODES.DST_OUT;
+                    visionContainer.addChild(visionG);
+                }
+            }
+        });
+
+        this.pixiApp.renderer.render(visionContainer, { renderTexture: this.fowScreenTexture, clear: false });
+
+        const finalSprite = new PIXI.Sprite(this.fowScreenTexture);
+        const invScale = 1 / this.world.scale.x;
+        finalSprite.position.set(-this.world.x * invScale, -this.world.y * invScale);
+        finalSprite.scale.set(invScale);
+        
+        this.containers.fow.addChild(finalSprite);
+    }
+    
+    render() {
+        this._renderPending = false;
+        if(!this.pixiApp || !this.pixiApp.renderer) return;
+        if(this.pixiApp.renderer.gl && this.pixiApp.renderer.gl.isContextLost()) return;
+        if(!this.scene) return;
+        
+        const pv = this.scene.player_view; const gs = this.scene.grid_size;
+        
+        if(!this.isGM) {
+            const scale = window.innerWidth / (pv.width_cells * gs);
+            this.world.scale.set(scale);
+            this.world.x = -pv.x * scale + window.innerWidth/2;
+            this.world.y = -pv.y * scale + window.innerHeight/2;
+        } else {
+            this.world.position.set(this.scene.view.x, this.scene.view.y);
+            this.world.scale.set(this.scene.view.scale);
+        }
+        this.world.updateTransform();
+
+        const viewChanged = (
+            Math.abs(this.world.scale.x - this._lastScale) > 0.001 ||
+            Math.abs(this.world.x - this._lastViewX) > 0.01 || 
+            Math.abs(this.world.y - this._lastViewY) > 0.01
+        );
+
+        if (viewChanged) {
+            this._lastScale = this.world.scale.x;
+            this._lastViewX = this.world.x; this._lastViewY = this.world.y;
+            this._renderDirty = true; 
+            
+            // Dynamic Blur for Wall Depth to keep it visually consistent
+            this.wallDepthBlur.blur = 4 * this.world.scale.x;
+        }
+
+        const tokensMoved = this.renderTokens();
+        
+        // BUGFIX: Token Smoothness
+        // If tokens are interpolating (lerping), we MUST keep requesting frames 
+        // until they reach their destination.
+        if (tokensMoved) {
+            this._renderDirty = true;
+            this.requestRender();
+        }
+
+        if (this.dragState.active) this._renderDirty = true;
+        if (this.mapDirty || this.lightsDirty || this.drawingsDirty || this.fowDirty) this._renderDirty = true;
+
+        // Optimization: Return early if nothing to render and shadows are stable
+        if (!this._renderDirty && !this.shadowsNeedCaching) {
+             return; 
+        }
+
+        // Handle delayed cache enabling for shadows to prevent artifacts
+        if (this.shadowsNeedCaching && !this.mapDirty) {
+             this.containers.shadows.cacheAsBitmap = true;
+             this.shadowsNeedCaching = false;
+        }
+
+        let bgHex = 0x222222;
+        if(this.scene.background_color) bgHex = parseInt(this.scene.background_color.replace('#',''), 16);
+        if (this.pixiApp.renderer.background.color !== bgHex) this.pixiApp.renderer.background.color = bgHex;
+        
+        if (this.depthRenderTexture && (this.depthRenderTexture.width !== this.pixiApp.screen.width || this.depthRenderTexture.height !== this.pixiApp.screen.height)) {
+            this.depthRenderTexture.resize(this.pixiApp.screen.width, this.pixiApp.screen.height);
+            this.mapDirty = true; 
+        }
+
+        if (this.mapDirty) {
+            this.rebuildMap();
+            this.mapDirty = false;
+            this.lightsDirty = true; 
+            this.fowDirty = true; 
+            this._cachedSegments = null; 
+        }
+
+        if (this.depthGraphics) {
+             const matrix = this.world.transform.localTransform;
+             this.pixiApp.renderer.render(this.depthGraphics, { renderTexture: this.depthRenderTexture, clear: true, transform: matrix });
+        }
+
+        this.renderGridAndTools(pv, gs, viewChanged); 
+        this.renderLights(viewChanged); 
+        this.renderFoW(); 
+        this.renderOverlays(viewChanged);
+
+        if (this.drawingsDirty) { this.renderStaticDrawings(); this.drawingsDirty = false; }
+        
+        const isDrawing = this.dragState.active && ['brush','grid_paint','rect_paint','circle_paint'].includes(this.dragState.mode);
+        if (isDrawing) { this.renderPreviewDrawing(); } 
+        else if (this.containers.preview.children.length > 0) {
+            this.containers.preview.clear();
+        }
+
+        this.pixiApp.renderer.render(this.pixiApp.stage);
+        
+        // Reset dirty flag only if no user interaction is pending
+        if (!tokensMoved && !this.dragState.active && !isDrawing) { this._renderDirty = false; }
+    }
+
+    createVisionTexture(radius) {
+        const key = `vis_${Math.round(radius)}`;
+        if (this.textureCache[key]) return this.textureCache[key];
+        const padding = 20; const dim = (radius + padding) * 2; const center = dim / 2;
+        const canvas = document.createElement('canvas'); 
+        canvas.width = dim; canvas.height = dim;
+        const ctx = canvas.getContext('2d');
+        const grd = ctx.createRadialGradient(center, center, 0, center, center, radius);
+        
+        // --- VISION HARDNESS ---
+        grd.addColorStop(0, "rgba(255, 255, 255, 1)"); 
+        grd.addColorStop(0.8, "rgba(255, 255, 255, 0.9)"); // 0.8 controls hardness (0.0 - 1.0)
+        grd.addColorStop(1, "rgba(255, 255, 255, 0)"); 
+        
+        ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
+        const tex = PIXI.Texture.from(canvas); 
+        this.textureCache[key] = tex;
+        return tex;
+    }
+
+    createGradientTexture(radius, brightness) {
+        const key = `grad_${Math.round(radius)}_${Math.round(brightness * 100)}`;
+        if (this.textureCache[key]) return this.textureCache[key];
+        const padding = 20; const dim = (radius + padding) * 2; const center = dim / 2;
+        const canvas = document.createElement('canvas'); 
+        canvas.width = dim; canvas.height = dim;
+        const ctx = canvas.getContext('2d');
+        const grd = ctx.createRadialGradient(center, center, 0, center, center, radius);
+        grd.addColorStop(0, "rgba(255, 255, 255, 1)"); 
+        grd.addColorStop(Math.min(1, brightness), "rgba(255, 255, 255, 0.5)"); 
+        grd.addColorStop(1, "rgba(255, 255, 255, 0)"); 
+        ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
+        const tex = PIXI.Texture.from(canvas); 
+        this.textureCache[key] = tex;
+        return tex;
+    }
+    
+    animateLights() {
+        if (!this.scene.lights_active) return false;
+        const now = Date.now();
+        if (now - this.lastFlickerUpdate < 50) return this._lightLoopRunning; // Don't stop, just wait
+        this.lastFlickerUpdate = now;
+        let anyFlicker = false;
+        this.scene.lights.forEach(l => {
+            if (l.flicker) {
+                if (l._flickerOffset === undefined) l._flickerOffset = Math.random() * 10000;
+                const time = (Date.now() + l._flickerOffset) / 100;
+                const strength = (l.flicker_strength || 50); 
+                l.currentFlickerRadius = (Math.sin(time) + Math.random() * 0.5) * (strength / 10);
+                anyFlicker = true;
+            } else { l.currentFlickerRadius = 0; }
+        });
+        if (anyFlicker) { this.lightsDirty = true; this._renderDirty = true; }
+        
+        let targetDarkness = 0;
+        if (this.scene.time_of_day === 'night') targetDarkness = 0.70; 
+        
+        let darknessChanged = false;
+        // Float check epsilon 0.005
+        if (Math.abs(this.currentDarkness - targetDarkness) > 0.005) {
+            this.currentDarkness += (targetDarkness - this.currentDarkness) * 0.05; 
+            darknessChanged = true;
+        } else { 
+            if (this.currentDarkness !== targetDarkness) {
+                 this.currentDarkness = targetDarkness;
+                 darknessChanged = true;
+            }
+        }
+        
+        if (darknessChanged) { this.lightsDirty = true; this._renderDirty = true; }
+        
+        // Return true if we need to keep animating (flicker active or transition active)
+        return anyFlicker || darknessChanged;
+    }
+
+    rebuildMap() {
+        // Disable caching immediately to allow updates
+        this.containers.shadows.cacheAsBitmap = false;
+        // Mark for re-caching in the next render cycle to avoid artifacts
+        this.shadowsNeedCaching = true;
+        
+        const cleanContainer = (container) => {
+            while(container.children.length > 0) {
+                const child = container.getChildAt(0);
+                if (child !== this.depthSprite) { 
+                    container.removeChild(child);
+                    child.destroy({ children: true, texture: false, baseTexture: false });
+                } else { break; }
+            }
+        };
+
+        cleanContainer(this.containers.bgImage);
+        cleanContainer(this.containers.shadows);
+        
+        this.containers.mapOutline.clear();
+        const usedIds = new Set();
+
+        if(this.scene.background_image && this.scene.background_image.url) {
+            const cfg = this.scene.background_image;
+            const tex = PIXI.Texture.from(cfg.url);
+            let s; 
+            const actualScale = cfg.scale * 0.1;
+            if(cfg.repeat) {
+                s = new PIXI.TilingSprite(tex, 100000, 100000); 
+                s.tileScale.set(actualScale); s.tilePosition.set(cfg.x, cfg.y); s.position.set(-50000, -50000);
+            } else {
+                s = new PIXI.Sprite(tex); s.scale.set(actualScale); s.position.set(cfg.x, cfg.y); s.anchor.set(0.5);
+            }
+            s.alpha = 1.0; 
+            this.containers.bgImage.addChild(s);
+            if(!tex.valid) tex.once('update', () => this.mapDirty = true);
+        }
+
+        const shGraphics = new PIXI.Graphics();
+        this.containers.shadows.addChild(shGraphics);
+        shGraphics.beginFill(0x000000, 1.0); 
+        
+        // Optimization: Disable shadows filter if no walls
+        let hasWalls = false;
+
+        const wallOverlapMap = {}; 
+        const ptKey = (x,y) => `${Math.round(x)},${Math.round(y)}`;
+        const activeWalls = (this.scene.walls || []).map((w, i) => ({w, i})).filter(o => !o.w.invisible);
+
+        activeWalls.forEach(({w, i}) => {
+            const k1 = ptKey(w.x1, w.y1); const k2 = ptKey(w.x2, w.y2);
+            if(!wallOverlapMap[k1]) wallOverlapMap[k1] = [];
+            if(!wallOverlapMap[k2]) wallOverlapMap[k2] = [];
+            wallOverlapMap[k1].push(i); wallOverlapMap[k2].push(i);
+        });
+
+        const isWinner = (wallIdx, intersectionKey) => {
+            const indices = wallOverlapMap[intersectionKey];
+            if (!indices || indices.length < 2) return false;
+            let winnerIdx = -1; let maxZ = -Infinity;
+            indices.forEach(idx => {
+                const wObj = this.scene.walls[idx];
+                const z = wObj.z !== undefined ? wObj.z : 5;
+                if (z > maxZ) { maxZ = z; winnerIdx = idx; } 
+                else if (z === maxZ) { if (idx > winnerIdx) winnerIdx = idx; }
+            });
+            return winnerIdx === wallIdx;
+        };
+
+        const outline = this.containers.mapOutline;
+        const dbg = this.containers.debug; dbg.clear();
+        const dG = this.depthGraphics; dG.clear();
+        dG.beginFill(0x000000, 1.0); dG.lineStyle(0);
+        
+        (this.scene.walls || []).forEach(w => {
+             if(!w.id || w.invisible) return;
+             hasWalls = true;
+             const wallWidth = w.width || 15;
+             const depthWidth = wallWidth * 0.5;
+             let depthPoly = w.curve ? getWallPoly({x:w.x1, y:w.y1}, {x:w.x2, y:w.y2}, depthWidth, w.curve) : getWallPoly({x:w.x1, y:w.y1}, {x:w.x2, y:w.y2}, depthWidth, 0);
+             if (depthPoly.length > 0) dG.drawPolygon(depthPoly);
+        });
+
+        (this.scene.columns || []).forEach(c => {
+            if (c.vertices > 2) {
+                 const ptsD = []; const r = c.radius;
+                 for(let i=0; i<c.vertices; i++) { const a = (i/c.vertices)*Math.PI*2 + (c.rotation||0)*Math.PI/180; ptsD.push(c.x + Math.cos(a)*r*0.9, c.y + Math.sin(a)*r*0.9); }
+                 dG.drawPolygon(ptsD);
+            } else { dG.drawCircle(c.x, c.y, c.radius * 0.9); }
+        });
+        dG.endFill();
+        
+        this.containers.shadows.visible = hasWalls;
+
+        (this.scene.walls || []).forEach((w, index) => {
+            if(!w.id) return;
+            let p1 = {x:w.x1, y:w.y1}; let p2 = {x:w.x2, y:w.y2};
+            if ((!w.curve || Math.abs(w.curve) < 0.1) && !w.invisible) {
+                const dx = p2.x - p1.x; const dy = p2.y - p1.y;
+                const len = Math.hypot(dx, dy);
+                if (len > 0.1) {
+                    const ext = (w.width || 6) / 2;
+                    const ux = dx / len; const uy = dy / len;
+                    if (isWinner(index, ptKey(w.x1, w.y1))) p1 = { x: p1.x - ux * ext, y: p1.y - uy * ext };
+                    if (isWinner(index, ptKey(w.x2, w.y2))) p2 = { x: p2.x + ux * ext, y: p2.y + uy * ext };
+                }
+            }
+            if(!w.invisible) {
+                const thickness = w.width || 6; const curve = w.curve || 0;
+                shGraphics.lineStyle({ width: thickness + 12, color: 0x000000, alpha: 1.0, join: PIXI.LINE_JOIN.MITER, cap: PIXI.LINE_CAP.BUTT });
+                if(curve !== 0) { shGraphics.endFill(); this.drawWallCurve(shGraphics, {x:w.x1, y:w.y1}, {x:w.x2, y:w.y2}, curve); } 
+                else { const dx = p2.x - p1.x; const dy = p2.y - p1.y; if(Math.hypot(dx, dy) > 0.1) { shGraphics.moveTo(p1.x, p1.y); shGraphics.lineTo(p2.x, p2.y); } }
+                
+                usedIds.add(w.id);
+                const poly = getWallPoly(p1, p2, thickness, curve);
+                if(poly.length >= 6) {
+                    outline.lineStyle({width: 2, color: 0x222222, alignment: 0.5, join: PIXI.LINE_JOIN.MITER});
+                    outline.beginFill(0x222222); outline.drawPolygon(poly); outline.endFill();
+                    let fill = this.entityCache[w.id];
+                    if (!fill) { fill = new PIXI.Graphics(); this.entityCache[w.id] = fill; this.containers.structure.addChild(fill); }
+                    fill.clear(); fill.visible = true; fill.zIndex = (w.z !== undefined ? w.z : 5); fill.lineStyle(0);
+                    const color = w.color ? parseInt(w.color.replace('#',''),16) : 0x000000;
+                    if(!w.texture) { fill.beginFill(color); fill.drawPolygon(poly); fill.endFill(); } 
+                    else {
+                        const tex = PIXI.Texture.from(w.texture);
+                        if (tex.valid) {
+                            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                            const gs = this.scene.grid_size; const tpa = w.tilesPerAxis || 1;
+                            const scaleX = (gs * tpa) / tex.width; const scaleY = (gs * tpa) / tex.height;
+                            const matrix = new PIXI.Matrix(); matrix.scale(scaleX, scaleY); 
+                            if(Math.abs(curve)<0.1) matrix.rotate(angle);
+                            fill.beginTextureFill({texture: tex, matrix: matrix}); fill.drawPolygon(poly); fill.endFill();
+                        } else { tex.once('update', () => this.mapDirty = true); fill.beginFill(color); fill.drawPolygon(poly); fill.endFill(); }
+                    }
+                }
+            } else if(this.isGM) { 
+                dbg.lineStyle(2, 0xFF0000, 0.8);
+                if(w.curve) this.drawWallCurve(dbg, {x:w.x1, y:w.y1}, {x:w.x2, y:w.y2}, w.curve);
+                else { dbg.moveTo(w.x1, w.y1); dbg.lineTo(w.x2, w.y2); }
+            }
+        });
+
+        (this.scene.objects||[]).forEach(o => {
+            usedIds.add(o.id);
+            let s = this.entityCache[o.id];
+            if(!s || !(s instanceof PIXI.Sprite)) {
+                if(s) s.destroy();
+                s = o.type==='video' ? new PIXI.Sprite(PIXI.Texture.from(o.src)) : PIXI.Sprite.from(o.src);
+                s.anchor.set(0.5); this.entityCache[o.id] = s;
+                const z = o.z !== undefined ? o.z : 5;
+                const targetContainer = (z < 0) ? this.containers.mapLow : this.containers.objectsHigh;
+                targetContainer.addChild(s);
+            }
+            const z = o.z !== undefined ? o.z : 5;
+            const correctContainer = (z < 0) ? this.containers.mapLow : this.containers.objectsHigh;
+            if (s.parent !== correctContainer) correctContainer.addChild(s);
+            if (s.texture && !s.texture.valid) s.texture.once('update', () => this.mapDirty = true);
+            s.position.set(o.x, o.y); s.rotation = (o.rotation||0) * (Math.PI/180);
+            if(o.width && o.height) { s.width = o.width; s.height = o.height; }
+            s.zIndex = z; s.alpha = 1.0;
+        });
+
+        (this.scene.columns || []).forEach(c => {
+            usedIds.add(c.id);
+            shGraphics.lineStyle(0); shGraphics.beginFill(0x000000, 1.0);
+            if(c.vertices > 2) {
+                 const pts = []; const r = c.radius + 6; 
+                 for(let i=0; i<c.vertices; i++) { const a = (i/c.vertices)*Math.PI*2 + (c.rotation||0)*Math.PI/180; pts.push(c.x + Math.cos(a)*r, c.y + Math.sin(a)*c.radius); }
+                 shGraphics.drawPolygon(pts);
+            } else { shGraphics.drawCircle(c.x, c.y, c.radius + 6); }
+            shGraphics.endFill();
+
+            outline.lineStyle({width: 2, color: 0x222222, alignment: 0.5}); outline.beginFill(0x222222);
+            let entity = this.entityCache[c.id];
+            if (!entity) { entity = new PIXI.Graphics(); this.entityCache[c.id] = entity; this.containers.structure.addChild(entity); }
+            entity.clear(); entity.zIndex = (c.z !== undefined ? c.z : 10); entity.lineStyle(0); 
+            const col = c.color ? parseInt(c.color.replace('#',''),16) : 0x444444;
+            if(c.texture) {
+                 const tex = PIXI.Texture.from(c.texture);
+                 if(tex.valid) {
+                     const tpa = c.tilesPerAxis || 1;
+                     const scaleX = (this.scene.grid_size * tpa) / tex.width; const scaleY = (this.scene.grid_size * tpa) / tex.height;
+                     const m = new PIXI.Matrix(); m.scale(scaleX, scaleY); entity.beginTextureFill({texture: tex, matrix: m});
+                 } else { tex.once('update', () => this.mapDirty = true); entity.beginFill(col); }
+            } else { entity.beginFill(col); }
+
+            if(c.vertices > 2) {
+                 const pts = []; const r = c.radius;
+                 for(let i=0; i<c.vertices; i++) { const a = (i/c.vertices)*Math.PI*2 + (c.rotation||0)*Math.PI/180; pts.push(c.x + Math.cos(a)*r, c.y + Math.sin(a)*c.radius); }
+                 pts.push(pts[0], pts[1]); outline.drawPolygon(pts); entity.drawPolygon(pts);
+            } else { outline.drawCircle(c.x, c.y, c.radius); entity.drawCircle(c.x, c.y, c.radius); }
+            outline.endFill(); entity.endFill();
+        });
+        
+        Object.keys(this.entityCache).forEach(k => {
+            if (!usedIds.has(Number(k)) && !usedIds.has(k)) {
+                this.entityCache[k].destroy(); delete this.entityCache[k];
+            }
+        });
+    }
+
+    renderLights(viewChanged) {
+        const nl = this.containers.nightLayer; 
+        const lc = this.containers.lights; 
+        
+        if (this.lightsDirty) {
+             lc.removeChildren(); 
+             if(this.isGM && this.scene.show_light_icons) {
+                this.scene.lights.forEach(l => {
+                    const icon = new PIXI.Graphics();
+                    icon.lineStyle(2, 0xffffff); icon.beginFill(0xffff00);
+                    icon.drawCircle(0,0,4); icon.endFill(); icon.position.set(l.x, l.y); lc.addChild(icon); 
+                });
+            }
+        }
+
+        if (!this.scene.lights_active) {
+            nl.visible = false;
+            this.lightsDirty = false;
+            return;
+        }
+        nl.visible = true;
+        
+        if (!this.lightsDirty && !viewChanged) {
+             this.nightSprite.alpha = this.currentDarkness; 
+             return;
+        }
+
+        const cleanAndDestroy = (container) => {
+             while (container.children.length > 0) {
+                const child = container.children[0];
+                container.removeChild(child);
+                child.destroy();
+            }
+        };
+
+        cleanAndDestroy(this.lightMaskContainer);
+        cleanAndDestroy(this.lightTintContainer);
+        
+        if (!this.darknessTexture || this.darknessTexture.width !== this.pixiApp.screen.width || this.darknessTexture.height !== this.pixiApp.screen.height) {
+            if(this.darknessTexture) this.darknessTexture.destroy(true);
+            this.darknessTexture = PIXI.RenderTexture.create({width: this.pixiApp.screen.width, height: this.pixiApp.screen.height});
+            
+            if (this.nightSprite) this.nightSprite.destroy();
+            this.nightSprite = new PIXI.Sprite(this.darknessTexture);
+            this.nightSprite.blendMode = PIXI.BLEND_MODES.NORMAL;
+            nl.addChildAt(this.nightSprite, 0); 
+        }
+
+        this.darknessBg.clear();
+        this.darknessBg.beginFill(0x050510, 1.0); 
+        this.darknessBg.drawRect(0,0, this.pixiApp.screen.width, this.pixiApp.screen.height);
+        this.darknessBg.endFill();
+        this.pixiApp.renderer.render(this.darknessBg, {renderTexture: this.darknessTexture, clear: true});
+
+        const segments = this.getSegments();
+        
+        this.lightTintContainer.position.set(this.world.x, this.world.y);
+        this.lightTintContainer.scale.set(this.world.scale.x, this.world.scale.y);
+        this.lightTintContainer.rotation = this.world.rotation;
+        
+        this.lightMaskContainer.position.set(this.world.x, this.world.y);
+        this.lightMaskContainer.scale.set(this.world.scale.x, this.world.scale.y);
+        this.lightMaskContainer.rotation = this.world.rotation;
+
+        const viewBounds = this.getVisibleWorldBounds();
+
+        this.scene.lights.forEach(l => {
+            const flickerOffset = l.currentFlickerRadius || 0;
+            const baseRadius = l.radius;
+            const effectiveRadius = baseRadius + flickerOffset;
+            const flickerScale = effectiveRadius / baseRadius;
+
+            if (l.x + effectiveRadius < viewBounds.x || l.x - effectiveRadius > viewBounds.x + viewBounds.width ||
+                l.y + effectiveRadius < viewBounds.y || l.y - effectiveRadius > viewBounds.y + viewBounds.height) return;
+
+            const cullDist = effectiveRadius + 50; 
+            const nearbySegments = segments.filter(s => {
+                return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
+                         Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
+            });
+
+            const poly = calculateVisibility({x:l.x, y:l.y, radius: effectiveRadius}, nearbySegments);
+            
+            if(poly.length > 0) {
+                const tex = this.createGradientTexture(baseRadius, l.brightness === undefined ? 0.5 : l.brightness);
+                const matrix = new PIXI.Matrix();
+                matrix.translate(-tex.width / 2, -tex.height / 2);
+                matrix.scale(flickerScale, flickerScale);
+                matrix.translate(l.x, l.y);
+
+                const holeG = new PIXI.Graphics();
+                holeG.beginTextureFill({ texture: tex, matrix: matrix });
+                holeG.drawPolygon(poly); 
+                holeG.endFill();
+                holeG.blendMode = PIXI.BLEND_MODES.DST_OUT;
+                this.lightMaskContainer.addChild(holeG);
+                
+                const colorG = new PIXI.Graphics();
+                colorG.beginTextureFill({ texture: tex, matrix: matrix });
+                colorG.drawPolygon(poly);
+                colorG.endFill();
+                colorG.blendMode = PIXI.BLEND_MODES.ADD;
+                colorG.tint = l.color ? parseInt(l.color.replace('#', ''), 16) : 0xffaa00;
+                colorG.alpha = (l.color_intensity !== undefined) ? l.color_intensity : 0.2;
+                this.lightTintContainer.addChild(colorG);
+            }
+        });
+
+        this.pixiApp.renderer.render(this.lightMaskContainer, { renderTexture: this.darknessTexture, clear: false });
+        this.nightSprite.alpha = this.currentDarkness; 
+        this.lightsDirty = false;
+    }
+
+    renderOverlays(viewChanged) {
+        if (!this.isGM) { 
+            if (this.containers.overlay.children.length > 0) this.containers.overlay.clear(); 
+            return; 
+        }
+
+        if (!this.dragState.active) {
+            // FIX: Hash needs to include z-index for color updates
+            const selObj = this.selectedObjId ? 
+                (this.scene.objects.find(x => x.id === this.selectedObjId) || this.scene.walls.find(x => x.id === this.selectedObjId) || this.scene.columns.find(x => x.id === this.selectedObjId) || this.scene.lights.find(x => x.id === this.selectedObjId)) 
+                : null;
+            
+            const selZ = selObj ? (selObj.z !== undefined ? selObj.z : 0) : 0;
+            const stateHash = `${this.selectedObjId}_${selZ}_idle`;
+            
+            if (!viewChanged && this._cacheState.overlay === stateHash) return; 
+            this._cacheState.overlay = stateHash;
+        } else {
+             this._cacheState.overlay = ''; 
+        }
+
+        const g = this.containers.overlay; g.clear();
+        const scale = this.world.scale.x; 
+        const handleSize = 5 / scale;
+
+        // VORSCHAU: Säulen
+        if (this.dragState.active && this.dragState.mode === 'column' && this.dragState.temp) {
+            const t = this.dragState.temp;
+            g.lineStyle(2 / scale, 0x00ffff, 0.8);
+            if (t.vertices > 2) {
+                const pts = []; const r = t.radius;
+                for (let i = 0; i < t.vertices; i++) {
+                    const a = (i / t.vertices) * Math.PI * 2 + (t.rotation || 0) * Math.PI / 180;
+                    pts.push(t.x + Math.cos(a) * r, t.y + Math.sin(a) * r);
+                }
+                pts.push(pts[0], pts[1]);
+                g.drawPolygon(pts);
+            } else g.drawCircle(t.x, t.y, t.radius);
+        }
+
+        // SELEKTION
+        if (this.selectedObjId) {
+            let color = 0x0088ff; 
+            const selObj = this.scene.walls.find(x => x.id === this.selectedObjId) || 
+                         this.scene.columns.find(x => x.id === this.selectedObjId) ||
+                         this.scene.objects.find(x => x.id === this.selectedObjId) ||
+                         this.scene.lights.find(x => x.id === this.selectedObjId);
+
+            if (selObj && selObj.z !== undefined && selObj.z < 0) color = 0x0000AA; 
+
+            g.lineStyle(2 / scale, color, 1);
+            g.beginFill(color, 0.1);
+
+            let found = false;
+            if (!found) {
+                const w = this.scene.walls.find(x => x.id === this.selectedObjId);
+                if (w) {
+                    if (w.curve) this.drawWallCurve(g, {x:w.x1, y:w.y1}, {x:w.x2, y:w.y2}, w.curve);
+                    else { g.moveTo(w.x1, w.y1); g.lineTo(w.x2, w.y2); }
+                    g.beginFill(color); g.drawCircle(w.x1, w.y1, handleSize); g.drawCircle(w.x2, w.y2, handleSize); g.endFill();
+                    found = true;
+                }
+            }
+            if (!found) {
+                const c = this.scene.columns.find(x => x.id === this.selectedObjId);
+                if (c) {
+                    g.drawCircle(c.x, c.y, c.radius + 2);
+                    const rot = (c.rotation||0) * Math.PI/180;
+                    const hDist = c.radius + (30 / scale); 
+                    const hx = c.x + Math.sin(rot) * hDist;
+                    const hy = c.y - Math.cos(rot) * hDist;
+                    g.moveTo(c.x + Math.sin(rot)*c.radius, c.y - Math.cos(rot)*c.radius);
+                    g.lineTo(hx, hy);
+                    g.beginFill(color); g.drawCircle(hx, hy, handleSize); g.endFill();
+                    
+                    const resizePt = {x: c.x + Math.sin(rot + Math.PI/4)*c.radius, y: c.y - Math.cos(rot + Math.PI/4)*c.radius};
+                    g.beginFill(color); g.drawCircle(resizePt.x, resizePt.y, handleSize); g.endFill();
+                    found = true;
+                }
+            }
+            if (!found) {
+                const o = this.scene.objects.find(x => x.id === this.selectedObjId) || this.scene.lights.find(x => x.id === this.selectedObjId);
+                if (o) {
+                    if (o.radius) { 
+                         g.drawCircle(o.x, o.y, 20/scale); 
+                         g.lineStyle(1/scale, color, 0.5); g.drawCircle(o.x, o.y, o.radius);
+                    } else { 
+                         const w = o.width; const h = o.height;
+                         const rot = (o.rotation||0) * Math.PI/180;
+                         const cos = Math.cos(rot); const sin = Math.sin(rot);
+                         const t = (lx, ly) => ({ x: o.x + lx*cos - ly*sin, y: o.y + lx*sin + ly*cos });
+                         const tl = t(-w/2, -h/2); const tr = t(w/2, -h/2);
+                         const br = t(w/2, h/2); const bl = t(-w/2, h/2);
+                         g.moveTo(tl.x, tl.y); g.lineTo(tr.x, tr.y); g.lineTo(br.x, br.y); g.lineTo(bl.x, bl.y); g.lineTo(tl.x, tl.y);
+                         g.beginFill(color);
+                         [tl, tr, br, bl].forEach(p => g.drawRect(p.x-4/scale, p.y-4/scale, 8/scale, 8/scale));
+                         g.endFill();
+
+                         // FIX: ADD ROTATION HANDLE FOR OBJECTS
+                         const handleDistScreen = 30 / scale;
+                         const hTop = {x: 0, y: -h/2 - handleDistScreen};
+                         
+                         // Rotate handle position
+                         const rotH = {
+                             x: o.x + hTop.x*cos - hTop.y*sin,
+                             y: o.y + hTop.x*sin + hTop.y*cos
+                         };
+                         // Top edge center
+                         const topEdge = {
+                             x: o.x + (0)*cos - (-h/2)*sin, 
+                             y: o.y + (0)*sin + (-h/2)*cos
+                         };
+                         
+                         g.moveTo(topEdge.x, topEdge.y);
+                         g.lineTo(rotH.x, rotH.y);
+                         g.beginFill(color); g.drawCircle(rotH.x, rotH.y, handleSize); g.endFill();
+                    }
+                    found = true;
+                }
+            }
+            g.endFill();
+        }
+
+        if (this.dragState.active && this.dragState.temp && this.dragState.mode === 'wall') {
+            const t = this.dragState.temp;
+            g.lineStyle(2/scale, 0x00ffff, 0.8); 
+            g.moveTo(t.x1, t.y1); g.lineTo(t.x2, t.y2);
+            g.beginFill(0x00ffff); g.drawCircle(t.x1, t.y1, 3/scale); g.drawCircle(t.x2, t.y2, 3/scale); g.endFill();
+        }
+    }
+
+    drawSingleDrawingItem(targetGraphics, item, gs) {
+        const d = targetGraphics;
+        let col = item.color ? parseInt(item.color.replace('#',''),16) : 0xffffff;
+        let width = item.size || this.toolSettings.brushSize;
+        d.lineStyle(0);
+        
+        let textureDrawn = false;
+        
+        if(item.texture) {
+            const tex = PIXI.Texture.from(item.texture);
+            if(tex.valid && tex.width > 1) {
+                const tpa = item.tilesPerAxis || 1;
+                const scaleX = (gs * tpa) / tex.width; const scaleY = (gs * tpa) / tex.height;
+                let m = new PIXI.Matrix(); m.scale(scaleX, scaleY);
+                if(item.type==='path') d.lineStyle({width:width, color: 0xffffff, texture:tex, matrix:m, cap:PIXI.LINE_CAP.ROUND, join:PIXI.LINE_JOIN.ROUND});
+                else d.beginTextureFill({texture:tex, matrix:m});
+                textureDrawn = true;
+            } 
+        } 
+        
+        if (!textureDrawn) {
+            if(item.type.includes('paint') || item.type==='circle') d.beginFill(col); 
+            else d.lineStyle({width:width, color:col, cap:PIXI.LINE_CAP.ROUND, join:PIXI.LINE_JOIN.ROUND});
+        }
+        
+        if(item.type==='rect' || item.type==='rect_paint') d.drawRect(item.x, item.y, item.w, item.h);
+        else if(item.type==='circle' || item.type==='circle_paint') d.drawCircle(item.x, item.y, item.radius);
+        else if(item.type==='grid' || item.type==='grid_paint') item.cells.forEach(c => d.drawRect(c.x, c.y, gs, gs));
+        else if(item.type==='path') {
+            if(item.points.length === 1) { 
+                if (!textureDrawn) d.beginFill(item.color ? parseInt(item.color.replace('#',''),16) : 0xffffff); 
+                d.drawCircle(item.points[0].x, item.points[0].y, width/2); 
+                if (!textureDrawn) d.endFill(); 
+            } 
+            else { d.moveTo(item.points[0].x, item.points[0].y); item.points.forEach(p => d.lineTo(p.x, p.y)); }
+        }
+        d.endFill();
+        return textureDrawn;
+    }
+
+    renderStaticDrawings() {
+        const gs = this.scene.grid_size;
+        const visitedIds = new Set();
+        
+        if (this.scene.drawings) {
+            this.scene.drawings.forEach(item => {
+                if (!item.id) return; 
+                visitedIds.add(item.id);
+                if (this.drawingCache[item.id]) {
+                    if (this.drawingCache[item.id]._isPlaceholder) {
+                        const tex = PIXI.Texture.from(item.texture);
+                        if (tex.valid && tex.width > 1) {
+                            this.drawingCache[item.id].destroy({ children: true, texture: true, baseTexture: false });
+                            delete this.drawingCache[item.id];
+                        } else { return; }
+                    } else { return; }
+                }
+                
+                if (item.texture) {
+                    const tex = PIXI.Texture.from(item.texture);
+                    if (!tex.valid || tex.width <= 1) {
+                        if (!tex._events || !tex._events.update || tex._events.update.length === 0) {
+                            tex.once('update', () => { this.drawingsDirty = true; });
+                        }
+                    }
+                }
+
+                const g = new PIXI.Graphics();
+                const usedTexture = this.drawSingleDrawingItem(g, item, gs);
+                if (item.texture && !usedTexture) g._isPlaceholder = true;
+                
+                this.containers.draw.addChild(g);
+                this.drawingCache[item.id] = g;
+            });
+        }
+        
+        Object.keys(this.drawingCache).forEach(id => {
+            if (!visitedIds.has(id)) {
+                this.drawingCache[id].destroy({ children: true, texture: true, baseTexture: false });
+                delete this.drawingCache[id];
+            }
+        });
+    }
+
+    renderPreviewDrawing() {
+        const d = this.containers.preview; d.clear();
+        if (this.dragState.active && this.dragState.temp) {
+            this.drawSingleDrawingItem(d, this.dragState.temp, this.scene.grid_size);
+        }
+    }
+    
+    renderGridAndTools(pv, gs, viewChanged) {
+        const gridHash = `${this.scene.show_grid}_${pv.width_cells}_${this.world.scale.x}_${this.world.x}_${this.world.y}`;
+        const pFrameHash = `${this.isGM}_${this.dragState.mode === 'move_player'}_${pv.x}_${pv.y}_${pv.width_cells}_${pv.aspect}_${this.scene.show_player_frame}`;
+        
+        if (viewChanged || this._cacheState.grid !== gridHash) {
+            this._cacheState.grid = gridHash;
+            const g = this.containers.grid; g.clear();
+            g.blendMode = PIXI.BLEND_MODES.DIFFERENCE; 
+            if(this.scene.show_grid) {
+                g.lineStyle(1, 0xFFFFFF, 0.4); 
+                const bounds = this.getVisibleBounds();
+                const startX = Math.floor(bounds.x / gs) * gs; const startY = Math.floor(bounds.y / gs) * gs;
+                const endX = bounds.x + bounds.width; const endY = bounds.y + bounds.height;
+                for(let x=startX; x<=endX; x+=gs) { g.moveTo(x, bounds.y); g.lineTo(x, endY); }
+                for(let y=startY; y<=endY; y+=gs) { g.moveTo(bounds.x, y); g.lineTo(endX, y); }
+            }
+        }
+        
+        if (viewChanged || this._cacheState.pFrame !== pFrameHash) {
+            this._cacheState.pFrame = pFrameHash;
+            const pf = this.containers.pFrame; pf.clear();
+            if(this.isGM && this.scene.show_player_frame) {
+                const w = pv.width_cells * gs; const h = w / pv.aspect;
+                pf.lineStyle(4 / this.world.scale.x, 0x0088ff, 0.8);
+                if(this.dragState.mode === 'move_player') pf.beginFill(0x0088ff, 0.1); 
+                pf.drawRect(pv.x - w/2, pv.y - h/2, w, h);
+                pf.endFill();
+            }
+        }
+    }
+    
+    getVisibleBounds() {
+        return {
+            x: -this.world.x / this.world.scale.x,
+            y: -this.world.y / this.world.scale.y,
+            width: window.innerWidth / this.world.scale.x,
+            height: window.innerHeight / this.world.scale.y
+        };
+    }
+
+    getVisibleWorldBounds() {
+        return {
+            x: -this.world.x / this.world.scale.x,
+            y: -this.world.y / this.world.scale.y,
+            width: this.pixiApp.screen.width / this.world.scale.x,
+            height: this.pixiApp.screen.height / this.world.scale.y
+        };
+    }
+
+    drawWallCurve(g, p1, p2, curve) {
+        const points = getWallPoints(p1, p2, curve);
+        if(points.length > 0) {
+            g.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) g.lineTo(points[i].x, points[i].y);
+        }
+    }
+
+    drawCurvedText(container, text, radius, angleOffset, color) {
+        if(!text) return;
+        const textStyle = new PIXI.TextStyle({ fontSize: 14, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
+        const charWidthApprox = 9; 
+        const charSpacing = charWidthApprox / radius; 
+        const totalArc = text.length * charSpacing;
+        const startArc = startAngleFromOffset(angleOffset) - totalArc / 2;
+
+        for(let i=0; i<text.length; i++) {
+            const char = text[i];
+            const t = new PIXI.Text(char, textStyle); t.resolution = 4; t.anchor.set(0.5, 0.5);
+            const angle = startArc + i * charSpacing;
+            t.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            t.rotation = angle + Math.PI/2;
+            t.scale.set(0.8); container.addChild(t);
+        }
+    }
+
+    drawTokenRings(container, token) {
+        if(!token.rings || token.rings.length === 0) return;
+        const baseRadius = (token.size / 2) + 8;
+        const ringWidth = 10; const gap = 2;
+        token.rings.forEach((ring, idx) => {
+             const centerR = baseRadius + idx * (ringWidth + gap) + ringWidth/2;
+             const rG = new PIXI.Graphics();
+             rG.lineStyle(ringWidth, parseInt(ring.color.replace('#',''), 16), 1); rG.drawCircle(0, 0, centerR);
+             container.addChild(rG);
+             if(ring.text) {
+                 this.drawCurvedText(container, ring.text, centerR, 0, 0xffffff);
+                 this.drawCurvedText(container, ring.text, centerR, Math.PI, 0xffffff);
+             }
+        });
+    }
+
+    renderTokens() {
+        const activeTokenIds = new Set();
+        let anyMoved = false;
+
+        Object.values(this.scene.tokens).forEach(t => {
+            if (!t.blob_id && !t.on_board) return;
+            
+            activeTokenIds.add(t.uuid);
+            
+            let tc = this.tokenCache[t.uuid];
+            if(!tc) {
+                tc = new PIXI.Container();
+                this.tokenCache[t.uuid] = tc;
+                this.containers.tokens.addChild(tc);
+                tc.x = t.x; tc.y = t.y; 
+                tc._cachedProps = null; 
+            }
+
+            const isSelected = (this.isGM && this.scene.tokens[this.selectedObjId] === t);
+            
+            // Bugfix: Sync Issue. Include vision range and robust ring text in cache string.
+            // Using a simple JSON stringify of rings is usually enough, but we ensure structure is captured.
+            const ringsHash = t.rings ? JSON.stringify(t.rings) : '';
+            const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
+
+            if (tc._cachedProps !== currentProps) {
+                tc.removeChildren();
+                const color = t.spotlight_color ? parseInt(t.spotlight_color.replace('#',''),16) : 0xffffff;
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 1.0); g.drawCircle(0,0, t.size / 2); g.endFill();
+                const blurAmount = Math.max(1, 16 * this.world.scale.x);
+                g.filters = [new PIXI.BlurFilter(blurAmount)];
+                tc.addChild(g);
+                this.drawTokenRings(tc, t);
+
+                if (isSelected) {
+                    const ring = new PIXI.Graphics();
+                    ring.lineStyle(2, 0xffffff, 0.8); ring.drawCircle(0,0, t.size / 2 + 2);
+                    tc.addChild(ring);
+                }
+
+                if (t.name) {
+                     const ringOffset = (t.rings ? t.rings.length * 12 : 0);
+                     const txt = new PIXI.Text(t.name, {fontSize:12, fill:0xffffff, stroke:0x000000, strokeThickness:3});
+                     txt.anchor.set(0, 0.5); txt.x = (t.size/2) + 5 + ringOffset; 
+                     tc.addChild(txt);
+                }
+                
+                if (this.isGM && t.blob_id && this.scene.show_blob_ids) {
+                     const ringOffset = (t.rings ? t.rings.length * 12 : 0);
+                     const idTxt = new PIXI.Text(t.blob_id, {fontSize:10, fill:0x00ff00, fontWeight:'bold'});
+                     idTxt.anchor.set(0, 1); idTxt.position.set((t.size/2) + ringOffset, -((t.size/2) + 5));
+                     tc.addChild(idTxt);
+                }
+                tc._cachedProps = currentProps;
+            } else {
+                 if(tc.children.length > 0 && tc.children[0].filters) {
+                     const blurAmount = Math.max(1, 16 * this.world.scale.x);
+                     if (Math.abs(tc.children[0].filters[0].blur - blurAmount) > 0.5) tc.children[0].filters[0].blur = blurAmount;
+                 }
+            }
+
+            // SMOOTHNESS FIX: Increase lerp factor for more responsive movement
+            const lerpFactor = 0.5; 
+            const dist = Math.hypot(tc.x - t.x, tc.y - t.y);
+            if (dist > 0.5) {
+                if (dist > 200) { tc.x = t.x; tc.y = t.y; } 
+                else { tc.x = lerp(tc.x, t.x, lerpFactor); tc.y = lerp(tc.y, t.y, lerpFactor); }
+                anyMoved = true;
+            } else { tc.x = t.x; tc.y = t.y; }
+        });
+        
+        Object.keys(this.tokenCache).forEach(k => {
+            if(!activeTokenIds.has(k)) {
+                this.tokenCache[k].destroy({children:true});
+                delete this.tokenCache[k];
+            }
+        });
+        return anyMoved;
+    }
+
+    onResize() { 
+        if(this.pixiApp) {
+            this.pixiApp.resize();
+            this.requestRender();
+        } 
+    }
+}

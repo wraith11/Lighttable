@@ -1,0 +1,183 @@
+import { GameRenderer } from './renderer.js';
+import { getInitialState } from './state.js';
+import { interactionMethods } from './interactions.js';
+import { coreMethods } from './core-methods.js';
+import { socket } from './socket-client.js';
+
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        const state = getInitialState();
+        state.blobListKeys = []; 
+        return state;
+    },
+    created() {
+        this.renderer = null;
+    },
+    computed: {
+        sortedTokens() { 
+            return Object.values(this.scene.tokens).sort((a,b) => {
+                if (a.modified && !b.modified) return -1;
+                if (!a.modified && b.modified) return 1;
+                return a.name.localeCompare(b.name);
+            }); 
+        },
+        availableBlobs() { return this.blobListKeys; },
+        selectedObj() { 
+            if(this.selectedObjIsLight) return this.scene.lights.find(l => l.id === this.selObjId);
+            if(this.selectedObjIsWall) return this.scene.walls.find(w => w.id === this.selObjId);
+            if(this.selectedObjIsColumn) return this.scene.columns.find(c => c.id === this.selObjId);
+            return this.scene.objects.find(o => o.id === this.selObjId); 
+        },
+        activeLightSettings() {
+            if (this.selectedObjIsLight && this.selectedObj) return this.selectedObj;
+            return this.toolSettings.light;
+        },
+        assetBreadcrumbs() {
+            if(!this.currentAssetPath) return [];
+            const parts = this.currentAssetPath.split('/');
+            let acc = '';
+            return parts.map(p => { acc += (acc?'/':'')+p; return {name:p, full:acc}; });
+        }
+    },
+    watch: {
+        selObjId(newVal) { this.updateLightColorPicker(); },
+        tool(newVal) { if(newVal === 'light') this.updateLightColorPicker(); },
+        openTokenId(newVal) { },
+        'scene.player_view': {
+            handler() { this.updateTokenPos(); },
+            deep: true
+        }
+    },
+    
+    // Mixin all Logic
+    methods: {
+        ...interactionMethods,
+        ...coreMethods,
+        
+        setupEventListeners() {
+            window.addEventListener('mousedown', this.onDown);
+            window.addEventListener('mousemove', this.onMove);
+            window.addEventListener('mouseup', this.onUp);
+            window.addEventListener('wheel', this.onWheel, { passive: false });
+            window.addEventListener('contextmenu', this.onContextMenu);
+            window.addEventListener('dragover', (e) => e.preventDefault());
+            window.addEventListener('drop', this.dropFile);
+        },
+        removeEventListeners() {
+            window.removeEventListener('mousedown', this.onDown);
+            window.removeEventListener('mousemove', this.onMove);
+            window.removeEventListener('mouseup', this.onUp);
+            window.removeEventListener('wheel', this.onWheel);
+            window.removeEventListener('contextmenu', this.onContextMenu);
+            window.removeEventListener('dragover', (e) => e.preventDefault());
+            window.removeEventListener('drop', this.dropFile);
+        },
+    },
+
+    mounted() {
+        this.renderer = new GameRenderer(this.scene, this.isGM);
+        this.renderer.init();
+        
+        this.renderer.onTokenClick = (t) => {
+            if(this.isGM) {
+                this.tab = 'tokens';
+                this.openTokenId = t.uuid;
+            }
+        };
+
+        this.centerView();
+        this.setupEventListeners();
+        this.$nextTick(() => this.initColorPicker());
+        window.addEventListener('resize', this.onResize);
+        window.addEventListener('keydown', this.onKeyDown);
+        
+        // --- Socket Init ---
+        socket.emit('request_init');
+        socket.emit('request_assets', {path: ''});
+        // NEU: Media Liste anfordern
+        if(this.isGM) socket.emit('request_media');
+
+        socket.on('init', (data) => { 
+            this.scene = {...this.scene, ...data}; 
+            if(this.renderer) {
+                this.renderer.scene = this.scene;
+                this.checkMigrations(); 
+                this.renderer.rebuildFoW(); 
+                this.renderer.rebuildMap();
+                this.renderer.drawingsDirty = true; 
+                this.renderer.lightsDirty = true; // BUGFIX: Lights dirty setzen beim init
+                this.renderer.requestRender(); 
+            }
+        });
+        
+        socket.on('update_scene', (data) => { 
+            let fullRefresh = false;
+            Object.keys(data).forEach(k => {
+                if (k === 'view') return; 
+
+                if(k === 'player_view') this.scene.player_view = {...this.scene.player_view, ...data[k]};
+                else if(k === 'background_image') { this.scene.background_image = {...this.scene.background_image, ...data[k]}; fullRefresh = true; }
+                else if (['walls','columns','objects'].includes(k)) { this.scene[k] = data[k]; fullRefresh = true; }
+                else if (k === 'lights') { this.scene[k] = data[k]; if(this.renderer) this.renderer.lightsDirty = true; }
+                else if (k === 'fow_shapes') { this.scene[k] = data[k]; if(this.renderer) this.renderer.rebuildFoW(); }
+                else if (k === 'drawings') { this.scene[k] = data[k]; if(this.renderer) this.renderer.drawingsDirty = true; }
+                else this.scene[k] = data[k];
+            });
+            if(this.renderer) {
+                this.renderer.scene = this.scene;
+                this.checkMigrations();
+                if (fullRefresh) this.renderer.mapDirty = true;
+                this.renderer.startLightLoop();
+                this.renderer.requestRender();
+            }
+        });
+        
+        socket.on('camera_resolution', (res) => {
+            this.camW = res.w;
+            this.camH = res.h;
+            // BUGFIX: Ecken NICHT überschreiben! Nur Auflösung speichern.
+            // Die Ecken kommen separat über 'cam_params_sync'
+        });
+
+        socket.on('cam_params_sync', (data) => { this.camParams = data; });
+        
+        socket.on('blob_update', (data) => { 
+            if(this.scene.tracking_paused) return;
+            this.blobs = data.blobs; 
+            const newKeys = Object.keys(data.blobs).sort();
+            const oldKeys = this.blobListKeys.sort(); 
+            let changed = newKeys.length !== oldKeys.length;
+            if(!changed) {
+                for(let i=0; i<newKeys.length; i++) {
+                    if(newKeys[i] !== oldKeys[i]) { changed = true; break; }
+                }
+            }
+            if(changed) {
+                this.blobListKeys = Object.keys(data.blobs);
+            }
+            if(this.renderer) this.renderer.setBlobs(this.blobs);
+            if (this.isGM) this.handleBlobs(data); 
+            this.updateTokenPos(); 
+            if(this.renderer) this.renderer.requestRender();
+        });
+        
+        socket.on('asset_list_update', (data) => { if(this.currentAssetPath === data.path) this.assetList = data.items; });
+        socket.on('map_list_update', (list) => { this.mapList = list; });
+        socket.on('server_info', (info) => { this.serverIp = info.ip; });
+        
+        // NEU: Media List Update
+        socket.on('media_list_update', (list) => { this.mediaList = list; });
+        
+        // NEU: Empfange Kamera Liste
+        socket.on('available_cameras', (cams) => { this.availableCameras = cams; });
+        
+        // --- PERFORMANCE OPTIMIZATION: REMOVED PERMANENT TICKER ---
+        // The render loop is now event-driven via requestRender()
+    },
+    beforeUnmount() { 
+        this.removeEventListeners(); 
+        window.removeEventListener('keydown', this.onKeyDown);
+    }
+}).mount('#app');
