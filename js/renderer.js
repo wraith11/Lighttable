@@ -576,7 +576,7 @@ export class GameRenderer {
                 anyFlicker = true;
             } else { l.currentFlickerRadius = 0; }
         });
-        if (anyFlicker) { this.lightsDirty = true; this._renderDirty = true; }
+        if (anyFlicker) { this.flickerDirty = true; this._renderDirty = true; }
         
         let targetDarkness = 0;
         if (this.scene.time_of_day === 'night') targetDarkness = 0.70; 
@@ -593,7 +593,7 @@ export class GameRenderer {
             }
         }
         
-        if (darknessChanged) { this.lightsDirty = true; this._renderDirty = true; }
+        if (darknessChanged) { this.flickerDirty = true; this._renderDirty = true; }
         
         // Return true if we need to keep animating (flicker active or transition active)
         return anyFlicker || darknessChanged;
