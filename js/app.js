@@ -173,11 +173,36 @@ createApp({
         // NEU: Empfange Kamera Liste
         socket.on('available_cameras', (cams) => { this.availableCameras = cams; });
         
+        // A2: fow_visited Delta/Full empfangen (auf jedem Client anwenden)
+        socket.on('fow_visited_delta', (data) => {
+            const points = data.points || [];
+            if (points.length === 0) return;
+            if (!this.scene.fow_visited) this.scene.fow_visited = [];
+            this.scene.fow_visited.push(...points);
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.updateFoWMemory(true);
+                this.renderer.requestRender();
+            }
+        });
+        socket.on('fow_visited_full', (data) => {
+            const points = data.points || [];
+            this.scene.fow_visited = points;
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.updateFoWMemory(true);
+                this.renderer.requestRender();
+            }
+        });
+        // A2: Periodischer Vollabgleich nur auf der GM-Seite senden
+        if (this.isGM) this.startFowSync();
+        
         // --- PERFORMANCE OPTIMIZATION: REMOVED PERMANENT TICKER ---
         // The render loop is now event-driven via requestRender()
     },
     beforeUnmount() { 
         this.removeEventListeners(); 
         window.removeEventListener('keydown', this.onKeyDown);
+        this.stopFowSync();
     }
 }).mount('#app');
