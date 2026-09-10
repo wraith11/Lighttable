@@ -407,6 +407,7 @@ export class GameRenderer {
         });
 
         this.pixiApp.renderer.render(visionContainer, { renderTexture: this.fowScreenTexture, clear: false });
+        visionContainer.destroy({ children: true });
 
         const finalSprite = new PIXI.Sprite(this.fowScreenTexture);
         const invScale = 1 / this.world.scale.x;
