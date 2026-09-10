@@ -20,9 +20,8 @@ export const interactionMethods = {
 
         if(this.drag.mode === 'stamp' && this.brushTexture) {
                 if(this.scene.objects_locked) return;
-                this.scene.objects.push({ id: Date.now(), type: 'image', src: this.brushTexture, z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                this.renderer.mapDirty = true;
-                this.sync(); this.drag.active = false; return;
+                this.addObjectAt(pos, this.brushTexture, 'image');
+                this.drag.active = false; return;
         }
 
         this.drag.active = true;
