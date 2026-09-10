@@ -378,49 +378,49 @@ export const interactionMethods = {
             const s = {type: this.drag.fowType, x:pos.x, y:pos.y, radius: 50};
             this.scene.fow_shapes.push(s); 
             this.renderer.drawFoWShapeToTexture(s);
-            this.sync();
+            this.syncThrottled();
         }
         else if(this.drag.mode === 'move_player') {
             const gs = this.scene.grid_size;
             const pv = this.scene.player_view;
             if(this.snapMode) { pv.x = Math.round(pos.x/gs)*gs; pv.y = Math.round(pos.y/gs)*gs; } 
             else { pv.x = pos.x; pv.y = pos.y; }
-            this.sync();
+            this.syncThrottled();
         }
         else if(this.selectedObj) {
                 const o = this.selectedObj;
                 if(this.drag.mode === 'obj') {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'light' && this.selectedObjIsLight) {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
                     this.renderer.lightsDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'column_move' && this.selectedObjIsColumn) {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'resize') {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     const scale = dist / this.drag.initialDist;
                     o.width = this.drag.initialWidth * scale; o.height = this.drag.initialHeight * scale;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'resize_column') {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     o.radius = Math.max(10, dist); 
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'rotate') {
                     o.rotation = (Math.atan2(pos.y - o.y, pos.x - o.x) * 180 / Math.PI) + 90;
                     if(this.snapMode) o.rotation = Math.round(o.rotation / 45) * 45;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'wall_move') {
                     if(this.snapMode) {
@@ -434,21 +434,21 @@ export const interactionMethods = {
                     }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'wall_drag') {
                     if(this.drag.handle === 'p1') { o.x1 = this.snapMode ? snap(pos.x) : pos.x; o.y1 = this.snapMode ? snap(pos.y) : pos.y; }
                     else { o.x2 = this.snapMode ? snap(pos.x) : pos.x; o.y2 = this.snapMode ? snap(pos.y) : pos.y; }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
         }
         else if(this.drag.mode === 'token') {
             const t = this.drag.temp;
             t.x = pos.x; t.y = pos.y; 
             this.renderer.fowDirty = true;
-            this.sync();
+            this.syncThrottled();
         }
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
         this.renderer.setDragState(this.drag, this.selObjId);
