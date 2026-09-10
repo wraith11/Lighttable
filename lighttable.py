@@ -359,7 +359,7 @@ async def request_media(sid):
 async def create_folder(sid, data):
     path = data.get('path', '')
     name = "".join([c for c in data.get('name','') if c.isalnum() or c in (' ', '_', '-')])
-    full_path = os.path.join(ASSET_DIR, path, name)
+    full_path, _ = safe_asset_path(os.path.join(path, name))
     try: 
         os.makedirs(full_path, exist_ok=True)
         await sio.emit('asset_list_update', {'path': path, 'items': get_dir_content(path)}, to=sid)
