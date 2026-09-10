@@ -489,10 +489,9 @@ async def upload_asset(sid, data):
         else: encoded = data['data']
         file_bytes = base64.b64decode(encoded)
         path = data.get('path', '')
-        path = path.replace('..', '').strip('/\\')
+        target_dir, path = safe_asset_path(path)
         ext = data['name'].split('.')[-1].lower() if '.' in data['name'] else 'png'
         safe_name = f"{uuid.uuid4()}.{ext}"
-        target_dir = os.path.join(ASSET_DIR, path)
         if not os.path.exists(target_dir): os.makedirs(target_dir)
         final_path = os.path.join(target_dir, safe_name)
         with open(final_path, "wb") as f: f.write(file_bytes)
