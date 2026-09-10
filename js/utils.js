@@ -98,6 +98,47 @@ export function getIntersection(r1,r2,s1,s2) {
     return (u>=0&&u<=1&&t>=0&&t<=1)?{x:r1.x+rdx*t, y:r1.y+rdy*t}:null; 
 }
 
+// D3: Räumliche Grid-Indexierung der Wand-Segmente.
+// Berechnet nur Segmente, deren Bounding-Box in Zellen um den Ursprung liegt.
+// Identisches visuelles Ergebnis, aber deutlich schneller bei vielen Segmenten.
+function buildSegmentGrid(segments, cellSize) {
+    const grid = new Map();
+    for (let s of segments) {
+        const minX = Math.floor(Math.min(s.a.x, s.b.x) / cellSize);
+        const maxX = Math.floor(Math.max(s.a.x, s.b.x) / cellSize);
+        const minY = Math.floor(Math.min(s.a.y, s.b.y) / cellSize);
+        const maxY = Math.floor(Math.max(s.a.y, s.b.y) / cellSize);
+        for (let gx = minX; gx <= maxX; gx++) {
+            for (let gy = minY; gy <= maxY; gy++) {
+                const k = gx + '_' + gy;
+                let arr = grid.get(k);
+                if (!arr) { arr = []; grid.set(k, arr); }
+                arr.push(s);
+            }
+        }
+    }
+    return grid;
+}
+
+function querySegmentGrid(grid, origin, radius, cellSize) {
+    const minX = Math.floor((origin.x - radius) / cellSize);
+    const maxX = Math.floor((origin.x + radius) / cellSize);
+    const minY = Math.floor((origin.y - radius) / cellSize);
+    const maxY = Math.floor((origin.y + radius) / cellSize);
+    const result = [];
+    const seen = new Set();
+    for (let gx = minX; gx <= maxX; gx++) {
+        for (let gy = minY; gy <= maxY; gy++) {
+            const arr = grid.get(gx + '_' + gy);
+            if (!arr) continue;
+            for (let s of arr) {
+                if (!seen.has(s)) { seen.add(s); result.push(s); }
+            }
+        }
+    }
+    return result;
+}
+
 export function calculateVisibility(origin, segments) {
     let points = []; 
     for (let i = 0; i < segments.length; i++) {
@@ -124,6 +165,11 @@ export function calculateVisibility(origin, segments) {
     }
     
     angles.sort((a,b) => a.val - b.val);
+
+    // D3: Bei vielen Segmenten nur die relevanten testen (Bounding-Box um den Ursprung).
+    const testSegments = segments.length > 40
+        ? querySegmentGrid(buildSegmentGrid(segments, R * 0.5), origin, R, R * 0.5)
+        : segments;
     
     let intersects = [];
     for(let i=0; i<angles.length; i++) {
@@ -133,8 +179,8 @@ export function calculateVisibility(origin, segments) {
         
         let closest = {x: origin.x+dx*R, y: origin.y+dy*R, dist: R*R, hit: false};
         
-        for(let j=0; j<segments.length; j++) {
-            const s = segments[j];
+        for(let j=0; j<testSegments.length; j++) {
+            const s = testSegments[j];
             const target = {x: origin.x+dx*R, y: origin.y+dy*R};
             const hitPt = getIntersection(origin, target, s.a, s.b);
             
