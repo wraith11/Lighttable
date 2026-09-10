@@ -194,6 +194,34 @@ export const coreMethods = {
             this.renderer.requestRender();
         }
     },
+    // Gedrosselter Sync: lokal sofort rendern, Netzwerk-Broadcast auf ~20fps begrenzt.
+    // Verhindert, dass bei jedem mousemove das komplette Scene-Objekt gesendet wird.
+    syncThrottled() {
+        if (this.renderer) {
+            this.renderer.mapDirty = true;
+            this.renderer.lightsDirty = true;
+            this.renderer.startLightLoop();
+            this.renderer.requestRender();
+        }
+        if (this._syncTimer) return;
+        const now = Date.now();
+        const wait = 50 - (now - (this._lastSyncTime || 0));
+        if (wait <= 0) {
+            socket.emit('update_scene', this.scene);
+            this._lastSyncTime = now;
+        } else {
+            this._syncTimer = setTimeout(() => {
+                this._syncTimer = null;
+                socket.emit('update_scene', this.scene);
+                this._lastSyncTime = Date.now();
+            }, wait);
+        }
+    },
+    // Bricht einen noch ausstehenden gedrosselten Sync ab und sendet sofort den finalen Zustand.
+    flushSync() {
+        if (this._syncTimer) { clearTimeout(this._syncTimer); this._syncTimer = null; }
+        this.sync();
+    },
     saveGame() { socket.emit('save_settings'); },
     
     saveMap() {
