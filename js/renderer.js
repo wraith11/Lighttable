@@ -325,7 +325,9 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        brush.filters = [new PIXI.BlurFilter(15)]; 
+        // Einen einzigen BlurFilter wiederverwenden, statt pro Bake GPU-Ressourcen zu allokieren
+        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
+        brush.filters = [this.fowBlurFilter]; 
 
         // OPTIMIZATION: clear: false preserves history (baking)
         this.pixiApp.renderer.render(brush, { 
@@ -333,6 +335,7 @@ export class GameRenderer {
             clear: forceRebuild, 
             transform: null
         });
+        brush.destroy();
 
         this.lastFoWPathLength = visited.length;
     }
