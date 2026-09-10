@@ -362,6 +362,7 @@ export class GameRenderer {
         blackRect.drawRect(0, 0, screenW, screenH);
         blackRect.endFill();
         this.pixiApp.renderer.render(blackRect, { renderTexture: this.fowScreenTexture, clear: true });
+        blackRect.destroy();
 
         const visionContainer = new PIXI.Container();
         visionContainer.position.set(this.world.x, this.world.y);
