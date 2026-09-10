@@ -35,6 +35,8 @@ export class GameRenderer {
         
         this.lightMaskContainer = new PIXI.Container();
         this.lightTintContainer = new PIXI.Container();
+        this.flickerMaskContainer = new PIXI.Container();
+        this.flickerTintContainer = new PIXI.Container();
         
         this.depthLayer = new PIXI.Container();
         // Statischer Blur für Konsistenz beim Zoomen
