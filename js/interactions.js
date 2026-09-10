@@ -534,25 +534,26 @@ export const interactionMethods = {
             e.preventDefault();
             const step = e.shiftKey ? 10 : 1;
             const o = this.selectedObj;
-            if(e.key === 'ArrowLeft') o.x -= step;
-            if(e.key === 'ArrowRight') o.x += step;
-            if(e.key === 'ArrowUp') o.y -= step;
-            if(e.key === 'ArrowDown') o.y += step;
-            
-            if(this.selectedObjIsWall) {
-                o.x1 = (e.key==='ArrowLeft'?o.x1-step:(e.key==='ArrowRight'?o.x1+step:o.x1));
-                o.x2 = (e.key==='ArrowLeft'?o.x2-step:(e.key==='ArrowRight'?o.x2+step:o.x2));
-                o.y1 = (e.key==='ArrowUp'?o.y1-step:(e.key==='ArrowDown'?o.y1+step:o.y1));
-                o.y2 = (e.key==='ArrowUp'?o.y2-step:(e.key==='ArrowDown'?o.y2+step:o.y2));
+
+            if (this.selectedObjIsWall) {
+                // Wände haben kein x/y, nur Endpunkte x1/y1/x2/y2 – verschiebe diese direkt
+                const dx = e.key === 'ArrowLeft' ? -step : (e.key === 'ArrowRight' ? step : 0);
+                const dy = e.key === 'ArrowUp' ? -step : (e.key === 'ArrowDown' ? step : 0);
+                o.x1 += dx; o.y1 += dy; o.x2 += dx; o.y2 += dy;
                 this.renderer.fowDirty = true;
                 this.renderer.mapDirty = true;
+            } else {
+                if(e.key === 'ArrowLeft') o.x -= step;
+                if(e.key === 'ArrowRight') o.x += step;
+                if(e.key === 'ArrowUp') o.y -= step;
+                if(e.key === 'ArrowDown') o.y += step;
+                if(this.selectedObjIsColumn) {
+                    this.renderer.fowDirty = true;
+                    this.renderer.mapDirty = true;
+                }
+                if(this.selectedObjIsLight) this.renderer.lightsDirty = true;
             }
-            if(this.selectedObjIsColumn) {
-                this.renderer.fowDirty = true;
-                this.renderer.mapDirty = true;
-            }
-            if(this.selectedObjIsLight) this.renderer.lightsDirty = true;
-            
+
             this.sync();
             this.renderer.requestRender();
             return;
