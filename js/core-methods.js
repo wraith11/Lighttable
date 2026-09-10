@@ -659,7 +659,8 @@ export const coreMethods = {
             }
         });
         
-        if (fowChanged || tokenListChanged) this.sync();
+        if (fowChanged) this.flushFowDelta();
+        if (tokenListChanged) this.sync();
         
         if (this.renderer) {
              if (fowChanged) this.renderer.fowDirty = true;
