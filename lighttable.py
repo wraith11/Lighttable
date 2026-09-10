@@ -721,8 +721,12 @@ def run_cv_loop(loop_ref):
             h, w = left_view.shape[:2]
             right_view_resized = cv2.resize(right_view, (int(WARPED_SIZE * (h/WARPED_SIZE)), h))
 
-        _, buffer = cv2.imencode('.jpg', cv2.hconcat([left_view, right_view_resized]), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
-        with camera_lock: current_frame_jpeg = buffer.tobytes()
+        # B1: Encodierung nur alle ENCODE_INTERVAL ausführen; Tracking läuft unabhängig weiter
+        now_t = time.time()
+        if now_t - last_encode_time >= ENCODE_INTERVAL:
+            _, buffer = cv2.imencode('.jpg', cv2.hconcat([left_view, right_view_resized]), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+            with camera_lock: current_frame_jpeg = buffer.tobytes()
+            last_encode_time = now_t
         
         # 60 FPS Target (0.016s)
         elapsed = time.time() - loop_start_time
