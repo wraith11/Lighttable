@@ -550,6 +550,10 @@ def run_cv_loop(loop_ref):
     cached_gain_map = None
     last_hotspot_val = -1
 
+    # B1: JPEG-Encoding auf ~20 fps drosseln, unabhängig vom (schnelleren) Tracking-Loop
+    last_encode_time = 0.0
+    ENCODE_INTERVAL = 0.05
+
     while True:
         loop_start_time = time.time()
 
