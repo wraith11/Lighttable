@@ -52,9 +52,11 @@ export class GameRenderer {
 
         this.mapDirty = true; 
         this.lightsDirty = true;
+        this.flickerDirty = false;
         this.drawingsDirty = true; 
         this.fowDirty = true; 
         this._cachedSegments = null;
+        this._segmentsVersion = 0;
         this.shadowsNeedCaching = false;
         
         this._lastScale = -1;
