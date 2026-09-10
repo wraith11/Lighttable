@@ -392,9 +392,16 @@ export class GameRenderer {
         }
 
         // Live Vision (applies to both Temporary and Permanent modes)
+        const segV = this._segmentsVersion;
         Object.values(this.scene.tokens).forEach(t => {
             if (t.has_vision) { 
-                const poly = calculateVisibility({x:t.x, y:t.y, radius: t.vision_range}, segments);
+                // D1: Vision-Polygon cachen – nur neu berechnen bei Bewegung, Reichweiten- oder Wandänderung
+                const vKey = `${Math.round(t.x)}_${Math.round(t.y)}_${Math.round(t.vision_range)}_${segV}`;
+                if (t._visionKey !== vKey) {
+                    t._visionPoly = calculateVisibility({x:t.x, y:t.y, radius: t.vision_range}, segments);
+                    t._visionKey = vKey;
+                }
+                const poly = t._visionPoly;
                 if(poly.length > 0) {
                     // Create gradient texture (brightness 1.0 = fully clear)
                     const tex = this.createVisionTexture(t.vision_range);
