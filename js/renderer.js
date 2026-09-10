@@ -1297,7 +1297,9 @@ export class GameRenderer {
         
         Object.keys(this.tokenCache).forEach(k => {
             if(!activeTokenIds.has(k)) {
-                this.tokenCache[k].destroy({children:true});
+                const tc = this.tokenCache[k];
+                if (tc._blurFilter) tc._blurFilter.destroy();
+                tc.destroy({children:true});
                 delete this.tokenCache[k];
             }
         });
