@@ -498,6 +498,7 @@ export class GameRenderer {
             this.lightsDirty = true; 
             this.fowDirty = true; 
             this._cachedSegments = null; 
+            this._segmentsVersion++;
         }
 
         if (this.depthGraphics) {
