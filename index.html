@@ -64,6 +64,16 @@
                          <label>Z-Index</label>
                          <input type="range" min="0" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
                     </div>
+                    <div v-if="!selectedObjIsWall" class="control-group" style="width:130px;">
+                        <label>Breite</label>
+                        <input type="range" min="10" max="2000" v-model.number="selectedObj.width" @input="sync">
+                        <span>{{selectedObj.width}}px</span>
+                    </div>
+                    <div v-if="!selectedObjIsWall" class="control-group" style="width:130px;">
+                        <label>Höhe</label>
+                        <input type="range" min="10" max="2000" v-model.number="selectedObj.height" @input="sync">
+                        <span>{{selectedObj.height}}px</span>
+                    </div>
                     <div v-if="selectedObjIsWall" class="control-group" style="width:130px;">
                         <label>Breite</label>
                         <input type="range" min="5" max="100" v-model.number="selectedObj.width" @input="sync">
