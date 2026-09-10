@@ -407,6 +407,24 @@ async def update_scene(sid, data):
     await sio.emit('update_scene', data, skip_sid=sid)
 
 @sio.event
+async def fow_visited_delta(sid, data):
+    """A2: Neue fow_visited-Punkte anhängen und nur das Delta broadcasten."""
+    points = data.get('points', [])
+    if not isinstance(points, list) or len(points) == 0: return
+    scene = state['scene']
+    if 'fow_visited' not in scene: scene['fow_visited'] = []
+    scene['fow_visited'].extend(points)
+    await sio.emit('fow_visited_delta', {'points': points}, skip_sid=sid)
+
+@sio.event
+async def fow_visited_full(sid, data):
+    """A2: Vollständigen fow_visited-Stand austauschen (periodischer Abgleich gegen Desync)."""
+    points = data.get('points', [])
+    if not isinstance(points, list): return
+    state['scene']['fow_visited'] = points
+    await sio.emit('fow_visited_full', {'points': points}, skip_sid=sid)
+
+@sio.event
 async def update_cam_params(sid, data):
     for k, v in data.items():
         state['cam_params'][k] = v
