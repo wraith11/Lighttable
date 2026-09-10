@@ -1,9 +1,5 @@
 # LightTable Ultimate
 
-> ## ⚠️ AI-Generierte Software / AI-Generated Software
->
-> Dieses Projekt wurde **überwiegend mit Unterstützung von KI (Large Language Models) erstellt** – einschließlich großer Teile des Quellcodes, der Architektur und dieses Dokuments. Es ist das Ergebnis einer Zusammenarbeit zwischen dem Autor und KI-gestützten Entwicklungswerkzeugen. Die Logik einzelner komplexer Systeme (z.&nbsp;B. Fog-of-War-Grundsystem, Mauer-Überlappungs-Lösung) basiert auf Ideen des Autors und wurde mit KI umgesetzt und gepflegt.
-
 **LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
 
 - **GM-Ansicht** zum Bauen und Steuern der Karte (im Browser des Spielleiters).
@@ -46,24 +42,116 @@
 
 ---
 
-## Installation & Start
+## Voraussetzungen
 
-**Voraussetzungen:** Python 3.8+, OpenCV, eine Webcam (möglichst mit IR-Filter), ein Browser.
+| Komponente | Anforderung |
+|------------|-------------|
+| **Betriebssystem** | Windows / Linux / macOS (Server) |
+| **Python** | 3.8 oder neuer |
+| **Abhängigkeiten** | aiohttp, python-socketio, opencv-python, numpy |
+| **Browser** | Aktueller Chrome / Firefox / Edge (WebGL) |
+| **Kamera** | Webcam, idealerweise mit IR-Filter-Linse |
+| **Player-Gerät** | Beliebiger Browser (z.&nbsp;B. Android-TV, Tablet, Laptop) |
+
+---
+
+## Installation
+
+### 1. Projekt herunterladen
 
 ```bash
-# Abhängigkeiten installieren
-pip install aiohttp python-socketio opencv-python numpy
+git clone https://github.com/wraith11/Lighttable.git
+cd Lighttable
+```
 
-# Server starten
+> Möchtest du die neueste Entwicklungs-Version testen, wechsle auf den Branch `dev`:
+> ```bash
+> git checkout dev
+> ```
+
+### 2. Abhängigkeiten installieren
+
+**Windows:**
+```bash
+pip install aiohttp python-socketio opencv-python numpy
+```
+
+**Linux/macOS:**
+```bash
+pip3 install aiohttp python-socketio opencv-python numpy
+```
+
+Optional in einer virtuellen Umgebung:
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+pip install aiohttp python-socketio opencv-python numpy
+```
+
+### 3. Ordnerstruktur
+
+Beim ersten Start werden automatisch die Ordner `assets/`, `maps/` und `media/` angelegt.
+
+- `assets/` – hierher legst du deine heruntergeladenen Assets (Bilder/Texturen), z.&nbsp;B. von *Forgotten Adventures*.
+- `media/` – Bilder/Videos für die Blackout-Funktion.
+- `maps/` – gespeicherte Karten (`.json`).
+
+---
+
+## Starten
+
+```bash
 python lighttable.py
 ```
 
-Beim Start werden automatisch die Ordner `assets/`, `maps/` und `media/` angelegt.
+Beim Start öffnet sich automatisch die **GM-Ansicht** im Standard-Browser:
+- **GM:** `http://localhost:8080/?view=gm`
+- **Player:** `http://<IP-des-Rechners>:8080/`
 
-- **GM-Ansicht:** öffnet sich automatisch im Browser → `http://localhost:8080/?view=gm`
-- **Player-Ansicht:** `http://<IP-des-Rechners>:8080/` (z.&nbsp;B. auf einem Android-TV-Browser)
+Die lokale IP-Adresse des Rechners wird im **Settings-Tab** angezeigt (z.&nbsp;B. `192.168.1.50`). Verbinde Player-Geräte (Android-TV, Tablet, Zweitrechner) einfach über diese Adresse im WLAN.
 
-Die lokale IP-Adresse wird im Settings-Tab angezeigt.
+> **Tipp:** Der Server läuft auf Port `8080`. Falls der Port belegt ist, ändere `HTTP_PORT` oben in `lighttable.py`.
+
+---
+
+## Kamera-Aufbau (Blob-Tracking)
+
+Das Tracking erkennt Figuren über **IR-Reflektorflächen** und eine **IR-Kamera**. So baust du es auf:
+
+### Benötigte Hardware
+- **Kamera mit IR-Filter-Linse** – viele „IR-only“-oder „Webcam mit IR-Filter“-Modelle eignen sich. Ohne Filter sieht die Kamera sichtbares Licht, was das Tracking stört.
+- **IR-Beleuchtung** – ein oder mehrere IR-Emitter (z.&nbsp;B. IR-LED-Scheinwerfer mit 850 nm), die den Tisch gleichmäßig ausleuchten. Die Reflektorflächen werfen das IR-Licht zur Kamera zurück.
+- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. von unten an den Base).
+
+### Aufbau
+1. **Kamera positionieren** – senkrecht über dem Spielfeld, z.&nbsp;B. an einem Stativ über dem Tisch oder am Beamer-Gestänge. Die Kamera sollte das gesamte Spielfeld erfassen.
+2. **IR-Beleuchtung** gleichmäßig über den Tisch richten – ohne grelle Hotspots.
+3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll.
+4. **Kamera im System einrichten:**
+   - In der GM-Ansicht: **Settings → Kamera Setup**.
+   - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
+   - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
+
+### Kalibrierung & Korrekturoptionen
+Nach der Ausrichtung stellst du in **Settings → Kamera Setup** die Tracking-Parameter ein:
+
+| Parameter | Zweck |
+|-----------|-------|
+| **Threshold** | Helligkeitsschwelle für die Binärisierung – erhöhen, wenn zu viel Rauschen erkannt wird. |
+| **Merge-Distance** | Punkte innerhalb dieser Distanz werden zu einem Blob zusammengefasst. |
+| **Min/Max-Area** | Filtert zu kleine (Rauschen) und zu große (Reflexionen) Flächen. |
+| **Hotspot** | Kompensiert helle Stellen in der Ausleuchtung. |
+| **Parallax** | Korrigiert den Parallax-Fehler bei nicht exakt senkrechter Kamera. |
+| **Smoothing** | Glättet die Blob-Bewegung (höher = ruhiger, aber träger). |
+| **Flip X/Y** | Spiegelt das Bild, falls die Kamera gedreht montiert ist. |
+
+### Verknüpfen mit Tokens
+- Im **Tokens-Tab** wählst du bei einem Token den gewünschten **Blob** (ID) aus.
+- Sobald der Blob erkannt wird, folgt der Token der Figur automatisch über den Tisch.
+- Figuren mit **Vision** decken den **Fog of War** auf.
 
 ---
 
@@ -119,3 +207,9 @@ Lighttable/
 ## Lizenz
 
 Derzeit ist keine Lizenz hinterlegt. Bei Verwendung bitte zuerst den Autor kontaktieren.
+
+---
+
+## Hinweis: KI-Unterstützung / AI-Generated Software
+
+Dieses Projekt wurde **überwiegend mit Unterstützung von KI (Large Language Models) erstellt** – einschließlich großer Teile des Quellcodes, der Architektur und dieses Dokuments. Es ist das Ergebnis einer Zusammenarbeit zwischen dem Autor und KI-gestützten Entwicklungswerkzeugen. Die Logik einzelner komplexer Systeme (z.&nbsp;B. Fog-of-War-Grundsystem, Mauer-Überlappungs-Lösung) basiert auf Ideen des Autors und wurde mit KI umgesetzt und gepflegt.
