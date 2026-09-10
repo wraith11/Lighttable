@@ -818,14 +818,32 @@ export class GameRenderer {
         if (!this.scene.lights_active) {
             nl.visible = false;
             this.lightsDirty = false;
+            this.flickerDirty = false;
             return;
         }
         nl.visible = true;
         
-        if (!this.lightsDirty && !viewChanged) {
-             this.nightSprite.alpha = this.currentDarkness; 
+        if (!this.lightsDirty && !this.flickerDirty && !viewChanged) {
+             if (this.nightSprite) this.nightSprite.alpha = this.currentDarkness; 
              return;
         }
+
+        // C1: Darkness nur rendern, wenn tatsächlich sichtbar (Nachts). Tint bleibt immer erhalten.
+        const needDarkness = this.currentDarkness > 0.005;
+
+        const segments = this.getSegments();
+        const segVersion = this._segmentsVersion;
+        const viewBounds = this.getVisibleWorldBounds();
+
+        const setWorld = (c) => {
+            c.position.set(this.world.x, this.world.y);
+            c.scale.set(this.world.scale.x, this.world.scale.y);
+            c.rotation = this.world.rotation;
+        };
+        setWorld(this.lightTintContainer);
+        setWorld(this.lightMaskContainer);
+        setWorld(this.flickerTintContainer);
+        setWorld(this.flickerMaskContainer);
 
         const cleanAndDestroy = (container) => {
              while (container.children.length > 0) {
@@ -835,68 +853,50 @@ export class GameRenderer {
             }
         };
 
-        cleanAndDestroy(this.lightMaskContainer);
-        cleanAndDestroy(this.lightTintContainer);
-        
-        if (!this.darknessTexture || this.darknessTexture.width !== this.pixiApp.screen.width || this.darknessTexture.height !== this.pixiApp.screen.height) {
-            if(this.darknessTexture) this.darknessTexture.destroy(true);
-            this.darknessTexture = PIXI.RenderTexture.create({width: this.pixiApp.screen.width, height: this.pixiApp.screen.height});
-            
-            if (this.nightSprite) this.nightSprite.destroy();
-            this.nightSprite = new PIXI.Sprite(this.darknessTexture);
-            this.nightSprite.blendMode = PIXI.BLEND_MODES.NORMAL;
-            nl.addChildAt(this.nightSprite, 0); 
-        }
+        const inView = (l, effR) => {
+            return !(l.x + effR < viewBounds.x || l.x - effR > viewBounds.x + viewBounds.width ||
+                     l.y + effR < viewBounds.y || l.y - effR > viewBounds.y + viewBounds.height);
+        };
 
-        this.darknessBg.clear();
-        this.darknessBg.beginFill(0x050510, 1.0); 
-        this.darknessBg.drawRect(0,0, this.pixiApp.screen.width, this.pixiApp.screen.height);
-        this.darknessBg.endFill();
-        this.pixiApp.renderer.render(this.darknessBg, {renderTexture: this.darknessTexture, clear: true});
+        // C2: Sicht-Polygon pro Licht cachen (Weltkoordinaten, view-unabhängig).
+        // Neu nur, wenn Position/effektiver Radius/Wände sich ändern.
+        const getCachedPoly = (l, effR) => {
+            const key = `${Math.round(l.x)}_${Math.round(l.y)}_${Math.round(effR)}_${segVersion}`;
+            if (l._polyKey !== key) {
+                const cullDist = effR + 50;
+                const nearby = segments.filter(s => {
+                    return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
+                             Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
+                });
+                l._poly = calculateVisibility({x:l.x, y:l.y, radius: effR}, nearby);
+                l._polyKey = key;
+            }
+            return l._poly;
+        };
 
-        const segments = this.getSegments();
-        
-        this.lightTintContainer.position.set(this.world.x, this.world.y);
-        this.lightTintContainer.scale.set(this.world.scale.x, this.world.scale.y);
-        this.lightTintContainer.rotation = this.world.rotation;
-        
-        this.lightMaskContainer.position.set(this.world.x, this.world.y);
-        this.lightMaskContainer.scale.set(this.world.scale.x, this.world.scale.y);
-        this.lightMaskContainer.rotation = this.world.rotation;
-
-        const viewBounds = this.getVisibleWorldBounds();
-
-        this.scene.lights.forEach(l => {
+        const buildGraphics = (l, maskContainer, tintContainer) => {
             const flickerOffset = l.currentFlickerRadius || 0;
             const baseRadius = l.radius;
             const effectiveRadius = baseRadius + flickerOffset;
+            if (!inView(l, effectiveRadius)) return;
+            const poly = getCachedPoly(l, effectiveRadius);
+            if (poly.length === 0) return;
+            const tex = this.createGradientTexture(baseRadius, l.brightness === undefined ? 0.5 : l.brightness);
             const flickerScale = effectiveRadius / baseRadius;
+            const matrix = new PIXI.Matrix();
+            matrix.translate(-tex.width / 2, -tex.height / 2);
+            matrix.scale(flickerScale, flickerScale);
+            matrix.translate(l.x, l.y);
 
-            if (l.x + effectiveRadius < viewBounds.x || l.x - effectiveRadius > viewBounds.x + viewBounds.width ||
-                l.y + effectiveRadius < viewBounds.y || l.y - effectiveRadius > viewBounds.y + viewBounds.height) return;
-
-            const cullDist = effectiveRadius + 50; 
-            const nearbySegments = segments.filter(s => {
-                return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
-                         Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
-            });
-
-            const poly = calculateVisibility({x:l.x, y:l.y, radius: effectiveRadius}, nearbySegments);
-            
-            if(poly.length > 0) {
-                const tex = this.createGradientTexture(baseRadius, l.brightness === undefined ? 0.5 : l.brightness);
-                const matrix = new PIXI.Matrix();
-                matrix.translate(-tex.width / 2, -tex.height / 2);
-                matrix.scale(flickerScale, flickerScale);
-                matrix.translate(l.x, l.y);
-
+            if (needDarkness && maskContainer) {
                 const holeG = new PIXI.Graphics();
                 holeG.beginTextureFill({ texture: tex, matrix: matrix });
                 holeG.drawPolygon(poly); 
                 holeG.endFill();
                 holeG.blendMode = PIXI.BLEND_MODES.DST_OUT;
-                this.lightMaskContainer.addChild(holeG);
-                
+                maskContainer.addChild(holeG);
+            }
+            if (tintContainer) {
                 const colorG = new PIXI.Graphics();
                 colorG.beginTextureFill({ texture: tex, matrix: matrix });
                 colorG.drawPolygon(poly);
@@ -904,13 +904,54 @@ export class GameRenderer {
                 colorG.blendMode = PIXI.BLEND_MODES.ADD;
                 colorG.tint = l.color ? parseInt(l.color.replace('#', ''), 16) : 0xffaa00;
                 colorG.alpha = (l.color_intensity !== undefined) ? l.color_intensity : 0.2;
-                this.lightTintContainer.addChild(colorG);
+                tintContainer.addChild(colorG);
             }
-        });
+        };
 
-        this.pixiApp.renderer.render(this.lightMaskContainer, { renderTexture: this.darknessTexture, clear: false });
-        this.nightSprite.alpha = this.currentDarkness; 
+        // C3: Flackernde von statischen Lichtern trennen.
+        // Statische Lichter werden nur bei lightsDirty (strukturelle Änderung) neu aufgebaut,
+        // nicht bei jedem Flacker-Tick.
+        const staticLights = this.scene.lights.filter(l => !l.flicker);
+        const flickerLights = this.scene.lights.filter(l => !!l.flicker);
+
+        if (this.lightsDirty) {
+            cleanAndDestroy(this.lightMaskContainer);
+            cleanAndDestroy(this.lightTintContainer);
+            staticLights.forEach(l => buildGraphics(l, this.lightMaskContainer, this.lightTintContainer));
+            cleanAndDestroy(this.flickerMaskContainer);
+            cleanAndDestroy(this.flickerTintContainer);
+            flickerLights.forEach(l => buildGraphics(l, this.flickerMaskContainer, this.flickerTintContainer));
+        } else if (this.flickerDirty) {
+            // Nur Flacker-Layer neu aufbauen
+            cleanAndDestroy(this.flickerMaskContainer);
+            cleanAndDestroy(this.flickerTintContainer);
+            flickerLights.forEach(l => buildGraphics(l, this.flickerMaskContainer, this.flickerTintContainer));
+        }
+
+        // Darkness-Texture aufbauen (C1: nur wenn Darkness sichtbar)
+        if (needDarkness) {
+            if (!this.darknessTexture || this.darknessTexture.width !== this.pixiApp.screen.width || this.darknessTexture.height !== this.pixiApp.screen.height) {
+                if(this.darknessTexture) this.darknessTexture.destroy(true);
+                this.darknessTexture = PIXI.RenderTexture.create({width: this.pixiApp.screen.width, height: this.pixiApp.screen.height});
+                if (this.nightSprite) this.nightSprite.destroy();
+                this.nightSprite = new PIXI.Sprite(this.darknessTexture);
+                this.nightSprite.blendMode = PIXI.BLEND_MODES.NORMAL;
+                nl.addChildAt(this.nightSprite, 0); 
+            }
+
+            this.darknessBg.clear();
+            this.darknessBg.beginFill(0x050510, 1.0); 
+            this.darknessBg.drawRect(0,0, this.pixiApp.screen.width, this.pixiApp.screen.height);
+            this.darknessBg.endFill();
+            this.pixiApp.renderer.render(this.darknessBg, {renderTexture: this.darknessTexture, clear: true});
+
+            this.pixiApp.renderer.render(this.lightMaskContainer, { renderTexture: this.darknessTexture, clear: false });
+            this.pixiApp.renderer.render(this.flickerMaskContainer, { renderTexture: this.darknessTexture, clear: false });
+        }
+
+        if (this.nightSprite) this.nightSprite.alpha = this.currentDarkness; 
         this.lightsDirty = false;
+        this.flickerDirty = false;
     }
 
     renderOverlays(viewChanged) {
