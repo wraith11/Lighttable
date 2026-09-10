@@ -215,6 +215,34 @@ export const coreMethods = {
         }
     },
 
+    addObjectAt(pos, src, type) {
+        const id = Date.now();
+        const base = this.scene.grid_size * 2;
+        const obj = {
+            id: id, type: type || 'image', src: src, layer: 'object', z: 5,
+            x: pos.x, y: pos.y, scale: 1.0, width: base, height: base, rotation: 0
+        };
+        this.scene.objects.push(obj);
+        this.selObjId = id;
+        // Bildproportionen übernehmen, sobald das Asset geladen ist
+        if ((type || 'image') === 'image') {
+            const img = new Image();
+            img.onload = () => {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    const ratio = img.naturalHeight / img.naturalWidth;
+                    obj.height = Math.max(1, Math.round(base * ratio));
+                    this.renderer.mapDirty = true;
+                    this.sync();
+                    this.renderer.requestRender();
+                }
+            };
+            img.src = src;
+        }
+        this.renderer.mapDirty = true;
+        this.sync();
+        return obj;
+    },
+
     deleteSelected() { 
         if(this.selObjId) { 
             if(this.selectedObjIsLight) {
