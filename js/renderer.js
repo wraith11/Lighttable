@@ -1247,12 +1247,14 @@ export class GameRenderer {
             const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
 
             if (tc._cachedProps !== currentProps) {
-                tc.removeChildren();
+                while (tc.children.length > 0) tc.removeChildAt(0).destroy();
                 const color = t.spotlight_color ? parseInt(t.spotlight_color.replace('#',''),16) : 0xffffff;
                 const g = new PIXI.Graphics();
                 g.beginFill(color, 1.0); g.drawCircle(0,0, t.size / 2); g.endFill();
                 const blurAmount = Math.max(1, 16 * this.world.scale.x);
-                g.filters = [new PIXI.BlurFilter(blurAmount)];
+                if (!tc._blurFilter) tc._blurFilter = new PIXI.BlurFilter(blurAmount);
+                else tc._blurFilter.blur = blurAmount;
+                g.filters = [tc._blurFilter];
                 tc.addChild(g);
                 this.drawTokenRings(tc, t);
 
