@@ -131,10 +131,18 @@ def load_state_from_disk():
         except Exception as e:
             print(f"Load failed: {e}")
 
+def safe_asset_path(subdir=''):
+    """Bereinigt einen Unterordner-Pfad und verhindert ein Entkommen aus dem Assets-Root."""
+    subdir = subdir.replace('..', '').strip('/\\')
+    base = os.path.abspath(ASSET_DIR)
+    target = os.path.normpath(os.path.join(base, subdir))
+    if not (target == base or target.startswith(base + os.sep)):
+        return base, ''
+    return target, subdir
+
 def get_dir_content(subdir=''):
     base_abs = os.path.abspath(ASSET_DIR)
-    subdir = subdir.replace('..', '').strip('/\\')
-    target_path = os.path.join(base_abs, subdir)
+    target_path, subdir = safe_asset_path(subdir)
     items = []
     if os.path.exists(target_path) and os.path.isdir(target_path):
         for f in os.listdir(target_path):
