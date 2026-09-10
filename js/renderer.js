@@ -338,7 +338,10 @@ export class GameRenderer {
     }
 
     renderFoW() {
-        this.containers.fow.removeChildren();
+        // Zerstöre vorherige FoW-Sprites, um GPU-Speicherlecks zu vermeiden
+        while (this.containers.fow.children.length > 0) {
+            this.containers.fow.removeChildAt(0).destroy({ children: true });
+        }
         if (!this.scene.fow_active) return;
 
         const segments = this.getSegments();
