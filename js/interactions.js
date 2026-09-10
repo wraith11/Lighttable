@@ -595,12 +595,7 @@ export const interactionMethods = {
                         if(e.target.closest('.drop-zone')) return;
                         if(['brush', 'grid_paint', 'rect_paint', 'circle_paint', 'wall'].includes(this.tool)) this.brushTexture = res.url;
                         else {
-                            const id = Date.now();
-                            this.scene.objects.push({ id: id, type: res.type, src: res.url, layer: 'object', z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                            this.selObjId = id; 
-                            this.renderer.mapDirty = true;
-                            this.sync();
-                            if(this.renderer) this.renderer.requestRender();
+                            this.addObjectAt(pos, res.url, res.type);
                         }
                     }
             });
