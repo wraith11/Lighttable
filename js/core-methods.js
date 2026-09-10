@@ -644,11 +644,13 @@ export const coreMethods = {
                     
                     if (isPermanent && t.has_vision) {
                          if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
-                             this.scene.fow_visited.push({
+                             const pt = {
                                  x: Math.round(t.x), 
                                  y: Math.round(t.y), 
                                  radius: t.vision_range
-                             });
+                             };
+                             this.scene.fow_visited.push(pt);
+                             this._fowDeltaBuffer.push(pt);
                              t._lastFowPos = {x: t.x, y: t.y};
                              fowChanged = true;
                          }
