@@ -572,6 +572,32 @@ export const coreMethods = {
         if (changes) this.sync();
     },
     
+    // A2: Puffer für neue fow_visited-Punkte, die als Delta gesendet werden
+    _fowDeltaBuffer: [],
+    _fowFullTimer: null,
+    _fowFullCount: 0,
+
+    // A2: Neue Sicht-Punkte als Delta senden (nicht die ganze Szene).
+    // Zusätzlich alle FOW_FULL_INTERVAL Sekunden den vollständigen Stand zum Abgleich senden.
+    flushFowDelta() {
+        if (this._fowDeltaBuffer.length === 0) return;
+        const points = this._fowDeltaBuffer;
+        this._fowDeltaBuffer = [];
+        socket.emit('fow_visited_delta', { points });
+        this._fowFullCount += points.length;
+        if (this._fowFullCount >= 200) { this.emitFowFull(); this._fowFullCount = 0; }
+    },
+    emitFowFull() {
+        socket.emit('fow_visited_full', { points: this.scene.fow_visited });
+    },
+    startFowSync() {
+        if (this._fowFullTimer) return;
+        this._fowFullTimer = setInterval(() => this.emitFowFull(), 10000);
+    },
+    stopFowSync() {
+        if (this._fowFullTimer) { clearInterval(this._fowFullTimer); this._fowFullTimer = null; }
+    },
+
     updateTokenPos() {
         let changed = false;
         let tokenListChanged = false;
