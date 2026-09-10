@@ -500,7 +500,7 @@ export const interactionMethods = {
             this.renderer.drawingsDirty = true;
             this.sync(); 
         }
-        else if(['move_player','obj','light','token','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.sync();
+        else if(['move_player','obj','light','token','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.flushSync();
         
         this.drag.mode = null; this.drag.temp = null;
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
