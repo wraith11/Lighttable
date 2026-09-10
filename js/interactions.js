@@ -583,12 +583,7 @@ export const interactionMethods = {
         this.setTool('select');
 
         if(assetUrl && assetUrl.startsWith('/assets/')) {
-                const id = Date.now();
-                this.scene.objects.push({ id: id, type: 'image', src: assetUrl, layer: 'object', z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                this.selObjId = id; 
-                this.renderer.mapDirty = true;
-                this.sync(); 
-                if(this.renderer) this.renderer.requestRender();
+                this.addObjectAt(pos, assetUrl, 'image');
                 return;
         }
 
