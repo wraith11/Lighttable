@@ -513,7 +513,8 @@ export const interactionMethods = {
         if(!this.isGM || !this.renderer) return;
         e.preventDefault();
         const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        const oldScale = this.scene.view.scale; const newScale = oldScale * scaleFactor;
+        const oldScale = this.scene.view.scale; 
+        const newScale = Math.min(4, Math.max(0.1, oldScale * scaleFactor));
         const rect = this.renderer.pixiApp.view.getBoundingClientRect();
         const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
         const worldX = (mouseX - this.scene.view.x) / oldScale; const worldY = (mouseY - this.scene.view.y) / oldScale;
