@@ -800,7 +800,7 @@ export class GameRenderer {
         const lc = this.containers.lights; 
         
         if (this.lightsDirty) {
-             lc.removeChildren(); 
+             while (lc.children.length > 0) lc.removeChildAt(0).destroy();
              if(this.isGM && this.scene.show_light_icons) {
                 this.scene.lights.forEach(l => {
                     const icon = new PIXI.Graphics();
