@@ -550,6 +550,7 @@ export class GameRenderer {
         ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
         const tex = PIXI.Texture.from(canvas); 
         this.textureCache[key] = tex;
+        this.capTextureCache();
         return tex;
     }
 
@@ -567,7 +568,23 @@ export class GameRenderer {
         ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
         const tex = PIXI.Texture.from(canvas); 
         this.textureCache[key] = tex;
+        this.capTextureCache();
         return tex;
+    }
+
+    // E: Begrenzt den Texture-Cache, damit er durch viele Radius-/Helligkeits-Kombinationen nicht unbegrenzt wächst.
+    capTextureCache() {
+        const MAX = 80;
+        const keys = Object.keys(this.textureCache);
+        if (keys.length <= MAX) return;
+        // Älteste Einträge entfernen (einfachste Eviction-Reihenfolge)
+        const excess = keys.length - MAX;
+        for (let i = 0; i < excess; i++) {
+            const k = keys[i];
+            const tex = this.textureCache[k];
+            if (tex) { try { tex.destroy(true); } catch(e){} }
+            delete this.textureCache[k];
+        }
     }
     
     animateLights() {
