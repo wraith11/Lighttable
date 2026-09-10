@@ -160,6 +160,7 @@ export class GameRenderer {
         
         this.pixiApp.stage.addChild(this.containers.nightLayer);
         this.containers.nightLayer.addChild(this.lightTintContainer);
+        this.containers.nightLayer.addChild(this.flickerTintContainer);
 
         this.containers.shadows.filters = [this.shadowFilter];
         this.containers.shadows.alpha = 0.5;
