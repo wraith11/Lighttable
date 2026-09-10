@@ -330,11 +330,9 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // Einen einzigen BlurFilter wiederverwenden, statt pro Bake GPU-Ressourcen zu allokieren
-        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
-        brush.filters = [this.fowBlurFilter]; 
-
-        // OPTIMIZATION: clear: false preserves history (baking)
+        // D2: Kein Blur mehr beim Einbrennen – der weiche Rand wird in renderFoW
+        // über den finalen Memory-Sprite (GPU) angewendet. Spart das wiederholte
+        // Re-Blurren der gesamten, wachsenden Textur beim Erkunden.
         this.pixiApp.renderer.render(brush, { 
             renderTexture: this.fowMemoryTexture, 
             clear: forceRebuild, 
