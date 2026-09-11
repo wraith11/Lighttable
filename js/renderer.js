@@ -846,11 +846,15 @@ export class GameRenderer {
 
         if (!this.scene.lights_active) {
             nl.visible = false;
+            this.lightTintContainer.visible = false;
+            this.flickerTintContainer.visible = false;
             this.lightsDirty = false;
             this.flickerDirty = false;
             return;
         }
         nl.visible = true;
+        this.lightTintContainer.visible = true;
+        this.flickerTintContainer.visible = true;
         
         if (!this.lightsDirty && !this.flickerDirty && !viewChanged) {
              if (this.nightSprite) this.nightSprite.alpha = this.currentDarkness; 
@@ -869,9 +873,8 @@ export class GameRenderer {
             c.scale.set(this.world.scale.x, this.world.scale.y);
             c.rotation = this.world.rotation;
         };
-        setWorld(this.lightTintContainer);
+        // Tint-Container sind jetzt Kinder der Welt und erben deren Transform – keine manuelle Welt-Transform nötig
         setWorld(this.lightMaskContainer);
-        setWorld(this.flickerTintContainer);
         setWorld(this.flickerMaskContainer);
 
         const cleanAndDestroy = (container) => {
