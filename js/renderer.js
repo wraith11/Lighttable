@@ -55,6 +55,8 @@ export class GameRenderer {
         this.flickerDirty = false;
         this.drawingsDirty = true; 
         this.fowDirty = true; 
+        this.fowBlurDirty = false;
+        this.fowBlurredTexture = null;
         this._cachedSegments = null;
         this._segmentsVersion = 0;
         
