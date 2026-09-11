@@ -377,7 +377,7 @@ async def update_scene(sid, data):
                 curr_pv[k] = v
                 config_changed = True
     
-    simple_config_keys = ['show_blob_ids', 'show_player_frame', 'grid_size', 'show_grid']
+    simple_config_keys = ['show_blob_ids', 'show_player_frame', 'grid_size', 'show_grid', 'time_of_day']
     for key in simple_config_keys:
         if key in data and state['scene'].get(key) != data[key]:
             state['scene'][key] = data[key]
