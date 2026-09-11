@@ -476,15 +476,9 @@ export class GameRenderer {
         if (this.dragState.active) this._renderDirty = true;
         if (this.mapDirty || this.lightsDirty || this.flickerDirty || this.drawingsDirty || this.fowDirty) this._renderDirty = true;
 
-        // Optimization: Return early if nothing to render and shadows are stable
-        if (!this._renderDirty && !this.shadowsNeedCaching) {
+        // Optimization: Return early if nothing to render
+        if (!this._renderDirty) {
              return; 
-        }
-
-        // Handle delayed cache enabling for shadows to prevent artifacts
-        if (this.shadowsNeedCaching && !this.mapDirty) {
-             this.containers.shadows.cacheAsBitmap = true;
-             this.shadowsNeedCaching = false;
         }
 
         let bgHex = 0x222222;
