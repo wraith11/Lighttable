@@ -46,6 +46,20 @@ current_cam_res = {'w': 1280, 'h': 720}
 # --- SOCKET.IO SETUP ---
 sio = socketio.AsyncServer(async_mode='aiohttp', cors_allowed_origins='*', max_http_buffer_size=MAX_BUFFER_SIZE)
 app = web.Application()
+
+# --- MIDDLEWARE: Kein Caching der statischen Dateien (JS/CSS) ---
+# Verhindert, dass Browser veraltete Module (renderer.js, core-methods.js ...) liefern,
+# da die ES-Modul-Imports keine Cache-Busting-Version haben.
+@web.middleware
+async def no_cache_middleware(request, handler):
+    response = await handler(request)
+    if request.path.startswith('/js/') or request.path.startswith('/css/') or request.path.endswith('.js'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+app.middlewares.append(no_cache_middleware)
 sio.attach(app)
 
 # --- STATE ---
