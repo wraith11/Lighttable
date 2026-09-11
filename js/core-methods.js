@@ -162,6 +162,7 @@ export const coreMethods = {
             if (this.selectedObjIsLight) {
                 this.selObjId = null;
                 this.selectedObjIsLight = false;
+                if(this.renderer) this.renderer.selectedObjId = null;
             }
             if (this.tool === 'light') {
                 this.setTool('select');
