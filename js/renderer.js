@@ -622,11 +622,6 @@ export class GameRenderer {
     }
 
     rebuildMap() {
-        // Disable caching immediately to allow updates
-        this.containers.shadows.cacheAsBitmap = false;
-        // Mark for re-caching in the next render cycle to avoid artifacts
-        this.shadowsNeedCaching = true;
-        
         const cleanContainer = (container) => {
             while(container.children.length > 0) {
                 const child = container.getChildAt(0);
