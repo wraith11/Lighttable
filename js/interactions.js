@@ -27,6 +27,9 @@ export const interactionMethods = {
         this.drag.active = true;
         this.drag.start = {x:e.clientX, y:e.clientY}; 
         this.drag.worldStart = pos;
+        // BUGFIX: Stale drag.mode zurücksetzen (z. B. 'pan' nach Rechtsklick), damit
+        // ein Linksklick nicht versehentlich weiter die Sicht verschiebt.
+        this.drag.mode = null;
 
         if(this.tool === 'fow_reveal') { 
             this.drag.mode = 'fow_paint'; this.drag.fowType = 'reveal'; 
