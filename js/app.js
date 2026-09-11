@@ -176,6 +176,7 @@ createApp({
         socket.on('available_cameras', (cams) => { this.availableCameras = cams; });
         
         // A2: fow_visited Delta/Full empfangen (auf jedem Client anwenden)
+        // Kein direktes updateFoWMemory(true) – renderFoW bakt inkrementell (false).
         socket.on('fow_visited_delta', (data) => {
             const points = data.points || [];
             if (points.length === 0) return;
@@ -183,7 +184,6 @@ createApp({
             this.scene.fow_visited.push(...points);
             if (this.renderer) {
                 this.renderer.fowDirty = true;
-                this.renderer.updateFoWMemory(true);
                 this.renderer.requestRender();
             }
         });
@@ -192,7 +192,6 @@ createApp({
             this.scene.fow_visited = points;
             if (this.renderer) {
                 this.renderer.fowDirty = true;
-                this.renderer.updateFoWMemory(true);
                 this.renderer.requestRender();
             }
         });
