@@ -385,9 +385,6 @@ export class GameRenderer {
              const permSprite = new PIXI.Sprite(this.fowMemoryTexture);
              permSprite.position.set(pv.x - w/2, pv.y - h/2);
              permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
-             // D2: Weicher Rand der Memory-Sicht über GPU-Filter (einmal pro Render, nicht pro Bake)
-             if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
-             permSprite.filters = [this.fowBlurFilter];
              visionContainer.addChild(permSprite);
         }
 
