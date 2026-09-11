@@ -285,6 +285,8 @@ export class GameRenderer {
                  height: Math.ceil(h),
                  scaleMode: PIXI.SCALE_MODES.LINEAR
              });
+             if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+             this.fowBlurDirty = true;
              this.lastFoWPathLength = 0; 
         }
         
