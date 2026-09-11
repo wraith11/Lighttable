@@ -1148,22 +1148,16 @@ export class GameRenderer {
 
     renderStaticDrawings() {
         const gs = this.scene.grid_size;
-        const visitedIds = new Set();
+        // Container komplett leeren – verhindert, dass gelöschte Hintergrund-Grafiken
+        // (Kreise/Rechteck-Pinsel) als "Geister" verdunkelt stehen bleiben.
+        while (this.containers.draw.children.length > 0) {
+            this.containers.draw.removeChildAt(0).destroy({ children: true, texture: true, baseTexture: false });
+        }
+        this.drawingCache = {};
         
         if (this.scene.drawings) {
             this.scene.drawings.forEach(item => {
                 if (!item.id) return; 
-                visitedIds.add(item.id);
-                if (this.drawingCache[item.id]) {
-                    if (this.drawingCache[item.id]._isPlaceholder) {
-                        const tex = PIXI.Texture.from(item.texture);
-                        if (tex.valid && tex.width > 1) {
-                            this.drawingCache[item.id].destroy({ children: true, texture: true, baseTexture: false });
-                            delete this.drawingCache[item.id];
-                        } else { return; }
-                    } else { return; }
-                }
-                
                 if (item.texture) {
                     const tex = PIXI.Texture.from(item.texture);
                     if (!tex.valid || tex.width <= 1) {
@@ -1181,13 +1175,6 @@ export class GameRenderer {
                 this.drawingCache[item.id] = g;
             });
         }
-        
-        Object.keys(this.drawingCache).forEach(id => {
-            if (!visitedIds.has(id)) {
-                this.drawingCache[id].destroy({ children: true, texture: true, baseTexture: false });
-                delete this.drawingCache[id];
-            }
-        });
     }
 
     renderPreviewDrawing() {
