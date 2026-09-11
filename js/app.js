@@ -108,6 +108,8 @@ createApp({
                 this.renderer.rebuildMap();
                 this.renderer.drawingsDirty = true; 
                 this.renderer.lightsDirty = true; // BUGFIX: Lights dirty setzen beim init
+                // BUGFIX: Nach Refresh Tag/Nacht-Übergang (Darkness) starten, sonst bleibt es bei "Tag"
+                this.renderer.startLightLoop();
                 this.renderer.requestRender(); 
             }
         });
