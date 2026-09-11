@@ -521,8 +521,33 @@ export const coreMethods = {
             if(this.blobs[t.blob_id]) { this.updateTokenPos(); }
             t.on_board = true;
             this.markTokenModified(t); 
+            // BUGFIX: Sicht sofort aufdecken, sobald ein Token einem Blob zugewiesen wird
+            this.revealTokenVision(t);
         }
         this.sync();
+    },
+
+    // BUGFIX: Deckt bei permanentem FoW die Sicht am aktuellen Token-Ort sofort auf
+    // (ohne auf die nächste Bewegung warten zu müssen).
+    revealTokenVision(t) {
+        if (!t || !t.has_vision) return;
+        if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
+        if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
+            const pt = { x: Math.round(t.x), y: Math.round(t.y), radius: t.vision_range || 400 };
+            this.scene.fow_visited.push(pt);
+            this._fowDeltaBuffer.push(pt);
+            t._lastFowPos = {x: t.x, y: t.y};
+            this.flushFowDelta();
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.requestRender();
+            }
+        }
+    },
+    toggleTokenVision(t) {
+        t.has_vision = !t.has_vision;
+        if (t.has_vision) this.revealTokenVision(t);
+        this.markTokenModified(t);
     },
     markTokenModified(t) {
         if (!t.modified) { t.modified = true; }
