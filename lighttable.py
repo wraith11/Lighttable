@@ -110,6 +110,7 @@ def save_state_to_disk():
                 'grid_size': state['scene']['grid_size'],
                 'show_grid': state['scene']['show_grid'],
                 'show_player_frame': state['scene'].get('show_player_frame', True),
+                'time_of_day': state['scene'].get('time_of_day', 'day'),
                 'blackout_config': state['scene'].get('blackout_config')
             }
         }
