@@ -402,12 +402,14 @@ export class GameRenderer {
 
         // Permanent Memory Layer
         if (this.scene.fow_mode === 'permanent' && this.fowMemoryTexture) {
+             this.ensureFoWBlur();
              const pv = this.scene.player_view;
              const gs = this.scene.grid_size;
              const w = pv.width_cells * gs;
              const h = w / pv.aspect;
              
-             const permSprite = new PIXI.Sprite(this.fowMemoryTexture);
+             const tex = this.fowBlurredTexture || this.fowMemoryTexture;
+             const permSprite = new PIXI.Sprite(tex);
              permSprite.position.set(pv.x - w/2, pv.y - h/2);
              permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
              visionContainer.addChild(permSprite);
