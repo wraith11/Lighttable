@@ -253,19 +253,12 @@ export class GameRenderer {
     setDragState(drag, selId) {
         if (drag.active) {
             this._renderDirty = true;
-            // Disable shadow caching ONLY for structural changes (walls/columns)
-            // BUGFIX: Removed 'obj' from here to prevent shadow flickering when moving furniture
-            if(drag.mode === 'wall_move' || drag.mode === 'wall_drag' || drag.mode === 'column_move') {
-                this.containers.shadows.cacheAsBitmap = false;
-            }
         } else {
              const newHash = `${drag.mode}_${selId}`;
              if (this.lastDragHash !== newHash) {
                  this._renderDirty = true;
                  this.lastDragHash = newHash;
              }
-             // Re-enable caching on drop handled via shadowsNeedCaching logic in render()
-             this.shadowsNeedCaching = true;
         }
         this.dragState = drag;
         this.selectedObjId = selId;
