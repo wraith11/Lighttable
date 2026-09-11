@@ -232,11 +232,24 @@ export const coreMethods = {
     },
     saveGame() { socket.emit('save_settings'); },
     
-    saveMap() {
+    // Speichern: überschreibt die aktuell geladene/gespeicherte Karte unter demselben Namen.
+    saveCurrentMap() {
+        if (!this.currentMapName) { this.saveMapAs(); return; }
+        this._doSaveMap(this.currentMapName);
+    },
+    // Speichern unter: speichert unter dem im Eingabefeld stehenden Namen.
+    saveMapAs() {
         if(!this.saveMapName) return;
-        socket.emit('save_map', this.saveMapName, (res) => {
+        this._doSaveMap(this.saveMapName);
+    },
+    _doSaveMap(name) {
+        socket.emit('save_map', name, (res) => {
             if(res.error) alert("Fehler beim Speichern: " + res.error);
-            else { this.saveMapName = ""; alert("Karte gespeichert!"); }
+            else {
+                this.currentMapName = name;
+                this.saveMapName = "";
+                alert("Karte gespeichert!");
+            }
         });
     },
     loadMap(filename) {
@@ -244,6 +257,7 @@ export const coreMethods = {
             socket.emit('load_map', filename, (res) => {
                 if(res.error) alert("Fehler beim Laden: " + res.error);
                 else {
+                    this.currentMapName = filename;
                     this.scene.player_view_blackout = true;
                     this.sync();
                 }
