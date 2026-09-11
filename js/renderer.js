@@ -333,12 +333,9 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // Einen einzigen BlurFilter wiederverwenden. Der Blur wird NUR auf die neu
-        // hinzugefügten Punkte angewendet (inkrementelles Einbrennen) – nicht auf die
-        // gesamte, wachsende Textur und nicht pro Frame (verhindert den FoW-Lag).
-        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
-        brush.filters = [this.fowBlurFilter];
-
+        // Scharf einbrennen (kein Blur hier) – der weiche Rand wird einmalig pro
+        // Bake-Batch in _ensureFoWBlur auf eine persistente Textur angewendet.
+        // Vermeidet pro-Bake-Filter-Renderings, die Ressourcen leaken/verlangsamen können.
         this.pixiApp.renderer.render(brush, { 
             renderTexture: this.fowMemoryTexture, 
             clear: forceRebuild, 
@@ -348,6 +345,26 @@ export class GameRenderer {
 
         this.lastFoWPathLength = visited.length;
         this._lastFoWBakeTime = now;
+        this.fowBlurDirty = true;
+    }
+
+    // Wendet den weichen Rand der Memory-Sicht einmalig (bei Bedarf) auf eine
+    // persistente, geblurrte Textur an. Rendert nicht pro Frame und nicht pro Bake.
+    ensureFoWBlur() {
+        if (!this.fowBlurDirty) return;
+        this.fowBlurDirty = false;
+        if (!this.fowMemoryTexture) return;
+        const w = this.fowMemoryTexture.width;
+        const h = this.fowMemoryTexture.height;
+        if (!this.fowBlurredTexture || this.fowBlurredTexture.width !== w || this.fowBlurredTexture.height !== h) {
+            if (this.fowBlurredTexture) this.fowBlurredTexture.destroy(true);
+            this.fowBlurredTexture = PIXI.RenderTexture.create({width: w, height: h});
+        }
+        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
+        const src = new PIXI.Sprite(this.fowMemoryTexture);
+        src.filters = [this.fowBlurFilter];
+        this.pixiApp.renderer.render(src, {renderTexture: this.fowBlurredTexture, clear: true, transform: null});
+        src.destroy({children: true});
     }
 
     renderFoW() {
