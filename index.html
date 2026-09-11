@@ -370,7 +370,7 @@
                                 <button class="btn full" style="margin-top:5px" @click="addTokenRing(t)">+ Ring</button>
 
                                 <hr style="border:0; border-top:1px solid #333; margin:8px 0">
-                                <div class="row"><button class="btn" @click="t.has_vision=!t.has_vision; markTokenModified(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> Vision</button></div>
+                                <div class="row"><button class="btn" @click="toggleTokenVision(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> Vision</button></div>
                                 <div v-if="t.has_vision" class="row"><label>Reichweite:</label><input type="number" v-model.number="t.vision_range" @change="markTokenModified(t)"></div>
                                 <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(t.uuid)">Löschen</button></div>
                             </div>
