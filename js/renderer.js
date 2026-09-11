@@ -350,7 +350,8 @@ export class GameRenderer {
         if (!this.scene.fow_active) return;
 
         const segments = this.getSegments();
-        this.updateFoWMemory(this.fowDirty);
+        // false = inkrementell einbrennen (nur neue Punkte), statt bei jeder Bewegung alles neu zu baken
+        this.updateFoWMemory(false);
         this.fowDirty = false;
 
         const screenW = this.pixiApp.screen.width;
