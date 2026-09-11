@@ -291,8 +291,8 @@ export const coreMethods = {
             }
             this.selObjId=null; 
             this.sync(); 
-            // BUGFIX: Sofortiges Rendern nach Löschen
-            if(this.renderer) this.renderer.requestRender();
+            // BUGFIX: Renderer-Auswahl zurücksetzen, damit der Auswahl-Rahmen sofort verschwindet
+            if(this.renderer) { this.renderer.selectedObjId = null; this.renderer.requestRender(); }
         }
     },
     
