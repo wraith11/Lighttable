@@ -326,9 +326,12 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // D2: Kein Blur mehr beim Einbrennen – der weiche Rand wird in renderFoW
-        // über den finalen Memory-Sprite (GPU) angewendet. Spart das wiederholte
-        // Re-Blurren der gesamten, wachsenden Textur beim Erkunden.
+        // Einen einzigen BlurFilter wiederverwenden. Der Blur wird NUR auf die neu
+        // hinzugefügten Punkte angewendet (inkrementelles Einbrennen) – nicht auf die
+        // gesamte, wachsende Textur und nicht pro Frame (verhindert den FoW-Lag).
+        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
+        brush.filters = [this.fowBlurFilter];
+
         this.pixiApp.renderer.render(brush, { 
             renderTexture: this.fowMemoryTexture, 
             clear: forceRebuild, 
