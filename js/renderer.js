@@ -159,12 +159,15 @@ export class GameRenderer {
         });
         
         this.pixiApp.stage.addChild(this.containers.nightLayer);
-        this.containers.nightLayer.addChild(this.lightTintContainer);
-        this.containers.nightLayer.addChild(this.flickerTintContainer);
+        // Tint-Container gehören in die Welt UNTER dem FoW (zIndex 900 < 1000),
+        // damit der Nebel die Licht-Farbtönung verdeckt.
+        this.lightTintContainer.zIndex = 900;
+        this.flickerTintContainer.zIndex = 900;
+        this.world.addChild(this.lightTintContainer);
+        this.world.addChild(this.flickerTintContainer);
 
         this.containers.shadows.filters = [this.shadowFilter];
         this.containers.shadows.alpha = 0.5;
-        this.containers.shadows.cacheAsBitmap = true; 
         
         this.requestRender();
     }
