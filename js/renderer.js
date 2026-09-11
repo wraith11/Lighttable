@@ -57,7 +57,6 @@ export class GameRenderer {
         this.fowDirty = true; 
         this._cachedSegments = null;
         this._segmentsVersion = 0;
-        this.shadowsNeedCaching = false;
         
         this._lastScale = -1;
         this._lastViewX = -99999;
