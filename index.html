@@ -361,18 +361,18 @@
                                     <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" title="Farbe zurücksetzen"><i class="fas fa-undo"></i></button>
                                 </div>
                                 
-                                <div class="section-title" style="margin-top:10px; font-size:0.7em">Ringe</div>
+                                <div class="section-title" style="margin-top:10px; font-size:0.7em">{{ t('rings') }}</div>
                                 <div v-for="(ring, idx) in t.rings" :key="idx" class="row" style="background:#222; padding:5px; border-radius:4px; margin-bottom:2px;">
-                                    <div class="texture-preview" :style="{backgroundColor: ring.color, width:'30px', height:'30px'}" @click="openRingColorPicker(t, idx)" title="Ringfarbe wählen"></div>
+                                    <div class="texture-preview" :style="{backgroundColor: ring.color, width:'30px', height:'30px'}" @click="openRingColorPicker(t, idx)" :title="t('chooseColor')"></div>
                                     <input type="text" v-model.lazy="ring.text" @change="sync" placeholder="Text" style="flex:1; min-width:0; margin:0">
                                     <button class="btn danger" style="padding:0 10px;" @click="removeTokenRing(t, idx)">X</button>
                                 </div>
-                                <button class="btn full" style="margin-top:5px" @click="addTokenRing(t)">+ Ring</button>
+                                <button class="btn full" style="margin-top:5px" @click="addTokenRing(t)">{{ t('addRing') }}</button>
 
                                 <hr style="border:0; border-top:1px solid #333; margin:8px 0">
-                                <div class="row"><button class="btn" @click="toggleTokenVision(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> Vision</button></div>
-                                <div v-if="t.has_vision" class="row"><label>Reichweite:</label><input type="number" v-model.number="t.vision_range" @change="markTokenModified(t)"></div>
-                                <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(t.uuid)">Löschen</button></div>
+                                <div class="row"><button class="btn" @click="toggleTokenVision(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> {{ t('vision') }}</button></div>
+                                <div v-if="t.has_vision" class="row"><label>{{ t('visionRange') }}</label><input type="number" v-model.number="t.vision_range" @change="markTokenModified(t)"></div>
+                                <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(t.uuid)">{{ t('tokenDelete') }}</button></div>
                             </div>
                         </details>
                     </div>
@@ -380,18 +380,18 @@
 
                 <!-- Tab: Map -->
                 <div class="panel-content" v-if="tab=='map'">
-                    <div class="section-title">Blackout</div>
-                    <button class="btn full" @click="toggleBlackout" :class="scene.player_view_blackout ? 'danger active' : 'btn'">{{scene.player_view_blackout ? 'BLACKOUT AKTIV' : 'Blackout Anschalten'}}</button>
+                    <div class="section-title">{{ t('blackout') }}</div>
+                    <button class="btn full" @click="toggleBlackout" :class="scene.player_view_blackout ? 'danger active' : 'btn'">{{scene.player_view_blackout ? t('blackoutActive') : t('blackoutEnable')}}</button>
                     
                     <!-- Blackout Manager UI -->
                     <div v-if="scene.player_view_blackout" style="background:#222; padding:10px; margin-top:10px; border-radius:4px; border:1px solid #444;">
-                        <label style="color:var(--accent); font-weight:bold; margin-bottom:5px; display:block;">Blackout Media</label>
+                        <label style="color:var(--accent); font-weight:bold; margin-bottom:5px; display:block;">{{ t('blackoutMedia') }}</label>
                         
                         <!-- Layout Selector -->
                         <div class="btn-group">
-                            <button class="btn" :class="{active: scene.blackout_config.mode === 'full'}" @click="setBlackoutMode('full')">Full</button>
-                            <button class="btn" :class="{active: scene.blackout_config.mode === 'split'}" @click="setBlackoutMode('split')">Split</button>
-                            <button class="btn" :class="{active: scene.blackout_config.mode === 'quad'}" @click="setBlackoutMode('quad')">Quad</button>
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'full'}" @click="setBlackoutMode('full')">{{ t('full') }}</button>
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'split'}" @click="setBlackoutMode('split')">{{ t('split') }}</button>
+                            <button class="btn" :class="{active: scene.blackout_config.mode === 'quad'}" @click="setBlackoutMode('quad')">{{ t('quad') }}</button>
                         </div>
                         
                         <!-- Visual Grid Selector for GM -->
@@ -420,20 +420,20 @@
 
                         <!-- Controls for Selected Slot -->
                         <div class="row" style="margin-top:5px;">
-                            <label style="font-size:0.8em; white-space:nowrap;">Slot {{selectedMediaSlot+1}}:</label>
+                            <label style="font-size:0.8em; white-space:nowrap;">{{ t('slot') }}{{ selectedMediaSlot+1 }}:</label>
                             <button class="btn" :class="{active: scene.blackout_config.screens[selectedMediaSlot].flipped}" @click="toggleMediaFlip(selectedMediaSlot)" title="Flip" :disabled="scene.blackout_config.mode !== 'full'"><i class="fas fa-retweet"></i></button>
                             <button class="btn" :class="{active: scene.blackout_config.screens[selectedMediaSlot].loop}" @click="toggleMediaLoop(selectedMediaSlot)" title="Loop"><i class="fas fa-sync"></i></button>
                             <button class="btn danger" @click="clearMediaSlot(selectedMediaSlot)"><i class="fas fa-trash"></i></button>
                         </div>
                         
                         <div class="sync-row">
-                            <label><input type="checkbox" v-model="scene.blackout_config.sync" @change="sync"> Sync All Slots</label>
-                            <button class="btn danger" style="flex:0;" @click="clearMediaSlot(-1)">Clear</button>
+                            <label><input type="checkbox" v-model="scene.blackout_config.sync" @change="sync"> {{ t('syncAll') }}</label>
+                            <button class="btn danger" style="flex:0;" @click="clearMediaSlot(-1)">{{ t('clear') }}</button>
                         </div>
 
                         <!-- Media Browser -->
-                        <div class="section-title" style="margin-top:5px;">Media (Click to Assign)</div>
-                        <button class="btn full" style="font-size:0.8em; margin-bottom:5px;" @click="refreshMedia">Reload Media Folder</button>
+                        <div class="section-title" style="margin-top:5px;">{{ t('mediaAssign') }}</div>
+                        <button class="btn full" style="font-size:0.8em; margin-bottom:5px;" @click="refreshMedia">{{ t('reloadMedia') }}</button>
                         <div style="max-height:100px; overflow-y:auto; background:#111; padding:5px;">
                             <div v-for="m in mediaList" :key="m.name" 
                                  style="cursor:pointer; font-size:0.8em; padding:2px; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
