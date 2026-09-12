@@ -1,0 +1,4 @@
+aiohttp>=3.8
+python-socketio>=5.7
+opencv-python>=4.5
+numpy>=1.21
