@@ -333,46 +333,46 @@
                     <button class="btn full" @click="createToken()">{{ t('addToken') }}</button>
                     <div class="section-title">{{ t('tokenList') }}</div>
                     
-                    <div v-for="t in sortedTokens" :key="t.uuid" class="token-card" :class="{active: t.uuid === openTokenId}">
-                        <details :open="openTokenId === t.uuid">
+                    <div v-for="tok in sortedTokens" :key="tok.uuid" class="token-card" :class="{active: tok.uuid === openTokenId}">
+                        <details :open="openTokenId === tok.uuid">
                             <summary style="display:flex; align-items:center; cursor: default; list-style: none;">
                                 <div style="display:flex; align-items:center; gap:10px; width:100%">
-                                    <span style="flex:1; cursor:pointer;" @click.prevent="toggleTokenDetails(t.uuid, {newState: openTokenId === t.uuid ? 'closed' : 'open'})">
-                                        {{t.name}} <span v-if="t.blob_id" style="font-size:0.7em; color:#0f0">{{ t('id') }}{{t.blob_id}}</span>
+                                    <span style="flex:1; cursor:pointer;" @click.prevent="toggleTokenDetails(tok.uuid, {newState: openTokenId === tok.uuid ? 'closed' : 'open'})">
+                                        {{tok.name}} <span v-if="tok.blob_id" style="font-size:0.7em; color:#0f0">{{ t('id') }}{{tok.blob_id}}</span>
                                     </span>
-                                    <button class="btn" style="padding:2px 5px; font-size:0.7em; flex:0 0 auto; margin-left:auto; width:auto;" @click.stop="blinkToken(t)">{{ t('blink') }}</button>
+                                    <button class="btn" style="padding:2px 5px; font-size:0.7em; flex:0 0 auto; margin-left:auto; width:auto;" @click.stop="blinkToken(tok)">{{ t('blink') }}</button>
                                 </div>
                             </summary>
                             <div class="token-details-content">
                                 <label>{{ t('name') }}</label>
-                                <input v-model.lazy="t.name" @change="markTokenModified(t)" placeholder="Token Name">
+                                <input v-model.lazy="tok.name" @change="markTokenModified(tok)" placeholder="Token Name">
                                 <label>{{ t('blob') }}</label>
-                                <select v-model="t.blob_id" @change="linkBlob(t)">
+                                <select v-model="tok.blob_id" @change="linkBlob(tok)">
                                     <option :value="null">{{ t('none') }}</option>
                                     <option v-for="bid in availableBlobs" :key="bid" :value="bid">Blob {{bid}}</option>
-                                    <option v-if="t.blob_id && !availableBlobs.includes(t.blob_id)" :value="t.blob_id">Blob {{t.blob_id}}</option>
+                                    <option v-if="tok.blob_id && !availableBlobs.includes(tok.blob_id)" :value="tok.blob_id">Blob {{tok.blob_id}}</option>
                                 </select>
                                 <div class="row" style="margin-top:5px">
-                                    <label>{{ t('size') }}</label> <input type="range" min="20" max="200" v-model.number="t.size" @input="markTokenModified(t)">
+                                    <label>{{ t('size') }}</label> <input type="range" min="20" max="200" v-model.number="tok.size" @input="markTokenModified(tok)">
                                 </div>
                                 <div class="row">
                                     <label>{{ t('color') }}</label>
-                                    <div class="texture-preview" :style="{backgroundColor: t.spotlight_color || '#aaaaaa'}" @click="openTokenSpotlightPicker()" :title="t('chooseColor')"></div>
+                                    <div class="texture-preview" :style="{backgroundColor: tok.spotlight_color || '#aaaaaa'}" @click="openTokenSpotlightPicker()" :title="t('chooseColor')"></div>
                                     <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" :title="t('resetColor')"><i class="fas fa-undo"></i></button>
                                 </div>
                                 
                                 <div class="section-title" style="margin-top:10px; font-size:0.7em">{{ t('rings') }}</div>
-                                <div v-for="(ring, idx) in t.rings" :key="idx" class="row" style="background:#222; padding:5px; border-radius:4px; margin-bottom:2px;">
-                                    <div class="texture-preview" :style="{backgroundColor: ring.color, width:'30px', height:'30px'}" @click="openRingColorPicker(t, idx)" :title="t('chooseColor')"></div>
+                                <div v-for="(ring, idx) in tok.rings" :key="idx" class="row" style="background:#222; padding:5px; border-radius:4px; margin-bottom:2px;">
+                                    <div class="texture-preview" :style="{backgroundColor: ring.color, width:'30px', height:'30px'}" @click="openRingColorPicker(tok, idx)" :title="t('chooseColor')"></div>
                                     <input type="text" v-model.lazy="ring.text" @change="sync" placeholder="Text" style="flex:1; min-width:0; margin:0">
-                                    <button class="btn danger" style="padding:0 10px;" @click="removeTokenRing(t, idx)">X</button>
+                                    <button class="btn danger" style="padding:0 10px;" @click="removeTokenRing(tok, idx)">X</button>
                                 </div>
-                                <button class="btn full" style="margin-top:5px" @click="addTokenRing(t)">{{ t('addRing') }}</button>
+                                <button class="btn full" style="margin-top:5px" @click="addTokenRing(tok)">{{ t('addRing') }}</button>
 
                                 <hr style="border:0; border-top:1px solid #333; margin:8px 0">
-                                <div class="row"><button class="btn" @click="toggleTokenVision(t)" :class="{active:t.has_vision}"><i class="fas fa-eye"></i> {{ t('vision') }}</button></div>
-                                <div v-if="t.has_vision" class="row"><label>{{ t('visionRange') }}</label><input type="number" v-model.number="t.vision_range" @change="markTokenModified(t)"></div>
-                                <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(t.uuid)">{{ t('tokenDelete') }}</button></div>
+                                <div class="row"><button class="btn" @click="toggleTokenVision(tok)" :class="{active:tok.has_vision}"><i class="fas fa-eye"></i> {{ t('vision') }}</button></div>
+                                <div v-if="tok.has_vision" class="row"><label>{{ t('visionRange') }}</label><input type="number" v-model.number="tok.vision_range" @change="markTokenModified(tok)"></div>
+                                <div class="row" style="margin-top:10px"><button class="btn danger full" @click="deleteToken(tok.uuid)">{{ t('tokenDelete') }}</button></div>
                             </div>
                         </details>
                     </div>
