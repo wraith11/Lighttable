@@ -110,8 +110,31 @@ state = {
 }
 
 # --- HELPER ---
+def load_server_config():
+    """Liest optional host/port aus config.json (Sektion 'server'). CLI-Arg übersteuert das."""
+    global HOST, HTTP_PORT
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as f:
+                cfg = json.load(f)
+                server = cfg.get('server', {})
+                if server.get('host'): HOST = server['host']
+                if server.get('port'): HTTP_PORT = int(server['port'])
+    except Exception as e:
+        print(f"Server config load failed: {e}")
+
 def save_state_to_disk():
     try:
+        # Vorhandene 'server'-Sektion bewahren (manuelle host/port-Einstellung nicht überschreiben)
+        server_cfg = {}
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                with open(SETTINGS_FILE, 'r') as f:
+                    server_cfg = json.load(f).get('server', {})
+        except: pass
+        if not server_cfg:
+            server_cfg = {'host': HOST, 'port': HTTP_PORT}
+
         temp_cam = {}
         for k, v in state['cam_params'].items():
             if isinstance(v, (np.integer, int)): temp_cam[k] = int(v)
@@ -120,6 +143,7 @@ def save_state_to_disk():
             else: temp_cam[k] = v
 
         temp = {
+            'server': server_cfg,
             'cam_params': temp_cam,
             'scene_config': {
                 'view': state['scene']['view'],
