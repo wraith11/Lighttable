@@ -349,7 +349,7 @@ export const coreMethods = {
         this.sync();
     },
     resetFoW() {
-        if (confirm("Wirklich den gesamten Fog of War zurücksetzen?")) {
+        if (confirm(this.t('confirmFowReset'))) {
             this.scene.fow_visited = [];
             this.sync();
             if(this.renderer) {
