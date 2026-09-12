@@ -127,10 +127,10 @@
                 </div>
                 <div style="display:flex; flex-direction:column; gap:2px; margin-left:10px; min-width: 100px;">
                     <label style="font-size:0.8em; display:flex; align-items:center; gap:3px">
-                        <input type="checkbox" v-model="activeLightSettings.flicker" @change="sync"> Flackern
+                        <input type="checkbox" v-model="activeLightSettings.flicker" @change="sync"> {{ t('flicker') }}
                     </label>
                     <div v-if="activeLightSettings.flicker" style="display:flex; flex-direction:column;">
-                        <label style="font-size:0.6em; margin:0">Stärke</label>
+                        <label style="font-size:0.6em; margin:0">{{ t('flickerStrength') }}</label>
                         <input type="range" min="50" max="500" step="10" v-model.number="activeLightSettings.flicker_strength" @input="sync" style="height:5px;">
                     </div>
                 </div>
@@ -138,30 +138,30 @@
 
             <template v-if="!selectedObj && tool !== 'light'">
                  <template v-if="tool=='wall'">
-                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-border-all"></i> Wand</span>
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-border-all"></i> {{ t('wall') }}</span>
                      <div class="control-group" style="width:130px;">
-                        <label>Dicke</label>
+                        <label>{{ t('thickness') }}</label>
                         <input type="range" min="5" max="50" v-model.number="toolSettings.wallWidth">
                         <span>{{toolSettings.wallWidth}}px</span>
                      </div>
                      <label style="font-size:0.8em; display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;">
-                         <input type="checkbox" v-model="toolSettings.invisibleWall"> Unsichtbar
+                         <input type="checkbox" v-model="toolSettings.invisibleWall"> {{ t('invisible') }}
                      </label>
                  </template>
                  <template v-if="tool=='brush'">
-                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-paint-brush"></i> Pinsel</span>
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-paint-brush"></i> {{ t('brush') }}</span>
                      <div class="control-group" style="width:130px;">
-                        <label>Strichdicke</label>
+                        <label>{{ t('brushSize') }}</label>
                         <input type="range" min="1" max="200" v-model.number="toolSettings.brushSize">
                         <span>{{toolSettings.brushSize}}px</span>
                      </div>
                  </template>
                  <template v-if="tool=='column'">
-                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-square"></i> Säule</span>
+                     <span style="font-weight:bold; font-size:0.9em; color:#ccc; margin-right:10px;"><i class="fas fa-square"></i> {{ t('column') }}</span>
                      <div class="control-group" style="width:150px;">
-                        <label>Ecken (0=Rund)</label>
+                        <label>{{ t('corners') }}</label>
                         <input type="range" min="0" max="8" step="1" v-model.number="toolSettings.columnVertices" @input="fixVerticesTool">
-                        <span>{{toolSettings.columnVertices === 0 ? 'Rund' : toolSettings.columnVertices}}</span>
+                        <span>{{toolSettings.columnVertices === 0 ? t('root') : toolSettings.columnVertices}}</span>
                      </div>
                  </template>
             </template>
@@ -174,8 +174,8 @@
             <div class="modal-overlay" v-if="showCalibration">
                 <div class="modal-content calib-modal">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <h3 style="margin:0">Kamera & Tracking Setup</h3>
-                        <button class="btn danger" style="flex:0" @click="showCalibration=false">Schließen</button>
+                        <h3 style="margin:0">{{ t('camSetup') }}</h3>
+                        <button class="btn danger" style="flex:0" @click="showCalibration=false">{{ t('close') }}</button>
                     </div>
                     <div class="calib-container" ref="calibContainer">
                         <img src="/video_feed" class="calib-img" ref="calibImg" draggable="false">
@@ -186,39 +186,39 @@
                     <div class="calib-settings">
                         <div class="calib-grid">
                             <div class="calib-group">
-                                <label>Videoeinstellungen</label>
-                                <button class="btn" @click="openCameraSettings">Treiber Dialog öffnen</button>
+                                <label>{{ t('videoSettings') }}</label>
+                                <button class="btn" @click="openCameraSettings">{{ t('driverDialog') }}</button>
                             </div>
                             <div class="calib-group">
-                                <label>Kamera Auswahl</label>
+                                <label>{{ t('camSelect') }}</label>
                                 <div style="display:flex; gap:5px;">
                                     <select v-model.number="camParams.camera_index" @change="setCamera(camParams.camera_index)" style="flex:1">
-                                        <option :value="0">Kamera 0 (Default)</option>
-                                        <option v-for="c in availableCameras" :key="c" :value="c">Kamera {{c}}</option>
+                                        <option :value="0">{{ t('camDefault') }}</option>
+                                        <option v-for="c in availableCameras" :key="c" :value="c">Camera {{c}}</option>
                                     </select>
-                                    <button class="btn" @click="refreshCameras" title="Scan"><i class="fas fa-sync"></i></button>
+                                    <button class="btn" @click="refreshCameras" :title="t('scan')"><i class="fas fa-sync"></i></button>
                                 </div>
                             </div>
 
                             <div class="calib-group">
-                                <label>Threshold (Binarize): {{camParams.threshold}}</label>
+                                <label>{{ t('threshold') }}{{ camParams.threshold }}</label>
                                 <input type="range" min="0" max="255" v-model.number="camParams.threshold" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Merge Distance: {{camParams.merge_distance}}px</label>
+                                <label>{{ t('mergeDist') }}{{ camParams.merge_distance }}px</label>
                                 <input type="range" min="0" max="70" v-model.number="camParams.merge_distance" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Min Area: {{camParams.min_area}}</label>
+                                <label>{{ t('minArea') }}{{ camParams.min_area }}</label>
                                 <input type="range" min="1" max="500" v-model.number="camParams.min_area" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Max Area: {{camParams.max_area}}</label>
+                                <label>{{ t('maxArea') }}{{ camParams.max_area }}</label>
                                 <input type="range" min="100" max="10000" v-model.number="camParams.max_area" @change="updateCamParams">
                             </div>
                             
                             <div class="calib-group">
-                                <label>Parallax Stärke: {{camParams.parallax_strength.toFixed(2)}}</label>
+                                <label>{{ t('parallax') }}{{ camParams.parallax_strength.toFixed(2) }}</label>
                                 <input type="range" min="-0.1" max="0.1" step="0.001" v-model.number="camParams.parallax_strength" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
