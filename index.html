@@ -48,80 +48,80 @@
         <div id="context-menu" v-if="isGM && (selectedObj || ['wall','column','brush','light'].includes(tool))">
             <template v-if="selectedObj">
                 <template v-if="!selectedObjIsLight && !selectedObjIsColumn">
-                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">{{selectedObjIsWall ? 'Mauer' : 'Objekt'}}</span>
+                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">{{selectedObjIsWall ? t('wallLabel') : t('obj')}}</span>
                     <div class="control-group">
-                        <label>Ebene: {{ selectedObj.z !== undefined ? selectedObj.z : 5 }}</label>
+                        <label>{{ t('layer') }} {{ selectedObj.z !== undefined ? selectedObj.z : 5 }}</label>
                         <div style="display:flex; gap:2px;">
                             <button class="btn" style="padding:2px 8px" @click="changeLayer(-1)">-</button>
                             <button class="btn" style="padding:2px 8px" @click="changeLayer(1)">+</button>
                         </div>
                     </div>
                     <div v-if="!selectedObjIsWall" class="control-group" style="width:100px;">
-                         <label>Z-Index</label>
+                         <label>{{ t('zIndex') }}</label>
                          <input type="range" min="-5" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
                     </div>
                     <div v-else class="control-group" style="width:100px;">
-                         <label>Z-Index</label>
+                         <label>{{ t('zIndex') }}</label>
                          <input type="range" min="0" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
                     </div>
                     <div v-if="!selectedObjIsWall" class="control-group" style="width:130px;">
-                        <label>Breite</label>
+                        <label>{{ t('width') }}</label>
                         <input type="range" min="10" max="2000" v-model.number="selectedObj.width" @input="sync">
                         <span>{{selectedObj.width}}px</span>
                     </div>
                     <div v-if="!selectedObjIsWall" class="control-group" style="width:130px;">
-                        <label>Höhe</label>
+                        <label>{{ t('height') }}</label>
                         <input type="range" min="10" max="2000" v-model.number="selectedObj.height" @input="sync">
                         <span>{{selectedObj.height}}px</span>
                     </div>
                     <div v-if="selectedObjIsWall" class="control-group" style="width:130px;">
-                        <label>Breite</label>
+                        <label>{{ t('width') }}</label>
                         <input type="range" min="5" max="100" v-model.number="selectedObj.width" @input="sync">
                         <span>{{selectedObj.width}}px</span>
                     </div>
                     <div v-if="selectedObjIsWall" class="control-group" style="width:150px;">
-                        <label>Biegung</label>
+                        <label>{{ t('bend') }}</label>
                         <input type="range" min="-10" max="10" step="0.5" v-model.number="selectedObj.curve" @input="sync">
                         <span>{{selectedObj.curve}}</span>
                     </div>
                 </template>
 
                 <template v-if="selectedObjIsColumn">
-                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">Säule</span>
+                    <span style="font-weight:bold; font-size:0.9em; color:#888; margin-right:10px;">{{ t('columnLabel') }}</span>
                     <div class="control-group">
-                        <label>Ebene: {{ selectedObj.z !== undefined ? selectedObj.z : 10 }}</label>
+                        <label>{{ t('layer') }} {{ selectedObj.z !== undefined ? selectedObj.z : 10 }}</label>
                         <div style="display:flex; gap:2px;">
                             <button class="btn" style="padding:2px 8px" @click="changeLayer(-1)">-</button>
                             <button class="btn" style="padding:2px 8px" @click="changeLayer(1)">+</button>
                         </div>
                     </div>
                     <div class="control-group" style="width:100px;">
-                         <label>Z-Index</label>
+                         <label>{{ t('zIndex') }}</label>
                          <input type="range" min="0" max="15" step="1" v-model.number="selectedObj.z" @input="sync">
                     </div>
                     <div class="control-group" style="width:150px;">
-                        <label>Ecken (0=Rund)</label>
+                        <label>{{ t('corners') }}</label>
                         <input type="range" min="0" max="8" step="1" v-model.number="selectedObj.vertices" @input="fixVerticesSelected">
-                        <span>{{selectedObj.vertices === 0 ? 'Rund' : selectedObj.vertices}}</span>
+                        <span>{{selectedObj.vertices === 0 ? t('root') : selectedObj.vertices}}</span>
                     </div>
                 </template>
             </template>
 
             <template v-if="selectedObjIsLight || tool === 'light'">
-                <span style="font-weight:bold; font-size:0.9em; color:#eec; margin-right:10px;"><i class="fas fa-lightbulb"></i> Licht</span>
+                <span style="font-weight:bold; font-size:0.9em; color:#eec; margin-right:10px;"><i class="fas fa-lightbulb"></i> {{ t('lightLabel') }}</span>
                 <div id="light-cp" style="margin-bottom:5px;"></div>
                 <div class="control-group" style="width:140px;">
-                    <label>Radius</label>
+                    <label>{{ t('radius') }}</label>
                     <input type="range" min="50" max="2000" v-model.number="activeLightSettings.radius" @input="sync">
                     <span>{{activeLightSettings.radius}}px</span>
                 </div>
                 <div class="control-group" style="width:100px;">
-                    <label>Falloff</label>
+                    <label>{{ t('falloff') }}</label>
                     <input type="range" min="0.1" max="1" step="0.05" v-model.number="activeLightSettings.brightness" @input="sync">
                     <span>{{activeLightSettings.brightness}}</span>
                 </div>
                 <div class="control-group" style="width:100px;">
-                    <label>Farb-Stärke</label>
+                    <label>{{ t('colorIntensity') }}</label>
                     <input type="range" min="0" max="0.6" step="0.05" v-model.number="activeLightSettings.color_intensity" @input="sync">
                     <span>{{activeLightSettings.color_intensity}}</span>
                 </div>
