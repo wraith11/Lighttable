@@ -34,14 +34,14 @@
         <div v-show="showColorPicker" class="color-picker-popover" @click.stop>
             <div id="color-picker-widget"></div>
             <div style="width:100%; text-align:right; margin-top:10px;">
-                <button class="btn" style="padding:2px 10px;" @click="showColorPicker=false">OK</button>
+                <button class="btn" style="padding:2px 10px;" @click="showColorPicker=false">{{ t('ok') }}</button>
             </div>
         </div>
 
         <div v-show="showTokenColorPopup" class="color-picker-popover" @click.stop>
             <div id="token-picker-widget"></div>
             <div style="width:100%; text-align:right; margin-top:10px;">
-                <button class="btn" style="padding:2px 10px;" @click="showTokenColorPopup=false">Fertig</button>
+                <button class="btn" style="padding:2px 10px;" @click="showTokenColorPopup=false">{{ t('done') }}</button>
             </div>
         </div>
 
