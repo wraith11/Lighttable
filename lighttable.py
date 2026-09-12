@@ -21,10 +21,14 @@ import base64
 import webbrowser
 import socket
 
+import argparse
 print("LightTable Server starting...")
 
 # --- KONFIGURATION ---
-HTTP_PORT = 8080
+DEFAULT_HOST = "0.0.0.0"
+DEFAULT_PORT = 8080
+HOST = DEFAULT_HOST
+HTTP_PORT = DEFAULT_PORT
 SETTINGS_FILE = "config.json"
 MAPS_DIR = "maps"
 ASSET_DIR = "assets"
