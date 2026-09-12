@@ -338,27 +338,27 @@
                             <summary style="display:flex; align-items:center; cursor: default; list-style: none;">
                                 <div style="display:flex; align-items:center; gap:10px; width:100%">
                                     <span style="flex:1; cursor:pointer;" @click.prevent="toggleTokenDetails(t.uuid, {newState: openTokenId === t.uuid ? 'closed' : 'open'})">
-                                        {{t.name}} <span v-if="t.blob_id" style="font-size:0.7em; color:#0f0">ID:{{t.blob_id}}</span>
+                                        {{t.name}} <span v-if="t.blob_id" style="font-size:0.7em; color:#0f0">{{ t('id') }}{{t.blob_id}}</span>
                                     </span>
-                                    <button class="btn" style="padding:2px 5px; font-size:0.7em; flex:0 0 auto; margin-left:auto; width:auto;" @click.stop="blinkToken(t)">Blink</button>
+                                    <button class="btn" style="padding:2px 5px; font-size:0.7em; flex:0 0 auto; margin-left:auto; width:auto;" @click.stop="blinkToken(t)">{{ t('blink') }}</button>
                                 </div>
                             </summary>
                             <div class="token-details-content">
-                                <label>Name:</label>
+                                <label>{{ t('name') }}</label>
                                 <input v-model.lazy="t.name" @change="markTokenModified(t)" placeholder="Token Name">
-                                <label>Blob:</label>
+                                <label>{{ t('blob') }}</label>
                                 <select v-model="t.blob_id" @change="linkBlob(t)">
-                                    <option :value="null">-- Keine --</option>
+                                    <option :value="null">{{ t('none') }}</option>
                                     <option v-for="bid in availableBlobs" :key="bid" :value="bid">Blob {{bid}}</option>
                                     <option v-if="t.blob_id && !availableBlobs.includes(t.blob_id)" :value="t.blob_id">Blob {{t.blob_id}}</option>
                                 </select>
                                 <div class="row" style="margin-top:5px">
-                                    <label>Größe:</label> <input type="range" min="20" max="200" v-model.number="t.size" @input="markTokenModified(t)">
+                                    <label>{{ t('size') }}</label> <input type="range" min="20" max="200" v-model.number="t.size" @input="markTokenModified(t)">
                                 </div>
                                 <div class="row">
-                                    <label>Farbe:</label>
-                                    <div class="texture-preview" :style="{backgroundColor: t.spotlight_color || '#aaaaaa'}" @click="openTokenSpotlightPicker()" title="Farbe wählen"></div>
-                                    <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" title="Farbe zurücksetzen"><i class="fas fa-undo"></i></button>
+                                    <label>{{ t('color') }}</label>
+                                    <div class="texture-preview" :style="{backgroundColor: t.spotlight_color || '#aaaaaa'}" @click="openTokenSpotlightPicker()" :title="t('chooseColor')"></div>
+                                    <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" :title="t('resetColor')"><i class="fas fa-undo"></i></button>
                                 </div>
                                 
                                 <div class="section-title" style="margin-top:10px; font-size:0.7em">{{ t('rings') }}</div>
