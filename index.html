@@ -274,28 +274,28 @@
                         <div class="btn-group" style="margin-bottom:10px">
                             <button class="btn" :class="{active: scene.show_light_icons}" @click="toggleLightIcons"><i class="fas fa-lightbulb"></i> {{ t('lightIcons') }}</button>
                         </div>
-                        <div class="section-title">Navigation & Tools</div>
+                        <div class="section-title">{{ t('navTools') }}</div>
                         <div class="btn-group">
-                            <button class="btn" :class="{active: tool=='select'}" @click="setTool('select')" title="Select"><i class="fas fa-mouse-pointer"></i> Select</button>
+                            <button class="btn" :class="{active: tool=='select'}" @click="setTool('select')" :title="t('select')"><i class="fas fa-mouse-pointer"></i> {{ t('select') }}</button>
                         </div>
                         <div class="btn-group" style="margin-top:5px">
-                            <button class="btn" :class="{active: snapMode}" @click="snapMode=!snapMode"><i class="fas fa-magnet"></i> Snapping: {{snapMode ? 'AN' : 'AUS'}}</button>
+                            <button class="btn" :class="{active: snapMode}" @click="snapMode=!snapMode"><i class="fas fa-magnet"></i> {{ t('snapping') }}{{ snapMode ? t('snapOn') : t('snapOff') }}</button>
                         </div>
-                        <div class="section-title">Farbe & Textur</div>
+                        <div class="section-title">{{ t('colorTexture') }}</div>
                         <div class="row" style="margin-bottom:10px; position:relative;">
-                            <div v-if="brushTexture" class="texture-preview" :style="{backgroundImage: 'url('+brushTexture+')'}" title="Aktuelle Textur" @click="brushTexture=null"></div>
-                            <div v-else class="texture-preview" :style="{backgroundColor: drawColor}" title="Farbe wählen" @click="showColorPicker=!showColorPicker"></div>
+                            <div v-if="brushTexture" class="texture-preview" :style="{backgroundImage: 'url('+brushTexture+')'}" :title="t('tiles')" @click="brushTexture=null"></div>
+                            <div v-else class="texture-preview" :style="{backgroundColor: drawColor}" :title="t('chooseColor')" @click="showColorPicker=!showColorPicker"></div>
                             <div v-if="brushTexture" style="display:flex; flex-direction:column; margin-left:5px">
-                                <label style="font-size:0.6em; color:#888">Tiles</label>
+                                <label style="font-size:0.6em; color:#888">{{ t('tiles') }}</label>
                                 <input type="number" v-model.number="tilesPerAxis" min="1" max="10" style="height:20px; width:40px; padding:0">
                             </div>
                             <button v-if="brushTexture" class="btn danger" @click="brushTexture=null" style="flex:0; margin-left:5px"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="btn-group">
-                            <button class="btn" :class="{active: tool=='wall'}" @click="setTool('wall')" :disabled="scene.objects_locked"><i class="fas fa-border-all"></i> Wand</button>
-                            <button class="btn" :class="{active: tool=='column'}" @click="setTool('column')" :disabled="scene.objects_locked"><i class="fas fa-square"></i> Säule</button>
-                            <button class="btn" :class="{active: tool=='light'}" @click="setTool('light')" :disabled="scene.objects_locked || !scene.show_light_icons"><i class="fas fa-lightbulb"></i> Licht</button>
-                            <button class="btn danger" :class="{active: tool=='eraser'}" @click="setTool('eraser')" :disabled="scene.objects_locked"><i class="fas fa-trash-alt"></i></button>
+                            <button class="btn" :class="{active: tool=='wall'}" @click="setTool('wall')" :disabled="scene.objects_locked"><i class="fas fa-border-all"></i> {{ t('wall') }}</button>
+                            <button class="btn" :class="{active: tool=='column'}" @click="setTool('column')" :disabled="scene.objects_locked"><i class="fas fa-square"></i> {{ t('column') }}</button>
+                            <button class="btn" :class="{active: tool=='light'}" @click="setTool('light')" :disabled="scene.objects_locked || !scene.show_light_icons"><i class="fas fa-lightbulb"></i> {{ t('light') }}</button>
+                            <button class="btn danger" :class="{active: tool=='eraser'}" @click="setTool('eraser')" :disabled="scene.objects_locked"><i class="fas fa-trash-alt"></i> {{ t('eraser') }}</button>
                         </div>
                         <div class="btn-group">
                             <button class="btn" :class="{active: tool=='brush'}" @click="setTool('brush')" :disabled="scene.objects_locked || scene.background_locked"><i class="fas fa-paint-brush"></i></button>
@@ -303,10 +303,10 @@
                             <button class="btn" :class="{active: tool=='rect_paint'}" @click="setTool('rect_paint')" :disabled="scene.objects_locked || scene.background_locked"><i class="far fa-square"></i></button>
                             <button class="btn" :class="{active: tool=='grid_paint'}" @click="setTool('grid_paint')" :disabled="scene.objects_locked || scene.background_locked"><i class="fas fa-th"></i></button>
                         </div>
-                        <div class="section-title">Assets</div>
+                        <div class="section-title">{{ t('assets') }}</div>
                         <div class="asset-browser-nav">
-                            <span v-if="!currentAssetPath" style="color:#666">Root</span>
-                            <span v-else style="cursor:pointer; color:var(--accent)" @click="navigateAssets('')">Root</span>
+                            <span v-if="!currentAssetPath" style="color:#666">{{ t('root') }}</span>
+                            <span v-else style="cursor:pointer; color:var(--accent)" @click="navigateAssets('')">{{ t('root') }}</span>
                             <span v-for="(p, i) in assetBreadcrumbs" :key="i"> / <span style="cursor:pointer; color:var(--accent)" @click="navigateAssets(p.full)">{{p.name}}</span></span>
                         </div>
                     </div>
@@ -322,7 +322,7 @@
                     </div>
                     <div style="flex-shrink:0;">
                         <div class="drop-zone">
-                            <i class="fas fa-cloud-upload-alt"></i> Drop File here
+                            <i class="fas fa-cloud-upload-alt"></i> {{ t('dropHere') }}
                             <input type="file" @change="handleFileUpload" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;" :disabled="scene.objects_locked">
                         </div>
                     </div>
@@ -330,8 +330,8 @@
 
                 <!-- Tab: Tokens -->
                 <div class="panel-content" v-if="tab=='tokens'">
-                    <button class="btn full" @click="createToken()">+ Token (Manuell)</button>
-                    <div class="section-title">Token Liste</div>
+                    <button class="btn full" @click="createToken()">{{ t('addToken') }}</button>
+                    <div class="section-title">{{ t('tokenList') }}</div>
                     
                     <div v-for="t in sortedTokens" :key="t.uuid" class="token-card" :class="{active: t.uuid === openTokenId}">
                         <details :open="openTokenId === t.uuid">
