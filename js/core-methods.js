@@ -393,7 +393,7 @@ export const coreMethods = {
     navigateAssets(path) { this.currentAssetPath = path; socket.emit('request_assets', {path: path}); },
     navigateUp() { if(!this.currentAssetPath) return; const parts = this.currentAssetPath.split('/'); parts.pop(); this.navigateAssets(parts.join('/')); },
     createNewFolder() {
-        const name = prompt("Ordnername:");
+        const name = prompt(this.t('folderName'));
         if(name) socket.emit('create_folder', {path: this.currentAssetPath, name: name});
     },
     clickAsset(a) {
