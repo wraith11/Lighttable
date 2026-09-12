@@ -443,41 +443,41 @@
                         </div>
                     </div>
 
-                    <div class="section-title">Player View</div>
-                    <button class="btn full" :class="{active: tool=='move_player'}" @click="setTool('move_player')" title="Player View Verschieben" style="margin-top:10px;"><i class="fas fa-video"></i> View Verschieben</button>
-                    <div class="row" style="margin-top:5px"><input type="checkbox" v-model="scene.show_player_frame" @change="sync"> <label>Rahmen zeigen</label></div>
+                    <div class="section-title">{{ t('playerView') }}</div>
+                    <button class="btn full" :class="{active: tool=='move_player'}" @click="setTool('move_player')" :title="t('moveView')" style="margin-top:10px;"><i class="fas fa-video"></i> {{ t('moveView') }}</button>
+                    <div class="row" style="margin-top:5px"><input type="checkbox" v-model="scene.show_player_frame" @change="sync"> <label>{{ t('showFrame') }}</label></div>
 
-                    <div class="row" style="margin-top:15px"><label>Zoom:</label><input type="number" v-model.number="scene.player_view.width_cells" @change="sync" min="5" max="200"></div>
-                    <div class="row"><label>Format:</label><select v-model.number="scene.player_view.aspect" @change="sync"><option :value="1.777">16:9</option><option :value="1.6">16:10</option><option :value="1.333">4:3</option></select></div>
+                    <div class="row" style="margin-top:15px"><label>{{ t('zoom') }}</label><input type="number" v-model.number="scene.player_view.width_cells" @change="sync" min="5" max="200"></div>
+                    <div class="row"><label>{{ t('format') }}</label><select v-model.number="scene.player_view.aspect" @change="sync"><option :value="1.777">16:9</option><option :value="1.6">16:10</option><option :value="1.333">4:3</option></select></div>
                     
-                    <div class="section-title">Tracking Control</div>
-                    <button class="btn full" @click="toggleTracking" :class="scene.tracking_paused ? 'active' : 'btn'"><i class="fas" :class="scene.tracking_paused ? 'fa-pause' : 'fa-play'"></i> {{scene.tracking_paused ? 'Tracking PAUSIERT' : 'Tracking Aktiv'}}</button>
+                    <div class="section-title">{{ t('trackingControl') }}</div>
+                    <button class="btn full" @click="toggleTracking" :class="scene.tracking_paused ? 'active' : 'btn'"><i class="fas" :class="scene.tracking_paused ? 'fa-pause' : 'fa-play'"></i> {{scene.tracking_paused ? t('trackingPaused') : t('trackingActive')}}</button>
                     
-                    <div class="section-title">Einstellungen</div>
-                    <div class="row"><input type="checkbox" v-model="scene.show_blob_ids" @change="sync"> <label>Blob IDs (GM)</label></div>
-                    <div class="section-title">Atmosphäre & FOW</div>
-                    <div class="row"><label>Fog of War:</label><input type="checkbox" v-model="scene.fow_active" @change="sync"></div>
+                    <div class="section-title">{{ t('settings') }}</div>
+                    <div class="row"><input type="checkbox" v-model="scene.show_blob_ids" @change="sync"> <label>{{ t('blobIds') }}</label></div>
+                    <div class="section-title">{{ t('atmosphere') }}</div>
+                    <div class="row"><label>{{ t('fogOfWar') }}</label><input type="checkbox" v-model="scene.fow_active" @change="sync"></div>
                     <div v-if="scene.fow_active" style="margin-top:10px; padding:10px; background:#111; border-radius:4px;">
-                        <label>Modus:</label><select v-model="scene.fow_mode" @change="sync"><option value="temporary">Modus 2 (Temporär)</option><option value="permanent">Modus 1 (Permanent)</option></select>
-                        <button class="btn danger full" style="margin-top:5px" @click="resetFoW">FOW Reset</button>
+                        <label>{{ t('mode') }}</label><select v-model="scene.fow_mode" @change="sync"><option value="temporary">{{ t('modeTemp') }}</option><option value="permanent">{{ t('modePerm') }}</option></select>
+                        <button class="btn danger full" style="margin-top:5px" @click="resetFoW">{{ t('fowReset') }}</button>
                     </div>
-                    <div class="section-title">Hintergrund</div>
-                    <div class="drop-zone" style="padding:10px; font-size:0.8em; cursor:pointer;" onclick="document.getElementById('bg-upload').click()">Bild hochladen<input id="bg-upload" type="file" @change="handleBgUpload" style="display:none;"></div>
-                    <div v-if="scene.background_image && scene.background_image.url"><div class="row"><label>Skalierung:</label><input type="number" step="0.01" v-model.number="scene.background_image.scale" @change="sync"></div><button class="btn danger" @click="scene.background_image.url=null; sync()">Entfernen</button></div>
+                    <div class="section-title">{{ t('background') }}</div>
+                    <div class="drop-zone" style="padding:10px; font-size:0.8em; cursor:pointer;" onclick="document.getElementById('bg-upload').click()">{{ t('uploadImage') }}<input id="bg-upload" type="file" @change="handleBgUpload" style="display:none;"></div>
+                    <div v-if="scene.background_image && scene.background_image.url"><div class="row"><label>{{ t('scale') }}</label><input type="number" step="0.01" v-model.number="scene.background_image.scale" @change="sync"></div><button class="btn danger" @click="scene.background_image.url=null; sync()">{{ t('remove') }}</button></div>
                 </div>
 
                 <!-- Tab: Settings -->
                 <div class="panel-content" v-if="tab=='settings'">
-                    <button class="btn full active" @click="openCalibration" style="padding:20px; margin-bottom:20px;"><i class="fas fa-camera"></i> Kamera Setup</button>
+                    <button class="btn full active" @click="openCalibration" style="padding:20px; margin-bottom:20px;"><i class="fas fa-camera"></i> {{ t('camSetupBtn') }}</button>
                     
-                    <div class="section-title">Karten Management</div>
+                    <div class="section-title">{{ t('mapMgmt') }}</div>
                     <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
-                            <input v-model="saveMapName" placeholder="Kartenname" style="flex:1; margin:0;">
+                            <input v-model="saveMapName" :placeholder="t('mapName')" style="flex:1; margin:0;">
                         </div>
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
-                            <button class="btn" @click="saveCurrentMap" :disabled="!currentMapName" title="Überschreibt die aktuell geladene Karte unter demselben Namen"><i class="fas fa-save"></i> Speichern</button>
-                            <button class="btn" @click="saveMapAs" :disabled="!saveMapName" title="Speichert unter neuem Namen"><i class="fas fa-save"></i> Speichern unter</button>
+                            <button class="btn" @click="saveCurrentMap" :disabled="!currentMapName" :title="t('save')"><i class="fas fa-save"></i> {{ t('save') }}</button>
+                            <button class="btn" @click="saveMapAs" :disabled="!saveMapName" :title="t('saveAs')"><i class="fas fa-save"></i> {{ t('saveAs') }}</button>
                         </div>
                         <div style="max-height:150px; overflow-y:auto; border:1px solid #444; border-radius:4px;">
                             <div v-for="m in mapList" :key="m" class="row" style="padding:5px; border-bottom:1px solid #333; cursor:pointer;" @click="loadMap(m)">
@@ -487,11 +487,17 @@
                         </div>
                     </div>
 
-                    <div class="section-title">System</div>
+                    <div class="section-title">{{ t('language') }}</div>
+                    <select :value="lang" @change="setLang($event.target.value)" style="margin-bottom:10px;">
+                        <option value="en">English</option>
+                        <option value="de">Deutsch</option>
+                    </select>
+
+                    <div class="section-title">{{ t('system') }}</div>
                     <div class="row" style="margin-bottom:20px; color:#aaa; font-size:0.9em;">
-                        Player Link: <a :href="'http://'+serverIp+':8080/'" target="_blank" style="color:var(--accent); text-decoration:none;">http://{{serverIp}}:8080/</a>
+                        {{ t('playerLink') }} <a :href="'http://'+serverIp+':8080/'" target="_blank" style="color:var(--accent); text-decoration:none;">http://{{serverIp}}:8080/</a>
                     </div>
-                    <button class="btn full" style="margin-top:10px" @click="saveGame"><i class="fas fa-save"></i> Einstellungen Speichern</button>
+                    <button class="btn full" style="margin-top:10px" @click="saveGame"><i class="fas fa-save"></i> {{ t('saveSettings') }}</button>
                 </div>
             </div>
         </div>
