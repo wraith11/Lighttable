@@ -3,6 +3,7 @@ import { getInitialState } from './state.js';
 import { interactionMethods } from './interactions.js';
 import { coreMethods } from './core-methods.js';
 import { socket } from './socket-client.js';
+import { translations } from './i18n.js';
 
 const { createApp } = Vue;
 
