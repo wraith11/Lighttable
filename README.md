@@ -1,11 +1,14 @@
 # LightTable Ultimate
 
+> 🌐 **Sprache / Language:** [Deutsch](README.md) · [English](README.en.md)
+
 **LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
 
 - **GM-Ansicht** zum Bauen und Steuern der Karte (im Browser des Spielleiters).
 - **Player-Ansichten**, die einfach über den Browser geöffnet werden – z.&nbsp;B. auf einem Android-TV-Stick am Beamer.
 - **Betriebssystem-unabhängig** (alles läuft im Browser, Server ist Python).
 - **IR-Blob-Tracking** mit Kamera, um echte Miniaturen auf dem Tisch automatisch zu verfolgen.
+- **Mehrsprachig** – Englisch (Standard) und Deutsch.
 
 ---
 
@@ -33,7 +36,7 @@
 - **Korrekturoptionen:** Threshold/Binarisierung, Merge-Distance, Min/Max-Area, Hotspot-Kompensation, Parallax-Korrektur, Smoothing, Flip X/Y.
 - **Kamera-Kalibrierung** über vier verschiebbare Eckpunkte in einer Live-Vorschau.
 - **Blob-Verfolgung** mit Anker-/Teleport-Logik, ID-Zuordnung, Verlust- und Wiederfinden-Handling.
-- **Token** mit Größe, Farbe/Spotlight, Namen, HP-Anzeige, Ringen mit Text, Vision-Reichweite und Blink-Funktion.
+- **Token** mit Größe, Farbe/Spotlight, Namen, Ringen mit Text, Vision-Reichweite und Blink-Funktion.
 
 ### Player-Ansicht / Blackout / Medien
 - **Blackout-Funktion:** sofortiges Abdunkeln der Player-Sicht, damit der GM unbemerkt vorbereiten kann.
@@ -48,7 +51,6 @@
 |------------|-------------|
 | **Betriebssystem** | Windows / Linux / macOS (Server) |
 | **Python** | 3.8 oder neuer |
-| **Abhängigkeiten** | aiohttp, python-socketio, opencv-python, numpy |
 | **Browser** | Aktueller Chrome / Firefox / Edge (WebGL) |
 | **Kamera** | Webcam, idealerweise mit IR-Filter-Linse |
 | **Player-Gerät** | Beliebiger Browser (z.&nbsp;B. Android-TV, Tablet, Laptop) |
@@ -71,14 +73,13 @@ cd Lighttable
 
 ### 2. Abhängigkeiten installieren
 
-**Windows:**
 ```bash
-pip install aiohttp python-socketio opencv-python numpy
+pip install -r requirements.txt
 ```
 
-**Linux/macOS:**
+**Linux/macOS (falls `pip` nicht verfügbar):**
 ```bash
-pip3 install aiohttp python-socketio opencv-python numpy
+pip3 install -r requirements.txt
 ```
 
 Optional in einer virtuellen Umgebung:
@@ -88,7 +89,7 @@ python -m venv .venv
 .venv\Scripts\activate
 # Linux/macOS:
 source .venv/bin/activate
-pip install aiohttp python-socketio opencv-python numpy
+pip install -r requirements.txt
 ```
 
 ### 3. Ordnerstruktur
@@ -107,13 +108,47 @@ Beim ersten Start werden automatisch die Ordner `assets/`, `maps/` und `media/` 
 python lighttable.py
 ```
 
+Oder mit einem der **Start-Skripte**:
+- **Windows:** `start.bat`
+- **Linux/macOS:** `./start.sh` (ggf. vorher `chmod +x start.sh`)
+
 Beim Start öffnet sich automatisch die **GM-Ansicht** im Standard-Browser:
 - **GM:** `http://localhost:8080/?view=gm`
 - **Player:** `http://<IP-des-Rechners>:8080/`
 
 Die lokale IP-Adresse des Rechners wird im **Settings-Tab** angezeigt (z.&nbsp;B. `192.168.1.50`). Verbinde Player-Geräte (Android-TV, Tablet, Zweitrechner) einfach über diese Adresse im WLAN.
 
-> **Tipp:** Der Server läuft auf Port `8080`. Falls der Port belegt ist, ändere `HTTP_PORT` oben in `lighttable.py`.
+---
+
+## Konfiguration
+
+### Host & Port
+Standardmäßig bindet der Server an `0.0.0.0` (alle Interfaces) auf Port `8080`. Das lässt sich über **Kommandozeilen-Argumente** ändern:
+
+```bash
+# Anderen Port verwenden
+python lighttable.py --port 9090
+
+# Nur lokale Verbindungen zulassen
+python lighttable.py --host 127.0.0.1
+
+# Beides
+python lighttable.py --host 0.0.0.0 --port 9090
+```
+
+Alternativ lässt sich Host/Port dauerhaft in **`config.json`** unter der Sektion `"server"` festlegen:
+```json
+{
+  "server": { "host": "0.0.0.0", "port": 8080 }
+}
+```
+> Kommandozeilen-Argumente haben Vorrang vor `config.json`.
+
+### Sprache
+Die UI ist **mehrsprachig** (Englisch als Standard, Deutsch verfügbar):
+- Im **Settings-Tab** über das Dropdown „Language / Sprache“ umschalten.
+- Oder direkt per URL-Parameter: `?lang=en` bzw. `?lang=de`.
+- Die Auswahl wird pro Browser im `localStorage` gespeichert.
 
 ---
 
@@ -131,12 +166,12 @@ Das Tracking erkennt Figuren über **IR-Reflektorflächen** und eine **IR-Kamera
 2. **IR-Beleuchtung** gleichmäßig über den Tisch richten – ohne grelle Hotspots.
 3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll.
 4. **Kamera im System einrichten:**
-   - In der GM-Ansicht: **Settings → Kamera Setup**.
+   - In der GM-Ansicht: **Settings → Camera Setup**.
    - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
    - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
 
 ### Kalibrierung & Korrekturoptionen
-Nach der Ausrichtung stellst du in **Settings → Kamera Setup** die Tracking-Parameter ein:
+Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Parameter ein:
 
 | Parameter | Zweck |
 |-----------|-------|
@@ -167,7 +202,8 @@ Nach der Ausrichtung stellst du in **Settings → Kamera Setup** die Tracking-Pa
 | Objekt skalieren | Auswählen + Eckgriff ziehen, oder Breite/Höhe im Kontextmenü |
 | Objekt drehen | Rotationsgriff über dem Objekt |
 | Mauer zeichnen | Wand-Werkzeug, ziehen für Start/Ende |
-| Kamera kalibrieren | Settings → Kamera Setup |
+| Kamera kalibrieren | Settings → Camera Setup |
+| Karte speichern | Settings → Speichern / Speichern unter |
 
 ---
 
@@ -176,7 +212,7 @@ Nach der Ausrichtung stellst du in **Settings → Kamera Setup** die Tracking-Pa
 ```
 Lighttable/
 ├── lighttable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
-├── index.html             # Vue-UI (GM- & Player-Ansicht)
+├── index.html             # Vue-UI (GM- & Player-Ansicht, mehrsprachig)
 ├── css/style.css          # Styling
 ├── js/
 │   ├── app.js             # Vue-App, Socket-Events, Lifecycle
@@ -185,7 +221,10 @@ Lighttable/
 │   ├── interactions.js    # Maus/Tastatur-Interaktionen
 │   ├── core-methods.js    # UI-Aktionen & Scene-Logik
 │   ├── socket-client.js   # Socket.IO-Instanz
+│   ├── i18n.js            # Übersetzungen (en/de)
 │   └── utils.js           # Geometrie/Sichtbarkeits-Helfer
+├── requirements.txt       # Python-Abhängigkeiten
+├── start.bat / start.sh   # Start-Skripte
 ├── assets/                # Hochgeladene/verwaltete Assets (automatisch)
 ├── media/                 # Bilder/Videos für Blackout (automatisch)
 └── maps/                  # Gespeicherte Karten (.json, automatisch)
