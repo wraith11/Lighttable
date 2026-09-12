@@ -244,18 +244,18 @@ export const coreMethods = {
     },
     _doSaveMap(name) {
         socket.emit('save_map', name, (res) => {
-            if(res.error) alert("Fehler beim Speichern: " + res.error);
+            if(res.error) alert(this.t('errSave') + res.error);
             else {
                 this.currentMapName = name;
                 this.saveMapName = "";
-                alert("Karte gespeichert!");
+                alert(this.t('mapSaved'));
             }
         });
     },
     loadMap(filename) {
-        if(confirm("Karte '" + filename + "' laden? Ungespeicherte Änderungen gehen verloren.")) {
+        if(confirm(this.t('confirmLoad', filename))) {
             socket.emit('load_map', filename, (res) => {
-                if(res.error) alert("Fehler beim Laden: " + res.error);
+                if(res.error) alert(this.t('errLoad') + res.error);
                 else {
                     this.currentMapName = filename;
                     this.scene.player_view_blackout = true;
