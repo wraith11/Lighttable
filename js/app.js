@@ -56,7 +56,25 @@ createApp({
     methods: {
         ...interactionMethods,
         ...coreMethods,
-        
+
+        // i18n: liefert den übersetzten String für den aktuellen Zustand (lang).
+        // Format-Platzhalter wie '%s' werden mit args ersetzt.
+        t(key, ...args) {
+            const dict = translations[this.lang] || translations.en || {};
+            let s = dict[key] !== undefined ? dict[key] : (translations.en[key] !== undefined ? translations.en[key] : key);
+            if (args && args.length) {
+                args.forEach(a => { s = s.replace('%s', a); });
+            }
+            return s;
+        },
+        // Sprache setzen (persistiert in localStorage, wirkt sofort auf alle UI-Texte).
+        setLang(lang) {
+            if (translations[lang]) {
+                this.lang = lang;
+                try { localStorage.setItem('lt_lang', lang); } catch(e){}
+            }
+        },
+
         setupEventListeners() {
             window.addEventListener('mousedown', this.onDown);
             window.addEventListener('mousemove', this.onMove);
