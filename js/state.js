@@ -1,6 +1,8 @@
 export function getInitialState() {
     return {
         isGM: new URLSearchParams(window.location.search).get('view') === 'gm',
+        // Sprache: URL-Parameter ?lang=xx > localStorage > Standard 'en'
+        lang: (new URLSearchParams(window.location.search).get('lang') || localStorage.getItem('lt_lang') || 'en'),
         serverIp: 'localhost',
         tab: 'tools',
         tool: 'select',
