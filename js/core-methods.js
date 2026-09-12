@@ -379,7 +379,7 @@ export const coreMethods = {
     },
     updateCamParams() { socket.emit('update_cam_params', this.camParams); },
     resetCamera() {
-        if(confirm("Kamera-Einstellungen wirklich auf Standard zurücksetzen?")) {
+        if(confirm(this.t('confirmCamReset'))) {
             socket.emit('reset_camera');
         }
     },
