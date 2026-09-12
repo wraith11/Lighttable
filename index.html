@@ -222,29 +222,29 @@
                                 <input type="range" min="-0.1" max="0.1" step="0.001" v-model.number="camParams.parallax_strength" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Cam Pos X: {{camParams.cam_pos_x.toFixed(2)}}</label>
+                                <label>{{ t('camPosX') }}{{ camParams.cam_pos_x.toFixed(2) }}</label>
                                 <input type="range" min="-2.0" max="3.0" step="0.1" v-model.number="camParams.cam_pos_x" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Cam Pos Y: {{camParams.cam_pos_y.toFixed(2)}}</label>
+                                <label>{{ t('camPosY') }}{{ camParams.cam_pos_y.toFixed(2) }}</label>
                                 <input type="range" min="-2.0" max="3.0" step="0.1" v-model.number="camParams.cam_pos_y" @change="updateCamParams">
                             </div>
 
                             <div class="calib-group">
-                                <label>Hotspot: {{camParams.hotspot_compensation}}</label>
+                                <label>{{ t('hotspot') }}{{ camParams.hotspot_compensation }}</label>
                                 <input type="range" min="0" max="1" step="0.1" v-model.number="camParams.hotspot_compensation" @change="updateCamParams">
                             </div>
                             <div class="calib-group">
-                                <label>Glättung: {{camParams.smoothing}}</label>
+                                <label>{{ t('smoothing') }}{{ camParams.smoothing }}</label>
                                 <input type="range" min="0" max="0.95" step="0.05" v-model.number="camParams.smoothing" @change="updateCamParams">
                             </div>
                             <div class="calib-group" style="display:flex; align-items:center; justify-content:space-around;">
-                                <label><input type="checkbox" v-model="camParams.flip_x" @change="updateCamParams"> Flip X</label>
-                                <label><input type="checkbox" v-model="camParams.flip_y" @change="updateCamParams"> Flip Y</label>
+                                <label><input type="checkbox" v-model="camParams.flip_x" @change="updateCamParams"> {{ t('flipX') }}</label>
+                                <label><input type="checkbox" v-model="camParams.flip_y" @change="updateCamParams"> {{ t('flipY') }}</label>
                             </div>
                             <div class="calib-group">
-                                <label>Reset</label>
-                                <button class="btn danger" @click="resetCamera">Kamera Resetten</button>
+                                <label>{{ t('reset') }}</label>
+                                <button class="btn danger" @click="resetCamera">{{ t('resetCam') }}</button>
                             </div>
                         </div>
                     </div>
@@ -253,26 +253,26 @@
 
             <div id="sidebar">
                 <div class="tabs">
-                    <div class="tab" :class="{active: tab=='tools'}" @click="tab='tools'"><i class="fas fa-tools"></i></div>
-                    <div class="tab" :class="{active: tab=='tokens'}" @click="tab='tokens'"><i class="fas fa-users"></i></div>
-                    <div class="tab" :class="{active: tab=='map'}" @click="tab='map'"><i class="fas fa-map"></i></div>
-                    <div class="tab" :class="{active: tab=='settings'}" @click="tab='settings'"><i class="fas fa-cog"></i></div>
+                    <div class="tab" :class="{active: tab=='tools'}" @click="tab='tools'" :title="t('toolsTab')"><i class="fas fa-tools"></i></div>
+                    <div class="tab" :class="{active: tab=='tokens'}" @click="tab='tokens'" :title="t('tokensTab')"><i class="fas fa-users"></i></div>
+                    <div class="tab" :class="{active: tab=='map'}" @click="tab='map'" :title="t('mapTab')"><i class="fas fa-map"></i></div>
+                    <div class="tab" :class="{active: tab=='settings'}" @click="tab='settings'" :title="t('settingsTab')"><i class="fas fa-cog"></i></div>
                 </div>
 
                 <!-- Tab: Tools -->
                 <div class="panel-content" v-if="tab=='tools'" style="display:flex; flex-direction:column; height:100%;">
                     <div style="flex-shrink: 0;">
                         <div class="btn-group" style="margin-bottom:0px">
-                            <button class="btn" :class="{active: scene.objects_locked}" @click="toggleLock" title="Verhindert das Verschieben von Objekten"><i class="fas" :class="scene.objects_locked ? 'fa-lock' : 'fa-lock-open'"></i> Karte sperren</button>
-                            <button class="btn" :class="{active: scene.background_locked}" @click="scene.background_locked = !scene.background_locked; sync()" title="Verhindert das Selektieren von Hintergrundobjekten"><i class="fas" :class="scene.background_locked ? 'fa-lock' : 'fa-lock-open'"></i> Hintergrund sperren</button>
+                            <button class="btn" :class="{active: scene.objects_locked}" @click="toggleLock" :title="t('lockMap')"><i class="fas" :class="scene.objects_locked ? 'fa-lock' : 'fa-lock-open'"></i> {{ scene.objects_locked ? t('unlockMap') : t('lockMap') }}</button>
+                            <button class="btn" :class="{active: scene.background_locked}" @click="scene.background_locked = !scene.background_locked; sync()" :title="t('lockBackground')"><i class="fas" :class="scene.background_locked ? 'fa-lock' : 'fa-lock-open'"></i> {{ scene.background_locked ? t('unlockBackground') : t('lockBackground') }}</button>
                         </div>
                         <div class="separator-line"></div>
                         <div class="btn-group" style="margin-bottom:10px">
-                            <button class="btn" :class="{active: scene.time_of_day === 'night'}" @click="scene.time_of_day = (scene.time_of_day === 'night' ? 'day' : 'night'); sync()" :disabled="!scene.lights_active"><i class="fas" :class="scene.time_of_day === 'night' ? 'fa-moon' : 'fa-sun'"></i> {{scene.time_of_day === 'night' ? 'Nacht' : 'Tag'}}</button>
-                            <button class="btn" :class="{active: scene.lights_active}" @click="toggleLightsActive" title="Lichter An/Aus"><i class="fas fa-lightbulb"></i> {{scene.lights_active ? 'Lichter AN' : 'Lichter AUS'}}</button>
+                            <button class="btn" :class="{active: scene.time_of_day === 'night'}" @click="scene.time_of_day = (scene.time_of_day === 'night' ? 'day' : 'night'); sync()" :disabled="!scene.lights_active"><i class="fas" :class="scene.time_of_day === 'night' ? 'fa-moon' : 'fa-sun'"></i> {{scene.time_of_day === 'night' ? t('night') : t('day')}}</button>
+                            <button class="btn" :class="{active: scene.lights_active}" @click="toggleLightsActive" :title="t('lightsOn')"><i class="fas fa-lightbulb"></i> {{scene.lights_active ? t('lightsOn') : t('lightsOff')}}</button>
                         </div>
                         <div class="btn-group" style="margin-bottom:10px">
-                            <button class="btn" :class="{active: scene.show_light_icons}" @click="toggleLightIcons"><i class="fas fa-lightbulb"></i> Licht Icons</button>
+                            <button class="btn" :class="{active: scene.show_light_icons}" @click="toggleLightIcons"><i class="fas fa-lightbulb"></i> {{ t('lightIcons') }}</button>
                         </div>
                         <div class="section-title">Navigation & Tools</div>
                         <div class="btn-group">
