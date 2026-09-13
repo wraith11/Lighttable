@@ -677,8 +677,8 @@ export const coreMethods = {
 
                 if (this.scene.tracking_paused) return;
 
-                if(t.blob_id && this.blobs[t.blob_id]) {
-                    const b = this.blobs[t.blob_id]; 
+                if(t.blob_id && this.blobs[String(t.blob_id)]) {
+                    const b = this.blobs[String(t.blob_id)]; 
                     let targetX = viewX + b.x * w; 
                     let targetY = viewY + b.y * h;
                     const dx = targetX - t.x;
