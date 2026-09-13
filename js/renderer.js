@@ -427,6 +427,10 @@ export class GameRenderer {
              const tex = this.fowBlurredTexture || this.fowMemoryTexture;
              const permSprite = new PIXI.Sprite(tex);
              permSprite.position.set(pv.x - w/2, pv.y - h/2);
+             // Memory-Textur ist in halber Auflösung → hochskalieren, damit sie den
+             // gleichen Weltbereich abdeckt (weich geblurrt, daher unmerklich).
+             const invScale = 1 / (this.fowMemoryScale || 0.5);
+             permSprite.scale.set(invScale, invScale);
              permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
              visionContainer.addChild(permSprite);
         }
