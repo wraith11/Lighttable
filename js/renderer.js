@@ -335,9 +335,9 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // Scharf einbrennen (kein Blur hier) – der weiche Rand wird einmalig pro
-        // Bake-Batch in _ensureFoWBlur auf eine persistente Textur angewendet.
-        // Vermeidet pro-Bake-Filter-Renderings, die Ressourcen leaken/verlangsamen können.
+        // Scharf einbrennen (kein Blur hier). Der weiche Rand wird erst angewendet,
+        // wenn das FoW ~300ms zur Ruhe kommt (siehe ensureFoWBlur + _fowSettleTimer).
+        // So bleibt das Tracking während aktiver Bewegung schnell.
         this.pixiApp.renderer.render(brush, { 
             renderTexture: this.fowMemoryTexture, 
             clear: forceRebuild, 
@@ -348,12 +348,21 @@ export class GameRenderer {
         this.lastFoWPathLength = visited.length;
         this._lastFoWBakeTime = now;
         this.fowBlurDirty = true;
+
+        // Blur erst auslösen, wenn keine neuen Punkte mehr kommen (Ruhe) – kein Dauer-Blur
+        if (this._fowSettleTimer) clearTimeout(this._fowSettleTimer);
+        this._fowSettleTimer = setTimeout(() => {
+            this._fowSettleTimer = null;
+            if (this.fowBlurDirty) this.requestRender();
+        }, 300);
     }
 
-    // Wendet den weichen Rand der Memory-Sicht einmalig (bei Bedarf) auf eine
-    // persistente, geblurrte Textur an. Rendert nicht pro Frame und nicht pro Bake.
+    // Wendet den weichen Rand der Memory-Sicht an – ABER nur, wenn das FoW gerade
+    // nicht aktiv erweitert wird (letzte Bewegung >300ms her). Während aktiver
+    // Erkundung wird scharf dargestellt, um das Tracking nicht zu bremsen.
     ensureFoWBlur() {
         if (!this.fowBlurDirty) return;
+        if (performance.now() - (this._lastFoWBakeTime || 0) < 300) return;
         this.fowBlurDirty = false;
         if (!this.fowMemoryTexture) return;
         const w = this.fowMemoryTexture.width;
