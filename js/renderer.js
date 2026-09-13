@@ -283,9 +283,12 @@ export class GameRenderer {
 
         if (!this.fowMemoryTexture || forceRebuild) {
              if (this.fowMemoryTexture) this.fowMemoryTexture.destroy(true);
+             // Memory-Textur in halber Auflösung – der weiche (geblurrte) Rand macht das
+             // unmerklich, senkt aber den Render-/Blur-Aufwand deutlich (~4x).
+             this.fowMemoryScale = 0.5;
              this.fowMemoryTexture = PIXI.RenderTexture.create({ 
-                 width: Math.ceil(w), 
-                 height: Math.ceil(h),
+                 width: Math.max(1, Math.ceil(w * this.fowMemoryScale)), 
+                 height: Math.max(1, Math.ceil(h * this.fowMemoryScale)),
                  scaleMode: PIXI.SCALE_MODES.LINEAR
              });
              if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
