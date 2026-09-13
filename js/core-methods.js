@@ -659,50 +659,56 @@ export const coreMethods = {
         let fowChanged = false;
 
         Object.values(this.scene.tokens).forEach(t => {
-            const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
-                            t.y >= viewY - margin && t.y <= viewY + h + margin);
-            
-            if (!inView && t.blob_id) {
-                t.blob_id = null; 
-                t.on_board = false;
-                if (!t.modified) {
-                    delete this.scene.tokens[t.uuid];
-                    tokenListChanged = true;
-                } else {
-                    changed = true;
-                }
-                return;
-            }
-
-            if (this.scene.tracking_paused) return;
-
-            if(t.blob_id && this.blobs[t.blob_id]) {
-                const b = this.blobs[t.blob_id]; 
-                let targetX = viewX + b.x * w; 
-                let targetY = viewY + b.y * h;
-                const dx = targetX - t.x;
-                const dy = targetY - t.y;
-                const dist = Math.hypot(dx, dy);
-
-                if (dist > 3.0) { 
-                    t.x = targetX; 
-                    t.y = targetY; 
-                    changed = true; 
-                    
-                    if (isPermanent && t.has_vision) {
-                         if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
-                             const pt = {
-                                 x: Math.round(t.x), 
-                                 y: Math.round(t.y), 
-                                 radius: t.vision_range
-                             };
-                             this.scene.fow_visited.push(pt);
-                             this._fowDeltaBuffer.push(pt);
-                             t._lastFowPos = {x: t.x, y: t.y};
-                             fowChanged = true;
-                         }
+            try {
+                const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
+                                t.y >= viewY - margin && t.y <= viewY + h + margin);
+                
+                if (!inView && t.blob_id) {
+                    t.blob_id = null; 
+                    t.on_board = false;
+                    if (!t.modified) {
+                        delete this.scene.tokens[t.uuid];
+                        tokenListChanged = true;
+                    } else {
+                        changed = true;
                     }
-                } 
+                    return;
+                }
+
+                if (this.scene.tracking_paused) return;
+
+                if(t.blob_id && this.blobs[t.blob_id]) {
+                    const b = this.blobs[t.blob_id]; 
+                    let targetX = viewX + b.x * w; 
+                    let targetY = viewY + b.y * h;
+                    const dx = targetX - t.x;
+                    const dy = targetY - t.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist > 3.0) { 
+                        t.x = targetX; 
+                        t.y = targetY; 
+                        changed = true; 
+                        
+                        if (isPermanent && t.has_vision) {
+                             const vr = t.vision_range || 400;
+                             if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
+                                 const pt = {
+                                     x: Math.round(t.x), 
+                                     y: Math.round(t.y), 
+                                     radius: vr
+                                 };
+                                 this.scene.fow_visited.push(pt);
+                                 this._fowDeltaBuffer.push(pt);
+                                 t._lastFowPos = {x: t.x, y: t.y};
+                                 fowChanged = true;
+                             }
+                        }
+                    } 
+                }
+            } catch (err) {
+                // BUGFIX: Ein einzelner Token/Blob darf den Rest nicht abreißen
+                console.warn("updateTokenPos token error", err);
             }
         });
         
