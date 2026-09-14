@@ -1,6 +1,6 @@
 # LightTable Ultimate
 
-> 🌐 **Language / Sprache:** [English](README.en.md) · [Deutsch](README.md)
+> 🌐 **Language / Sprache:** [English](README.md) · [Deutsch](README.de.md)
 
 **LightTable Ultimate** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
 
@@ -225,6 +225,7 @@ Lighttable/
 │   └── utils.js           # Geometry/visibility helpers
 ├── requirements.txt       # Python dependencies
 ├── start.bat / start.sh   # Start scripts
+├── LICENSE                # MIT license
 ├── assets/                # Uploaded/managed assets (automatic)
 ├── media/                 # Images/videos for blackout (automatic)
 └── maps/                  # Saved maps (.json, automatic)
