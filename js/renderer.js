@@ -391,6 +391,14 @@ export class GameRenderer {
         }
         if (!this.scene.fow_active) return;
 
+        // PERFORMANCE: FoW-Rendering drosseln (~15fps), damit das Tracking im Main-Thread
+        // nicht ausgebremst wird. Wichtige Änderungen (fowDirty, View-Wechsel) rendern sofort.
+        const now = performance.now();
+        if (!this.fowDirty && !this._lastFoWViewHashChanged && (now - (this._lastFoWRenderTime || 0)) < 66) {
+            return;
+        }
+        this._lastFoWRenderTime = now;
+
         const segments = this.getSegments();
         // false = inkrementell einbrennen (nur neue Punkte), statt bei jeder Bewegung alles neu zu baken
         this.updateFoWMemory(false);
