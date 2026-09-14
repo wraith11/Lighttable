@@ -262,4 +262,4 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ## Notice: AI-Generated Software
 
-This project was **created predominantly with the assistance of AI (Large Language Models)** – including large parts of the source code, the architecture and this document. It is the result of a collaboration between the author and AI-powered development tools. The logic of several complex systems (e.g. the Fog-of-War base system, the wall-overlap solution) is based on the author's ideas and was implemented and maintained with AI.
+This project was **created predominantly with the assistance of AI (Large Language Models)** – including large parts of the source code, the architecture and this document. It is the result of a collaboration between the author and AI-powered development tools. The logic of several complex systems is based on the author's ideas and was implemented and maintained with AI.
