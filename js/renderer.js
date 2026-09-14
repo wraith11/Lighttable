@@ -385,19 +385,24 @@ export class GameRenderer {
     }
 
     renderFoW() {
-        // Zerstöre vorherige FoW-Sprites, um GPU-Speicherlecks zu vermeiden
-        while (this.containers.fow.children.length > 0) {
-            this.containers.fow.removeChildAt(0).destroy({ children: true });
-        }
         if (!this.scene.fow_active) return;
 
         // PERFORMANCE: FoW-Rendering drosseln (~15fps), damit das Tracking im Main-Thread
         // nicht ausgebremst wird. Wichtige Änderungen (fowDirty, View-Wechsel) rendern sofort.
         const now = performance.now();
-        if (!this.fowDirty && !this._lastFoWViewHashChanged && (now - (this._lastFoWRenderTime || 0)) < 66) {
+        const viewHashNow = `${Math.round(this.world.x)}_${Math.round(this.world.y)}_${Math.round(this.world.scale.x*100)}`;
+        const viewChangedNow = viewHashNow !== this._lastFoWViewHash;
+        if (viewChangedNow) this._lastFoWViewHash = viewHashNow;
+        if (!this.fowDirty && !viewChangedNow && (now - (this._lastFoWRenderTime || 0)) < 66) {
             return;
         }
         this._lastFoWRenderTime = now;
+
+        // Zerstöre vorherige FoW-Sprites erst NACH der Drosselung, damit das letzte
+        // FoW-Bild zwischen zwei Renders stehen bleibt (kein Flackern).
+        while (this.containers.fow.children.length > 0) {
+            this.containers.fow.removeChildAt(0).destroy({ children: true });
+        }
 
         const segments = this.getSegments();
         // false = inkrementell einbrennen (nur neue Punkte), statt bei jeder Bewegung alles neu zu baken
