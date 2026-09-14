@@ -243,9 +243,19 @@ Lighttable/
 
 ---
 
+## Screenshots
+
+| GM-Ansicht | Player-Ansicht | Setup |
+|------------|----------------|-------|
+| ![GM-Ansicht](assets/screenshots/gm.png) | ![Player-Ansicht](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+
+> Screenshots folgen in Kürze.
+
+---
+
 ## Lizenz
 
-Derzeit ist keine Lizenz hinterlegt. Bei Verwendung bitte zuerst den Autor kontaktieren.
+Dieses Projekt ist unter der **MIT-Lizenz** lizenziert. Siehe die Datei [LICENSE](LICENSE).
 
 ---
 
