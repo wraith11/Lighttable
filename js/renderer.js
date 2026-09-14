@@ -63,6 +63,8 @@ export class GameRenderer {
         this._lastFoWViewHash = "";
         this._cachedSegments = null;
         this._segmentsVersion = 0;
+        // D3: Grid-Cache für calculateVisibility (einmal pro Segment-Version neu gebaut)
+        this._visGridCache = { version: 0, grid: null };
         
         this._lastScale = -1;
         this._lastViewX = -99999;
