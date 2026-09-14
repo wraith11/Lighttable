@@ -236,10 +236,10 @@ Lighttable/
 
 ## Hinweise & Grenzen
 
-- **Flackern ist teuer:** Lichtquellen mit Flacker-Effekt aktivieren einen dauerhaften Render-Loop – bewusst so gelassen.
+- **Flackern ist teuer:** Lichtquellen mit Flacker-Effekt aktivieren einen dauerhaften Render-Loop.
 - Beim **Laden einer Karte** wird der Blackout automatisch aktiviert, damit der GM vorbereiten kann, ohne den Spielern etwas zu spoilern.
 - Der Server ist für den Betrieb im **lokalen Netzwerk** gedacht. Beim Einsatz in ungesicherten Netzen sollte er hinter einem Reverse-Proxy mit Authentifizierung laufen.
-- Das Tracking setzt einen stabilen Kontrast (IR-Reflektoren) und eine ruhige Beleuchtung voraus.
+- Das Tracking setzt einen stabilen Kontrast (IR-Reflektoren) voraus.
 
 ---
 
@@ -251,4 +251,4 @@ Derzeit ist keine Lizenz hinterlegt. Bei Verwendung bitte zuerst den Autor konta
 
 ## Hinweis: KI-Unterstützung / AI-Generated Software
 
-Dieses Projekt wurde **überwiegend mit Unterstützung von KI (Large Language Models) erstellt** – einschließlich großer Teile des Quellcodes, der Architektur und dieses Dokuments. Es ist das Ergebnis einer Zusammenarbeit zwischen dem Autor und KI-gestützten Entwicklungswerkzeugen. Die Logik einzelner komplexer Systeme (z.&nbsp;B. Fog-of-War-Grundsystem, Mauer-Überlappungs-Lösung) basiert auf Ideen des Autors und wurde mit KI umgesetzt und gepflegt.
+Dieses Projekt wurde **überwiegend mit Unterstützung von KI (Large Language Models) erstellt** – einschließlich großer Teile des Quellcodes, der Architektur und dieses Dokuments. Es ist das Ergebnis einer Zusammenarbeit zwischen dem Autor und KI-gestützten Entwicklungswerkzeugen. Die Logik einzelner komplexer Systeme basiert auf Ideen des Autors und wurde mit KI umgesetzt und gepflegt.
