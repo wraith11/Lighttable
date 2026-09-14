@@ -337,12 +337,14 @@ export class GameRenderer {
 
             const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments, this._visGridCache);
             if (poly.length > 0) {
-                // Inset: Polygon-Punkte um 2px zum Zentrum (pt) hin verschieben, damit die
-                // weiße Fläche nicht exakt bis zur Wandkante reicht. Verhindert harte
-                // senkrechte Linien an Wandkanten nach dem Blur (permanenter FoW).
+                // Inset: Polygon-Punkte um einen kleinen Betrag zum Zentrum (pt) hin
+                // verschieben, damit die weiße Fläche nicht exakt bis zur Wandkante reicht.
+                // Verhindert harte senkrechte Linien an Wandkanten nach dem Blur.
                 const inset = 2.0 * ms;
                 brush.moveTo((poly[0].x - viewX) * ms, (poly[0].y - viewY) * ms);
-                for (let j=1; j<poly.length; j++) brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
+                for (let j=1; j<poly.length; j++) {
+                    brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
+                }
                 brush.closePath();
             } else {
                 brush.drawCircle(relX, relY, pt.radius * ms);
