@@ -597,8 +597,12 @@ export class GameRenderer {
         const grd = ctx.createRadialGradient(center, center, 0, center, center, radius);
         
         // --- VISION HARDNESS ---
+        // Weicher Übergang bis ~70%, danach schneller Auslauf, damit an der Polygon-Kante
+        // (die an Wänden liegt) kaum noch Helligkeit übrig ist → kein Bleeding durch Wände.
         grd.addColorStop(0, "rgba(255, 255, 255, 1)"); 
-        grd.addColorStop(0.8, "rgba(255, 255, 255, 0.9)"); // 0.8 controls hardness (0.0 - 1.0)
+        grd.addColorStop(0.55, "rgba(255, 255, 255, 1)"); 
+        grd.addColorStop(0.75, "rgba(255, 255, 255, 0.6)"); 
+        grd.addColorStop(0.92, "rgba(255, 255, 255, 0.12)"); 
         grd.addColorStop(1, "rgba(255, 255, 255, 0)"); 
         
         ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
