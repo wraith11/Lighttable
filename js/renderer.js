@@ -335,7 +335,7 @@ export class GameRenderer {
             // Loose culling for drawing bounds
             if (relX < -pt.radius * ms || relX > w * ms + pt.radius * ms || relY < -pt.radius * ms || relY > h * ms + pt.radius * ms) continue;
 
-            const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments);
+            const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments, this._visGridCache);
             if (poly.length > 0) {
                 brush.moveTo((poly[0].x - viewX) * ms, (poly[0].y - viewY) * ms);
                 for (let j=1; j<poly.length; j++) brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
