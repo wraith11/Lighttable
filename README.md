@@ -1,88 +1,88 @@
 # LightTable Ultimate
 
-> 🌐 **Sprache / Language:** [Deutsch](README.md) · [English](README.en.md)
+> 🌐 **Language / Sprache:** [English](README.en.md) · [Deutsch](README.md)
 
-**LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
+**LightTable Ultimate** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
 
-- **GM-Ansicht** zum Bauen und Steuern der Karte (im Browser des Spielleiters).
-- **Player-Ansichten**, die einfach über den Browser geöffnet werden – z.&nbsp;B. auf einem Android-TV-Stick am Beamer.
-- **Betriebssystem-unabhängig** (alles läuft im Browser, Server ist Python).
-- **IR-Blob-Tracking** mit Kamera, um echte Miniaturen auf dem Tisch automatisch zu verfolgen.
-- **Mehrsprachig** – Englisch (Standard) und Deutsch.
+- **GM view** for building and controlling the map (in the game master's browser).
+- **Player views** that can simply be opened in a browser – e.g. on an Android TV stick connected to the beamer.
+- **OS-independent** (everything runs in the browser, the server is Python).
+- **IR blob tracking** with a camera to automatically track real miniatures on the table.
+- **Multilingual** – English (default) and German.
 
 ---
 
 ## Features
 
 ### Editor
-- **Ebenen-System** – Objekte/Wände/Säulen werden über einen Z-Index gerendert und können zwischen Hintergrund und Vordergrund verschoben werden (`mapLow`, `objectsHigh`).
-- **Asset-Manager** – heruntergeladene Assets (z.&nbsp;B. von *Forgotten Adventures*) werden über einen Ordner-Browser verwaltet, in Unterordner sortiert und per Klick oder Drag & Drop platziert.
-- **Mauern & Säulen** – zeichnbare Wände (frei oder gebogen, mit Textur/Breite) und polygonale Säulen. Wände können „unsichtbar“ sein und dienen dann als Sicht-/Kollisionsblocker.
-- **Beleuchtungssystem** – platzierbare Lichtquellen mit Radius, Helligkeit, Falloff, Farbe, Flacker-Effekt und Licht-Icons. Tag/Nacht-Umschaltung mit weichem Übergang.
-- **Zeichenwerkzeuge** – Pinsel (Strich), Rechteck, Kreis und Raster-Füllung, jeweils mit Farbe oder Textur.
-- **Hintergrundbild** – hochladbares Kartenbild mit Skalierung, Wiederholung und Position.
-- **Raster & Snapping** – einstellbares Grid, magnetisches Ausrichten beim Platzieren und Bewegen.
+- **Layer system** – objects/walls/columns are rendered by Z-index and can be moved between background and foreground (`mapLow`, `objectsHigh`).
+- **Asset manager** – downloaded assets (e.g. from *Forgotten Adventures*) are managed in a folder browser, sorted into subfolders, and placed by click or drag & drop.
+- **Walls & columns** – drawable walls (straight or curved, with texture/width) and polygonal columns. Walls can be "invisible" and act as sight/collision blockers.
+- **Lighting system** – placeable light sources with radius, brightness, falloff, color, flicker effect and light icons. Day/night toggle with a smooth transition.
+- **Drawing tools** – brush (stroke), rectangle, circle and grid fill, each with color or texture.
+- **Background image** – uploadable map image with scaling, repeat and position.
+- **Grid & snapping** – adjustable grid, magnetic alignment when placing and moving.
 
-### Sicht & Fog of War (FoW)
-- **GM-Ansicht + Player-Ansicht** – der GM sieht alles und kann die Player-Sicht frei verschieben; die Player sehen nur ihren Bildausschnitt.
-- **Fog of War** in zwei Modi:
-  - **Modus 2 (temporär):** nur der aktuelle Sichtbereich ist sichtbar.
-  - **Modus 1 (permanent):** erkundete Gebiete bleiben aufgedeckt („Memory“).
-- **Sichtberechnung** basierend auf Wänden/Säulen (echte Verdeckung, keine künstliche Durchdringung) mit weichem Sichtrand pro Token mit Vision.
-- **FoW-Pinsel** zum manuellen Aufdecken/Verbergen.
+### View & Fog of War (FoW)
+- **GM view + Player view** – the GM sees everything and can freely move the player view; players only see their viewport.
+- **Fog of War** in two modes:
+  - **Mode 2 (temporary):** only the current viewport is visible.
+  - **Mode 1 (permanent):** explored areas stay revealed ("memory").
+- **Visibility calculation** based on walls/columns (real occlusion, no artificial penetration) with a soft vision edge per token with vision.
+- **FoW brush** for manual reveal/hide.
 
-### Figuren-Tracking (Blob Tracking)
-- **IR-Kamera-Tracking:** Kamera mit IR-Filter-Linse + IR-Emittern; Figuren tragen kleine Reflektorflächen.
-- **Korrekturoptionen:** Threshold/Binarisierung, Merge-Distance, Min/Max-Area, Hotspot-Kompensation, Parallax-Korrektur, Smoothing, Flip X/Y.
-- **Kamera-Kalibrierung** über vier verschiebbare Eckpunkte in einer Live-Vorschau.
-- **Blob-Verfolgung** mit Anker-/Teleport-Logik, ID-Zuordnung, Verlust- und Wiederfinden-Handling.
-- **Token** mit Größe, Farbe/Spotlight, Namen, Ringen mit Text, Vision-Reichweite und Blink-Funktion.
+### Figure Tracking (Blob Tracking)
+- **IR camera tracking:** camera with IR filter lens + IR emitters; figures carry small reflective surfaces.
+- **Correction options:** threshold/binarization, merge distance, min/max area, hotspot compensation, parallax correction, smoothing, flip X/Y.
+- **Camera calibration** via four draggable corner points in a live preview.
+- **Blob tracking** with anchor/teleport logic, ID assignment, loss and re-find handling.
+- **Tokens** with size, color/spotlight, name, rings with text, vision range and blink function.
 
-### Player-Ansicht / Blackout / Medien
-- **Blackout-Funktion:** sofortiges Abdunkeln der Player-Sicht, damit der GM unbemerkt vorbereiten kann.
-- **Media-System:** Bilder und Videos über die Blackout-Funktion in **Full**, **Split** oder **Quad**-Aufteilung abspielen – inkl. Flip und Loop pro Slot.
-- **Status-Infos & Namen**, die neben Figuren projiziert werden.
+### Player View / Blackout / Media
+- **Blackout function:** instantly darken the player view so the GM can prepare unnoticed.
+- **Media system:** play images and videos through the blackout function in **Full**, **Split** or **Quad** layout – including flip and loop per slot.
+- **Status info & names** projected next to figures.
 
 ---
 
-## Voraussetzungen
+## Requirements
 
-| Komponente | Anforderung |
-|------------|-------------|
-| **Betriebssystem** | Windows / Linux / macOS (Server) |
-| **Python** | 3.8 oder neuer |
-| **Browser** | Aktueller Chrome / Firefox / Edge (WebGL) |
-| **Kamera** | Webcam, idealerweise mit IR-Filter-Linse |
-| **Player-Gerät** | Beliebiger Browser (z.&nbsp;B. Android-TV, Tablet, Laptop) |
+| Component | Requirement |
+|-----------|-------------|
+| **OS** | Windows / Linux / macOS (server) |
+| **Python** | 3.8 or newer |
+| **Browser** | Current Chrome / Firefox / Edge (WebGL) |
+| **Camera** | Webcam, ideally with IR filter lens |
+| **Player device** | Any browser (e.g. Android TV, tablet, laptop) |
 
 ---
 
 ## Installation
 
-### 1. Projekt herunterladen
+### 1. Download the project
 
 ```bash
 git clone https://github.com/wraith11/Lighttable.git
 cd Lighttable
 ```
 
-> Möchtest du die neueste Entwicklungs-Version testen, wechsle auf den Branch `dev`:
+> To test the latest development version, switch to the `dev` branch:
 > ```bash
 > git checkout dev
 > ```
 
-### 2. Abhängigkeiten installieren
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Linux/macOS (falls `pip` nicht verfügbar):**
+**Linux/macOS (if `pip` is unavailable):**
 ```bash
 pip3 install -r requirements.txt
 ```
 
-Optional in einer virtuellen Umgebung:
+Optionally in a virtual environment:
 ```bash
 python -m venv .venv
 # Windows:
@@ -92,173 +92,173 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Ordnerstruktur
+### 3. Folder structure
 
-Beim ersten Start werden automatisch die Ordner `assets/`, `maps/` und `media/` angelegt.
+On first start, the folders `assets/`, `maps/` and `media/` are created automatically.
 
-- `assets/` – hierher legst du deine heruntergeladenen Assets (Bilder/Texturen), z.&nbsp;B. von *Forgotten Adventures*.
-- `media/` – Bilder/Videos für die Blackout-Funktion.
-- `maps/` – gespeicherte Karten (`.json`).
+- `assets/` – put your downloaded assets here (images/textures), e.g. from *Forgotten Adventures*.
+- `media/` – images/videos for the blackout function.
+- `maps/` – saved maps (`.json`).
 
 ---
 
-## Starten
+## Start
 
 ```bash
 python lighttable.py
 ```
 
-Oder mit einem der **Start-Skripte**:
+Or use one of the **start scripts**:
 - **Windows:** `start.bat`
-- **Linux/macOS:** `./start.sh` (ggf. vorher `chmod +x start.sh`)
+- **Linux/macOS:** `./start.sh` (run `chmod +x start.sh` first if needed)
 
-Beim Start öffnet sich automatisch die **GM-Ansicht** im Standard-Browser:
+On start, the **GM view** opens automatically in the default browser:
 - **GM:** `http://localhost:8080/?view=gm`
-- **Player:** `http://<IP-des-Rechners>:8080/`
+- **Player:** `http://<IP-of-your-machine>:8080/`
 
-Die lokale IP-Adresse des Rechners wird im **Settings-Tab** angezeigt (z.&nbsp;B. `192.168.1.50`). Verbinde Player-Geräte (Android-TV, Tablet, Zweitrechner) einfach über diese Adresse im WLAN.
+The local IP of the machine is shown in the **Settings tab** (e.g. `192.168.1.50`). Connect player devices (Android TV, tablet, second computer) via that address on your Wi-Fi.
 
 ---
 
-## Konfiguration
+## Configuration
 
 ### Host & Port
-Standardmäßig bindet der Server an `0.0.0.0` (alle Interfaces) auf Port `8080`. Das lässt sich über **Kommandozeilen-Argumente** ändern:
+By default the server binds to `0.0.0.0` (all interfaces) on port `8080`. This can be changed via **command line arguments**:
 
 ```bash
-# Anderen Port verwenden
+# Use a different port
 python lighttable.py --port 9090
 
-# Nur lokale Verbindungen zulassen
+# Allow only local connections
 python lighttable.py --host 127.0.0.1
 
-# Beides
+# Both
 python lighttable.py --host 0.0.0.0 --port 9090
 ```
 
-Alternativ lässt sich Host/Port dauerhaft in **`config.json`** unter der Sektion `"server"` festlegen:
+Alternatively, set host/port permanently in **`config.json`** under the `"server"` section:
 ```json
 {
   "server": { "host": "0.0.0.0", "port": 8080 }
 }
 ```
-> Kommandozeilen-Argumente haben Vorrang vor `config.json`.
+> Command line arguments take precedence over `config.json`.
 
-### Sprache
-Die UI ist **mehrsprachig** (Englisch als Standard, Deutsch verfügbar):
-- Im **Settings-Tab** über das Dropdown „Language / Sprache“ umschalten.
-- Oder direkt per URL-Parameter: `?lang=en` bzw. `?lang=de`.
-- Die Auswahl wird pro Browser im `localStorage` gespeichert.
-
----
-
-## Kamera-Aufbau (Blob-Tracking)
-
-Das Tracking erkennt Figuren über **IR-Reflektorflächen** und eine **IR-Kamera**. So baust du es auf:
-
-### Benötigte Hardware
-- **Kamera mit IR-Filter-Linse** – viele „IR-only“-oder „Webcam mit IR-Filter“-Modelle eignen sich. Ohne Filter sieht die Kamera sichtbares Licht, was das Tracking stört.
-- **IR-Beleuchtung** – ein oder mehrere IR-Emitter (z.&nbsp;B. IR-LED-Scheinwerfer mit 850 nm), die den Tisch gleichmäßig ausleuchten. Die Reflektorflächen werfen das IR-Licht zur Kamera zurück.
-- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. von unten an den Base).
-
-### Aufbau
-1. **Kamera positionieren** – senkrecht über dem Spielfeld, z.&nbsp;B. an einem Stativ über dem Tisch oder am Beamer-Gestänge. Die Kamera sollte das gesamte Spielfeld erfassen.
-2. **IR-Beleuchtung** gleichmäßig über den Tisch richten – ohne grelle Hotspots.
-3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll.
-4. **Kamera im System einrichten:**
-   - In der GM-Ansicht: **Settings → Camera Setup**.
-   - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
-   - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
-
-### Kalibrierung & Korrekturoptionen
-Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Parameter ein:
-
-| Parameter | Zweck |
-|-----------|-------|
-| **Threshold** | Helligkeitsschwelle für die Binärisierung – erhöhen, wenn zu viel Rauschen erkannt wird. |
-| **Merge-Distance** | Punkte innerhalb dieser Distanz werden zu einem Blob zusammengefasst. |
-| **Min/Max-Area** | Filtert zu kleine (Rauschen) und zu große (Reflexionen) Flächen. |
-| **Hotspot** | Kompensiert helle Stellen in der Ausleuchtung. |
-| **Parallax** | Korrigiert den Parallax-Fehler bei nicht exakt senkrechter Kamera. |
-| **Smoothing** | Glättet die Blob-Bewegung (höher = ruhiger, aber träger). |
-| **Flip X/Y** | Spiegelt das Bild, falls die Kamera gedreht montiert ist. |
-
-### Verknüpfen mit Tokens
-- Im **Tokens-Tab** wählst du bei einem Token den gewünschten **Blob** (ID) aus.
-- Sobald der Blob erkannt wird, folgt der Token der Figur automatisch über den Tisch.
-- Figuren mit **Vision** decken den **Fog of War** auf.
+### Language
+The UI is **multilingual** (English by default, German available):
+- Switch via the "Language / Sprache" dropdown in the **Settings tab**.
+- Or directly via URL parameter: `?lang=en` or `?lang=de`.
+- The choice is stored per browser in `localStorage`.
 
 ---
 
-## Bedienung (Kurzübersicht)
+## Camera Setup (Blob Tracking)
 
-| Aktion | Eingabe |
-|--------|---------|
-| Werkzeug wählen | Sidebar-Tabs (Tools, Tokens, Map, Settings) |
-| Ansicht verschieben (GM) | Rechte Maustaste + ziehen |
-| Zoomen (GM) | Mausrad |
-| Objekt platzieren | Asset anklicken (Stempel) oder per Drag & Drop auf die Karte |
-| Objekt bewegen | Auswählen + ziehen |
-| Objekt skalieren | Auswählen + Eckgriff ziehen, oder Breite/Höhe im Kontextmenü |
-| Objekt drehen | Rotationsgriff über dem Objekt |
-| Mauer zeichnen | Wand-Werkzeug, ziehen für Start/Ende |
-| Kamera kalibrieren | Settings → Camera Setup |
-| Karte speichern | Settings → Speichern / Speichern unter |
+The tracking detects figures via **IR reflective surfaces** and an **IR camera**. Here is how to set it up:
+
+### Required hardware
+- **Camera with IR filter lens** – many "IR-only" or "webcam with IR filter" models work. Without a filter the camera sees visible light, which interferes with tracking.
+- **IR illumination** – one or more IR emitters (e.g. IR LED floodlights at 850 nm) that evenly light the table. The reflective surfaces bounce the IR light back to the camera.
+- **Reflectors** – small reflective surfaces (e.g. retroreflective material, cat-eye film or small IR reflector dots) attached to your miniatures/figures (e.g. on the bottom of the base).
+
+### Setup
+1. **Position the camera** – vertically above the play area, e.g. on a tripod over the table or on the beamer rig. The camera should capture the whole play area.
+2. **Aim the IR light** evenly across the table – without harsh hotspots.
+3. **Attach reflectors** – to every figure you want tracked.
+4. **Set up the camera in the system:**
+   - In the GM view: **Settings → Camera Setup**.
+   - Select the camera and optionally open the driver dialog.
+   - **Calibrate:** drag the four corner points onto the corners of the play area to warp the image.
+
+### Calibration & correction options
+After alignment, set the tracking parameters in **Settings → Camera Setup**:
+
+| Parameter | Purpose |
+|-----------|---------|
+| **Threshold** | Brightness threshold for binarization – increase if too much noise is detected. |
+| **Merge Distance** | Points within this distance are merged into one blob. |
+| **Min/Max Area** | Filters out too small (noise) and too large (reflections) areas. |
+| **Hotspot** | Compensates bright spots in the illumination. |
+| **Parallax** | Corrects parallax error when the camera is not perfectly vertical. |
+| **Smoothing** | Smooths blob movement (higher = calmer, but laggier). |
+| **Flip X/Y** | Mirrors the image if the camera is mounted rotated. |
+
+### Linking to tokens
+- In the **Tokens tab**, select the desired **blob** (ID) for a token.
+- Once the blob is detected, the token follows the figure automatically across the table.
+- Figures with **vision** reveal the **Fog of War**.
 
 ---
 
-## Projektstruktur
+## Controls (Quick Overview)
+
+| Action | Input |
+|--------|-------|
+| Choose tool | Sidebar tabs (Tools, Tokens, Map, Settings) |
+| Move view (GM) | Right mouse button + drag |
+| Zoom (GM) | Mouse wheel |
+| Place object | Click asset (stamp) or drag & drop onto the map |
+| Move object | Select + drag |
+| Scale object | Select + drag corner handle, or Width/Height in the context menu |
+| Rotate object | Rotation handle above the object |
+| Draw wall | Wall tool, drag for start/end |
+| Calibrate camera | Settings → Camera Setup |
+| Save map | Settings → Save / Save As |
+
+---
+
+## Project structure
 
 ```
 Lighttable/
-├── lighttable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
-├── index.html             # Vue-UI (GM- & Player-Ansicht, mehrsprachig)
+├── lighttable.py          # Python server (aiohttp + Socket.IO + OpenCV tracking)
+├── index.html             # Vue UI (GM & Player view, multilingual)
 ├── css/style.css          # Styling
 ├── js/
-│   ├── app.js             # Vue-App, Socket-Events, Lifecycle
-│   ├── state.js           # Initialer UI- & Scene-State
-│   ├── renderer.js        # PixiJS-Renderer (Karte, Licht, FoW, Tokens)
-│   ├── interactions.js    # Maus/Tastatur-Interaktionen
-│   ├── core-methods.js    # UI-Aktionen & Scene-Logik
-│   ├── socket-client.js   # Socket.IO-Instanz
-│   ├── i18n.js            # Übersetzungen (en/de)
-│   └── utils.js           # Geometrie/Sichtbarkeits-Helfer
-├── requirements.txt       # Python-Abhängigkeiten
-├── start.bat / start.sh   # Start-Skripte
-├── assets/                # Hochgeladene/verwaltete Assets (automatisch)
-├── media/                 # Bilder/Videos für Blackout (automatisch)
-└── maps/                  # Gespeicherte Karten (.json, automatisch)
+│   ├── app.js             # Vue app, socket events, lifecycle
+│   ├── state.js           # Initial UI & scene state
+│   ├── renderer.js        # PixiJS renderer (map, lights, FoW, tokens)
+│   ├── interactions.js    # Mouse/keyboard interactions
+│   ├── core-methods.js    # UI actions & scene logic
+│   ├── socket-client.js   # Socket.IO instance
+│   ├── i18n.js            # Translations (en/de)
+│   └── utils.js           # Geometry/visibility helpers
+├── requirements.txt       # Python dependencies
+├── start.bat / start.sh   # Start scripts
+├── assets/                # Uploaded/managed assets (automatic)
+├── media/                 # Images/videos for blackout (automatic)
+└── maps/                  # Saved maps (.json, automatic)
 ```
 
-**Technologien:** Python (aiohttp, Socket.IO, OpenCV) · JavaScript (Vue 3, PixiJS 7, iro.js) · WebGL.
+**Technologies:** Python (aiohttp, Socket.IO, OpenCV) · JavaScript (Vue 3, PixiJS 7, iro.js) · WebGL.
 
 ---
 
-## Hinweise & Grenzen
+## Notes & Limitations
 
-- **Flackern ist teuer:** Lichtquellen mit Flacker-Effekt aktivieren einen dauerhaften Render-Loop.
-- Beim **Laden einer Karte** wird der Blackout automatisch aktiviert, damit der GM vorbereiten kann, ohne den Spielern etwas zu spoilern.
-- Der Server ist für den Betrieb im **lokalen Netzwerk** gedacht. Beim Einsatz in ungesicherten Netzen sollte er hinter einem Reverse-Proxy mit Authentifizierung laufen.
-- Das Tracking setzt einen stabilen Kontrast (IR-Reflektoren) voraus.
+- **Flicker is expensive:** light sources with a flicker effect activate a permanent render loop.
+- When **loading a map**, the blackout is activated automatically so the GM can prepare without spoiling anything for the players.
+- The server is intended for **local network** use. When used on unsecured networks, it should run behind a reverse proxy with authentication.
+- Tracking requires stable contrast (IR reflectors).
 
 ---
 
 ## Screenshots
 
-| GM-Ansicht | Player-Ansicht | Setup |
-|------------|----------------|-------|
-| ![GM-Ansicht](assets/screenshots/gm.png) | ![Player-Ansicht](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+| GM view | Player view | Setup |
+|---------|-------------|-------|
+| ![GM view](assets/screenshots/gm.png) | ![Player view](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
 
-> Screenshots folgen in Kürze.
-
----
-
-## Lizenz
-
-Dieses Projekt ist unter der **MIT-Lizenz** lizenziert. Siehe die Datei [LICENSE](LICENSE).
+> Screenshots will be added here soon.
 
 ---
 
-## Hinweis: KI-Unterstützung / AI-Generated Software
+## License
 
-Dieses Projekt wurde **überwiegend mit Unterstützung von KI (Large Language Models) erstellt** – einschließlich großer Teile des Quellcodes, der Architektur und dieses Dokuments. Es ist das Ergebnis einer Zusammenarbeit zwischen dem Autor und KI-gestützten Entwicklungswerkzeugen. Die Logik einzelner komplexer Systeme basiert auf Ideen des Autors und wurde mit KI umgesetzt und gepflegt.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Notice: AI-Generated Software
+
+This project was **created predominantly with the assistance of AI (Large Language Models)** – including large parts of the source code, the architecture and this document. It is the result of a collaboration between the author and AI-powered development tools. The logic of several complex systems (e.g. the Fog-of-War base system, the wall-overlap solution) is based on the author's ideas and was implemented and maintained with AI.
