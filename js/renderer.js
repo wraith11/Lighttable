@@ -340,7 +340,7 @@ export class GameRenderer {
                 // Inset: Polygon-Punkte um einen kleinen Betrag zum Zentrum (pt) hin
                 // verschieben, damit die weiße Fläche nicht exakt bis zur Wandkante reicht.
                 // Verhindert harte senkrechte Linien an Wandkanten nach dem Blur.
-                const inset = 2.0 * ms;
+                const inset = 2.0;
                 brush.moveTo((poly[0].x - viewX) * ms, (poly[0].y - viewY) * ms);
                 for (let j=1; j<poly.length; j++) {
                     brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
