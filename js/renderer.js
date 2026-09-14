@@ -379,7 +379,7 @@ export class GameRenderer {
             if (this.fowBlurredTexture) this.fowBlurredTexture.destroy(true);
             this.fowBlurredTexture = PIXI.RenderTexture.create({width: w, height: h});
         }
-        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(15);
+        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(24);
         const src = new PIXI.Sprite(this.fowMemoryTexture);
         src.filters = [this.fowBlurFilter];
         this.pixiApp.renderer.render(src, {renderTexture: this.fowBlurredTexture, clear: true, transform: null});
