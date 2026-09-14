@@ -475,7 +475,8 @@ export class GameRenderer {
                         if (d > maxD) maxD = d;
                     }
                     const tex = this.createVisionTexture(t.vision_range);
-                    const scaleFactor = (t.vision_range > 0) ? (maxD / t.vision_range) : 1;
+                    // 0.92: weiche Kante endet knapp VOR der Wand, damit nichts durchscheint
+                    const scaleFactor = (t.vision_range > 0) ? ((maxD / t.vision_range) * 0.92) : 1;
                     const matrix = new PIXI.Matrix();
                     matrix.translate(-tex.width / 2, -tex.height / 2);
                     matrix.scale(scaleFactor, scaleFactor);
