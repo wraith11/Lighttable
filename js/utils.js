@@ -139,7 +139,7 @@ function querySegmentGrid(grid, origin, radius, cellSize) {
     return result;
 }
 
-export function calculateVisibility(origin, segments) {
+export function calculateVisibility(origin, segments, gridCache) {
     let points = []; 
     for (let i = 0; i < segments.length; i++) {
         points.push(segments[i].a, segments[i].b);
@@ -167,9 +167,17 @@ export function calculateVisibility(origin, segments) {
     angles.sort((a,b) => a.val - b.val);
 
     // D3: Bei vielen Segmenten nur die relevanten testen (Bounding-Box um den Ursprung).
-    const testSegments = segments.length > 40
-        ? querySegmentGrid(buildSegmentGrid(segments, R * 0.5), origin, R, R * 0.5)
-        : segments;
+    // Das Grid wird gecacht (über gridCache), damit es nicht pro Aufruf neu gebaut wird.
+    let testSegments = segments;
+    if (segments.length > 40) {
+        const cellSize = Math.max(1, R * 0.5);
+        let grid = gridCache ? gridCache.grid : null;
+        if (!grid || grid.cellSize !== cellSize || grid.version !== gridCache.version) {
+            grid = { cellSize, map: buildSegmentGrid(segments, cellSize) };
+            if (gridCache) { gridCache.grid = grid; grid.version = gridCache.version; }
+        }
+        testSegments = querySegmentGrid(grid.map, origin, R, cellSize);
+    }
     
     let intersects = [];
     for(let i=0; i<angles.length; i++) {
