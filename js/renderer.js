@@ -337,13 +337,23 @@ export class GameRenderer {
 
             const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments, this._visGridCache);
             if (poly.length > 0) {
-                // Inset: Polygon-Punkte um einen kleinen Betrag zum Zentrum (pt) hin
-                // verschieben, damit die weiße Fläche nicht exakt bis zur Wandkante reicht.
-                // Verhindert harte senkrechte Linien an Wandkanten nach dem Blur.
+                // Inset: jeden Polygon-Punkt um `inset` px zum Zentrum (pt) hin verschieben,
+                // damit die weiße Fläche nicht exakt bis zur Wandkante reicht. Verhindert
+                // harte senkrechte Linien an Wandkanten nach dem Blur (permanenter FoW).
                 const inset = 2.0;
-                brush.moveTo((poly[0].x - viewX) * ms, (poly[0].y - viewY) * ms);
-                for (let j=1; j<poly.length; j++) {
-                    brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
+                let moved = [];
+                for (let j=0; j<poly.length; j++) {
+                    const dx = poly[j].x - pt.x;
+                    const dy = poly[j].y - pt.y;
+                    const len = Math.hypot(dx, dy) || 1;
+                    moved.push({
+                        x: poly[j].x - (dx / len) * inset,
+                        y: poly[j].y - (dy / len) * inset
+                    });
+                }
+                brush.moveTo((moved[0].x - viewX) * ms, (moved[0].y - viewY) * ms);
+                for (let j=1; j<moved.length; j++) {
+                    brush.lineTo((moved[j].x - viewX) * ms, (moved[j].y - viewY) * ms);
                 }
                 brush.closePath();
             } else {
