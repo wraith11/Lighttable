@@ -236,16 +236,26 @@ Lighttable/
 
 ## Notes & Limitations
 
-- **Flicker is expensive:** light sources with a flicker effect activate a permanent render loop – intentionally kept this way.
+- **Flicker is expensive:** light sources with a flicker effect activate a permanent render loop.
 - When **loading a map**, the blackout is activated automatically so the GM can prepare without spoiling anything for the players.
 - The server is intended for **local network** use. When used on unsecured networks, it should run behind a reverse proxy with authentication.
-- Tracking requires stable contrast (IR reflectors) and calm lighting.
+- Tracking requires stable contrast (IR reflectors).
+
+---
+
+## Screenshots
+
+| GM view | Player view | Setup |
+|---------|-------------|-------|
+| ![GM view](assets/screenshots/gm.png) | ![Player view](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+
+> Screenshots will be added here soon.
 
 ---
 
 ## License
 
-No license is assigned yet. Please contact the author before use.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
 ---
 
