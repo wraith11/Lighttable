@@ -1,6 +1,6 @@
 # LightTable Ultimate
 
-> 🌐 **Sprache / Language:** [Deutsch](README.md) · [English](README.en.md)
+> 🌐 **Sprache / Language:** [Deutsch](README.de.md) · [English](README.md)
 
 **LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
 
