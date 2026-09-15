@@ -204,9 +204,11 @@ export const coreMethods = {
     },
     // Gedrosselter Sync: lokal sofort rendern, Netzwerk-Broadcast auf ~20fps begrenzt.
     // Verhindert, dass bei jedem mousemove das komplette Scene-Objekt gesendet wird.
+    // WICHTIG: Setzt KEIN mapDirty – das würde bei move_player/obj unnötig die Map neu
+    // bauen und alle FoW-Sicht-Caches ungültig machen (Freeze bei FoW permanent).
+    // Struktur-Änderungen (Wände/Säulen) setzen mapDirty selbst.
     syncThrottled() {
         if (this.renderer) {
-            this.renderer.mapDirty = true;
             this.renderer.lightsDirty = true;
             this.renderer.startLightLoop();
             this.renderer.requestRender();
