@@ -412,6 +412,7 @@ export const interactionMethods = {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     const scale = dist / this.drag.initialDist;
                     o.width = this.drag.initialWidth * scale; o.height = this.drag.initialHeight * scale;
+                    this.renderer.mapDirty = true; // Sprite-Größe aktualisieren
                     this.syncThrottled();
                 }
                 else if(this.drag.mode === 'resize_column') {
