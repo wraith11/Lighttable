@@ -313,9 +313,9 @@ export class GameRenderer {
 
         // THROTTLE: Nicht bei JEDER Token-Bewegung einbrennen (verhindert Ruckeln im
         // permanenten FoW bei aktivem Tracking). Neue Punkte werden gesammelt und
-        // gebündelt ~alle 80ms eingebrannt – visuell weiterhin flüssig.
+        // gebündelt ~alle 150ms eingebrannt + weichgezeichnet.
         const now = performance.now();
-        if (!forceRebuild && (now - (this._lastFoWBakeTime || 0)) < 80) return;
+        if (!forceRebuild && (now - (this._lastFoWBakeTime || 0)) < 150) return;
 
         const segments = this.getSegments();
         const brush = new PIXI.Graphics();
