@@ -21,10 +21,14 @@ import base64
 import webbrowser
 import socket
 
+import argparse
 print("LightTable Server starting...")
 
 # --- KONFIGURATION ---
-HTTP_PORT = 8080
+DEFAULT_HOST = "0.0.0.0"
+DEFAULT_PORT = 8080
+HOST = DEFAULT_HOST
+HTTP_PORT = DEFAULT_PORT
 SETTINGS_FILE = "config.json"
 MAPS_DIR = "maps"
 ASSET_DIR = "assets"
@@ -46,6 +50,20 @@ current_cam_res = {'w': 1280, 'h': 720}
 # --- SOCKET.IO SETUP ---
 sio = socketio.AsyncServer(async_mode='aiohttp', cors_allowed_origins='*', max_http_buffer_size=MAX_BUFFER_SIZE)
 app = web.Application()
+
+# --- MIDDLEWARE: Kein Caching der statischen Dateien (JS/CSS) ---
+# Verhindert, dass Browser veraltete Module (renderer.js, core-methods.js ...) liefern,
+# da die ES-Modul-Imports keine Cache-Busting-Version haben.
+@web.middleware
+async def no_cache_middleware(request, handler):
+    response = await handler(request)
+    if request.path.startswith('/js/') or request.path.startswith('/css/') or request.path.endswith('.js'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+app.middlewares.append(no_cache_middleware)
 sio.attach(app)
 
 # --- STATE ---
@@ -92,8 +110,31 @@ state = {
 }
 
 # --- HELPER ---
+def load_server_config():
+    """Liest optional host/port aus config.json (Sektion 'server'). CLI-Arg übersteuert das."""
+    global HOST, HTTP_PORT
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as f:
+                cfg = json.load(f)
+                server = cfg.get('server', {})
+                if server.get('host'): HOST = server['host']
+                if server.get('port'): HTTP_PORT = int(server['port'])
+    except Exception as e:
+        print(f"Server config load failed: {e}")
+
 def save_state_to_disk():
     try:
+        # Vorhandene 'server'-Sektion bewahren (manuelle host/port-Einstellung nicht überschreiben)
+        server_cfg = {}
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                with open(SETTINGS_FILE, 'r') as f:
+                    server_cfg = json.load(f).get('server', {})
+        except: pass
+        if not server_cfg:
+            server_cfg = {'host': HOST, 'port': HTTP_PORT}
+
         temp_cam = {}
         for k, v in state['cam_params'].items():
             if isinstance(v, (np.integer, int)): temp_cam[k] = int(v)
@@ -102,6 +143,7 @@ def save_state_to_disk():
             else: temp_cam[k] = v
 
         temp = {
+            'server': server_cfg,
             'cam_params': temp_cam,
             'scene_config': {
                 'view': state['scene']['view'],
@@ -110,6 +152,7 @@ def save_state_to_disk():
                 'grid_size': state['scene']['grid_size'],
                 'show_grid': state['scene']['show_grid'],
                 'show_player_frame': state['scene'].get('show_player_frame', True),
+                'time_of_day': state['scene'].get('time_of_day', 'day'),
                 'blackout_config': state['scene'].get('blackout_config')
             }
         }
@@ -131,10 +174,18 @@ def load_state_from_disk():
         except Exception as e:
             print(f"Load failed: {e}")
 
+def safe_asset_path(subdir=''):
+    """Bereinigt einen Unterordner-Pfad und verhindert ein Entkommen aus dem Assets-Root."""
+    subdir = subdir.replace('..', '').strip('/\\')
+    base = os.path.abspath(ASSET_DIR)
+    target = os.path.normpath(os.path.join(base, subdir))
+    if not (target == base or target.startswith(base + os.sep)):
+        return base, ''
+    return target, subdir
+
 def get_dir_content(subdir=''):
     base_abs = os.path.abspath(ASSET_DIR)
-    subdir = subdir.replace('..', '').strip('/\\')
-    target_path = os.path.join(base_abs, subdir)
+    target_path, subdir = safe_asset_path(subdir)
     items = []
     if os.path.exists(target_path) and os.path.isdir(target_path):
         for f in os.listdir(target_path):
@@ -351,7 +402,7 @@ async def request_media(sid):
 async def create_folder(sid, data):
     path = data.get('path', '')
     name = "".join([c for c in data.get('name','') if c.isalnum() or c in (' ', '_', '-')])
-    full_path = os.path.join(ASSET_DIR, path, name)
+    full_path, _ = safe_asset_path(os.path.join(path, name))
     try: 
         os.makedirs(full_path, exist_ok=True)
         await sio.emit('asset_list_update', {'path': path, 'items': get_dir_content(path)}, to=sid)
@@ -369,7 +420,7 @@ async def update_scene(sid, data):
                 curr_pv[k] = v
                 config_changed = True
     
-    simple_config_keys = ['show_blob_ids', 'show_player_frame', 'grid_size', 'show_grid']
+    simple_config_keys = ['show_blob_ids', 'show_player_frame', 'grid_size', 'show_grid', 'time_of_day']
     for key in simple_config_keys:
         if key in data and state['scene'].get(key) != data[key]:
             state['scene'][key] = data[key]
@@ -397,6 +448,24 @@ async def update_scene(sid, data):
 
     if config_changed: save_state_to_disk()
     await sio.emit('update_scene', data, skip_sid=sid)
+
+@sio.event
+async def fow_visited_delta(sid, data):
+    """A2: Neue fow_visited-Punkte anhängen und nur das Delta broadcasten."""
+    points = data.get('points', [])
+    if not isinstance(points, list) or len(points) == 0: return
+    scene = state['scene']
+    if 'fow_visited' not in scene: scene['fow_visited'] = []
+    scene['fow_visited'].extend(points)
+    await sio.emit('fow_visited_delta', {'points': points}, skip_sid=sid)
+
+@sio.event
+async def fow_visited_full(sid, data):
+    """A2: Vollständigen fow_visited-Stand austauschen (periodischer Abgleich gegen Desync)."""
+    points = data.get('points', [])
+    if not isinstance(points, list): return
+    state['scene']['fow_visited'] = points
+    await sio.emit('fow_visited_full', {'points': points}, skip_sid=sid)
 
 @sio.event
 async def update_cam_params(sid, data):
@@ -481,10 +550,9 @@ async def upload_asset(sid, data):
         else: encoded = data['data']
         file_bytes = base64.b64decode(encoded)
         path = data.get('path', '')
-        path = path.replace('..', '').strip('/\\')
+        target_dir, path = safe_asset_path(path)
         ext = data['name'].split('.')[-1].lower() if '.' in data['name'] else 'png'
         safe_name = f"{uuid.uuid4()}.{ext}"
-        target_dir = os.path.join(ASSET_DIR, path)
         if not os.path.exists(target_dir): os.makedirs(target_dir)
         final_path = os.path.join(target_dir, safe_name)
         with open(final_path, "wb") as f: f.write(file_bytes)
@@ -542,6 +610,10 @@ def run_cv_loop(loop_ref):
 
     cached_gain_map = None
     last_hotspot_val = -1
+
+    # B1: JPEG-Encoding auf ~20 fps drosseln, unabhängig vom (schnelleren) Tracking-Loop
+    last_encode_time = 0.0
+    ENCODE_INTERVAL = 0.05
 
     while True:
         loop_start_time = time.time()
@@ -710,8 +782,12 @@ def run_cv_loop(loop_ref):
             h, w = left_view.shape[:2]
             right_view_resized = cv2.resize(right_view, (int(WARPED_SIZE * (h/WARPED_SIZE)), h))
 
-        _, buffer = cv2.imencode('.jpg', cv2.hconcat([left_view, right_view_resized]), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
-        with camera_lock: current_frame_jpeg = buffer.tobytes()
+        # B1: Encodierung nur alle ENCODE_INTERVAL ausführen; Tracking läuft unabhängig weiter
+        now_t = time.time()
+        if now_t - last_encode_time >= ENCODE_INTERVAL:
+            _, buffer = cv2.imencode('.jpg', cv2.hconcat([left_view, right_view_resized]), [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+            with camera_lock: current_frame_jpeg = buffer.tobytes()
+            last_encode_time = now_t
         
         # 60 FPS Target (0.016s)
         elapsed = time.time() - loop_start_time
@@ -728,6 +804,15 @@ async def start_background_tasks(app):
     threading.Thread(target=open_browser, daemon=True).start()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="LightTable Ultimate Server")
+    parser.add_argument('--host', default=None, help='Host/IP to bind (default: 0.0.0.0)')
+    parser.add_argument('--port', type=int, default=None, help='Port to bind (default: 8080)')
+    args = parser.parse_args()
+
+    load_server_config()
+    if args.host: HOST = args.host
+    if args.port: HTTP_PORT = args.port
+
     app.on_startup.append(start_background_tasks)
-    print(f"Starting server on port {HTTP_PORT}...")
-    web.run_app(app, port=HTTP_PORT)
+    print(f"Starting server on {HOST}:{HTTP_PORT}...")
+    web.run_app(app, host=HOST, port=HTTP_PORT)
