@@ -394,6 +394,7 @@ export const interactionMethods = {
                 const o = this.selectedObj;
                 if(this.drag.mode === 'obj') {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
+                    this.renderer.mapDirty = true; // Objekt-Sprite-Position aktualisieren
                     this.syncThrottled();
                 }
                 else if(this.drag.mode === 'light' && this.selectedObjIsLight) {
