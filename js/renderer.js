@@ -374,13 +374,7 @@ export class GameRenderer {
         this.lastFoWPathLength = visited.length;
         this._lastFoWBakeTime = now;
         this.fowBlurDirty = true;
-
-        // Blur erst auslösen, wenn keine neuen Punkte mehr kommen (Ruhe) – kein Dauer-Blur
-        if (this._fowSettleTimer) clearTimeout(this._fowSettleTimer);
-        this._fowSettleTimer = setTimeout(() => {
-            this._fowSettleTimer = null;
-            if (this.fowBlurDirty) this.requestRender();
-        }, 300);
+        // Der Blur wird beim nächsten renderFoW über ensureFoWBlur sofort angewendet.
     }
 
     // Wendet den weichen Rand der Memory-Sicht an. Läuft nach jedem Bake (fowBlurDirty),
