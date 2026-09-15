@@ -361,9 +361,8 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // Scharf einbrennen (kein Blur hier). Der weiche Rand wird erst angewendet,
-        // wenn das FoW ~300ms zur Ruhe kommt (siehe ensureFoWBlur + _fowSettleTimer).
-        // So bleibt das Tracking während aktiver Bewegung schnell.
+        // Scharf einbrennen; der weiche Rand wird direkt danach über ensureFoWBlur
+        // auf die geblurrte Textur angewendet (dauerhaft weich).
         this.pixiApp.renderer.render(brush, { 
             renderTexture: this.fowMemoryTexture, 
             clear: forceRebuild, 
