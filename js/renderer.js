@@ -383,12 +383,10 @@ export class GameRenderer {
         }, 300);
     }
 
-    // Wendet den weichen Rand der Memory-Sicht an – ABER nur, wenn das FoW gerade
-    // nicht aktiv erweitert wird (letzte Bewegung >300ms her). Während aktiver
-    // Erkundung wird scharf dargestellt, um das Tracking nicht zu bremsen.
+    // Wendet den weichen Rand der Memory-Sicht an. Läuft nach jedem Bake (fowBlurDirty),
+    // damit der FoW-Rand dauerhaft weich ist – unabhängig davon, ob sich Token bewegen.
     ensureFoWBlur() {
         if (!this.fowBlurDirty) return;
-        if (performance.now() - (this._lastFoWBakeTime || 0) < 300) return;
         this.fowBlurDirty = false;
         if (!this.fowMemoryTexture) return;
         const w = this.fowMemoryTexture.width;
