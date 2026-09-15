@@ -425,6 +425,7 @@ export const interactionMethods = {
                 else if(this.drag.mode === 'rotate') {
                     o.rotation = (Math.atan2(pos.y - o.y, pos.x - o.x) * 180 / Math.PI) + 90;
                     if(this.snapMode) o.rotation = Math.round(o.rotation / 45) * 45;
+                    this.renderer.mapDirty = true; // Sprite-Rotation aktualisieren
                     this.syncThrottled();
                 }
                 else if(this.drag.mode === 'wall_move') {
