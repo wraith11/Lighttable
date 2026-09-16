@@ -380,7 +380,13 @@ export class GameRenderer {
     }
 
     renderFoW() {
-        if (!this.scene.fow_active) return;
+        if (!this.scene.fow_active) {
+            // FoW ausgeschaltet → alle FoW-Sprites entfernen, damit die Map aufgedeckt ist
+            while (this.containers.fow.children.length > 0) {
+                this.containers.fow.removeChildAt(0).destroy({ children: true });
+            }
+            return;
+        }
 
         // PERFORMANCE: FoW-Rendering drosseln (~15fps), damit das Tracking im Main-Thread
         // nicht ausgebremst wird. Wichtige Änderungen (fowDirty, View-Wechsel) rendern sofort.
