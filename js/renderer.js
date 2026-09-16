@@ -280,6 +280,10 @@ export class GameRenderer {
         const gs = this.scene.grid_size;
         const w = Math.max(1, pv.width_cells * gs);
         const h = Math.max(1, w / pv.aspect);
+        // Erweitertes FoW-Feld: 1.3x Player-View, damit auch außerhalb der aktuellen
+        // Sicht aufgedeckt wird (falls die View später verschoben wird).
+        const fw = w * 1.3;
+        const fh = h * 1.3;
         
         // OPTIMIZATION: Round values to prevent micro-jitter rebuilds
         const viewHash = `${Math.round(pv.x)}_${Math.round(pv.y)}_${Math.round(w)}_${Math.round(h)}`;
@@ -292,8 +296,8 @@ export class GameRenderer {
              // der weiche (geblurrte) Rand bleibt aber deutlich sichtbar.
              this.fowMemoryScale = 0.75;
              this.fowMemoryTexture = PIXI.RenderTexture.create({ 
-                 width: Math.max(1, Math.ceil(w * this.fowMemoryScale)), 
-                 height: Math.max(1, Math.ceil(h * this.fowMemoryScale)),
+                 width: Math.max(1, Math.ceil(fw * this.fowMemoryScale)), 
+                 height: Math.max(1, Math.ceil(fh * this.fowMemoryScale)),
                  scaleMode: PIXI.SCALE_MODES.LINEAR
              });
              if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
