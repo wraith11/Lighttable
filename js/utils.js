@@ -121,10 +121,12 @@ function buildSegmentGrid(segments, cellSize) {
 }
 
 function querySegmentGrid(grid, origin, radius, cellSize) {
-    const minX = Math.floor((origin.x - radius) / cellSize);
-    const maxX = Math.floor((origin.x + radius) / cellSize);
-    const minY = Math.floor((origin.y - radius) / cellSize);
-    const maxY = Math.floor((origin.y + radius) / cellSize);
+    // +1 Zelle Rand in jede Richtung: Segmente an Zellgrenzen gehen sonst verloren,
+    // was zu Lücken (Bleeding-Linien) an senkrechten Zellgrenzen führt.
+    const minX = Math.floor((origin.x - radius) / cellSize) - 1;
+    const maxX = Math.floor((origin.x + radius) / cellSize) + 1;
+    const minY = Math.floor((origin.y - radius) / cellSize) - 1;
+    const maxY = Math.floor((origin.y + radius) / cellSize) + 1;
     const result = [];
     const seen = new Set();
     for (let gx = minX; gx <= maxX; gx++) {
