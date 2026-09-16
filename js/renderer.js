@@ -472,21 +472,12 @@ export class GameRenderer {
                 }
                 const poly = t._visionPoly;
                 if(poly.length > 0) {
-                    // Berechne die maximale Distanz der Polygon-Punkte zum Zentrum.
-                    // Die Vision-Textur wird darauf skaliert, sodass ihre weiche Kante
-                    // exakt am Polygon-Rand (der Wand) liegt – verhindert Bleeding durch
-                    // Wände (v. a. Kurven), ohne die Weichheit zu verlieren.
-                    let maxD = 1;
-                    for (let i=0; i<poly.length; i++) {
-                        const d = Math.hypot(poly[i].x - t.x, poly[i].y - t.y);
-                        if (d > maxD) maxD = d;
-                    }
+                    // Create gradient texture (brightness 1.0 = fully clear)
                     const tex = this.createVisionTexture(t.vision_range);
-                    // 0.92: weiche Kante endet knapp VOR der Wand, damit nichts durchscheint
-                    const scaleFactor = (t.vision_range > 0) ? ((maxD / t.vision_range) * 0.92) : 1;
                     const matrix = new PIXI.Matrix();
                     matrix.translate(-tex.width / 2, -tex.height / 2);
-                    matrix.scale(scaleFactor, scaleFactor);
+                    // No flicker for vision usually, so scale is 1
+                    matrix.scale(1, 1);
                     matrix.translate(t.x, t.y);
 
                     const visionG = new PIXI.Graphics();
