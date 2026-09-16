@@ -442,11 +442,14 @@ export class GameRenderer {
              const gs = this.scene.grid_size;
              const w = pv.width_cells * gs;
              const h = w / pv.aspect;
+             // Erweitertes FoW-Feld (1.3x) zentriert auf die Player-View positionieren
+             const fw = w * 1.3;
+             const fh = h * 1.3;
              
              const tex = this.fowBlurredTexture || this.fowMemoryTexture;
              const permSprite = new PIXI.Sprite(tex);
-             permSprite.position.set(pv.x - w/2, pv.y - h/2);
-             // Memory-Textur ist in halber Auflösung → hochskalieren, damit sie den
+             permSprite.position.set(pv.x - fw/2, pv.y - fh/2);
+             // Memory-Textur ist in reduzierter Auflösung → hochskalieren, damit sie den
              // gleichen Weltbereich abdeckt (weich geblurrt, daher unmerklich).
              const invScale = 1 / (this.fowMemoryScale || 0.5);
              permSprite.scale.set(invScale, invScale);
