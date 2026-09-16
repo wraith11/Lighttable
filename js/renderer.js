@@ -327,8 +327,8 @@ export class GameRenderer {
 
         // OPTIMIZATION: Only draw new segments unless forced
         const startIdx = forceRebuild ? 0 : this.lastFoWPathLength;
-        const viewX = pv.x - w/2;
-        const viewY = pv.y - h/2;
+        const viewX = pv.x - fw/2;
+        const viewY = pv.y - fh/2;
         const ms = this.fowMemoryScale || 0.5;
 
         for (let i = startIdx; i < visited.length; i++) {
@@ -336,8 +336,8 @@ export class GameRenderer {
             const relX = (pt.x - viewX) * ms;
             const relY = (pt.y - viewY) * ms;
             
-            // Loose culling for drawing bounds
-            if (relX < -pt.radius * ms || relX > w * ms + pt.radius * ms || relY < -pt.radius * ms || relY > h * ms + pt.radius * ms) continue;
+            // Loose culling for drawing bounds (erweitertes FoW-Feld)
+            if (relX < -pt.radius * ms || relX > fw * ms + pt.radius * ms || relY < -pt.radius * ms || relY > fh * ms + pt.radius * ms) continue;
 
             const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments, this._visGridCache);
             if (poly.length > 0) {
