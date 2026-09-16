@@ -150,7 +150,7 @@ export function calculateVisibility(origin, segments, gridCache) {
     
     // Strict Visibility: Keine künstliche Penetration mehr.
     // Das Licht stoppt exakt an der Wandkante.
-    const boundaryCount = 64;
+    const boundaryCount = 32;
     for(let i=0; i<boundaryCount; i++) {
         const angle = (i / boundaryCount) * Math.PI * 2;
         points.push({
