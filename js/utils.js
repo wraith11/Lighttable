@@ -169,17 +169,12 @@ export function calculateVisibility(origin, segments, gridCache) {
     angles.sort((a,b) => a.val - b.val);
 
     // D3: Bei vielen Segmenten nur die relevanten testen (Bounding-Box um den Ursprung).
-    // Das Grid wird gecacht (über gridCache), damit es nicht pro Aufruf neu gebaut wird.
-    let testSegments = segments;
-    if (segments.length > 40) {
-        const cellSize = Math.max(1, R * 0.5);
-        let grid = gridCache ? gridCache.grid : null;
-        if (!grid || grid.cellSize !== cellSize || grid.version !== gridCache.version) {
-            grid = { cellSize, map: buildSegmentGrid(segments, cellSize) };
-            if (gridCache) { gridCache.grid = grid; grid.version = gridCache.version; }
-        }
-        testSegments = querySegmentGrid(grid.map, origin, R, cellSize);
-    }
+    // Wird pro Aufruf aus den ÜBERGEBENEN Segmenten gebaut – NICHT global gecacht.
+    // Ein globaler Cache wäre hier falsch, weil jeder Aufruf unterschiedliche Teil-Segmente
+    // (z. B. 'nearby' pro Licht) übergeben kann → Cross-Contamination/Licht-Bleeding.
+    const testSegments = segments.length > 40
+        ? querySegmentGrid(buildSegmentGrid(segments, R * 0.5), origin, R, R * 0.5)
+        : segments;
     
     let intersects = [];
     for(let i=0; i<angles.length; i++) {
