@@ -141,7 +141,7 @@ function querySegmentGrid(grid, origin, radius, cellSize) {
     return result;
 }
 
-export function calculateVisibility(origin, segments, gridCache) {
+export function calculateVisibility(origin, segments) {
     let points = []; 
     for (let i = 0; i < segments.length; i++) {
         points.push(segments[i].a, segments[i].b);
