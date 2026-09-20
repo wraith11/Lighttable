@@ -507,7 +507,16 @@ async def save_settings(sid):
     save_state_to_disk()
 
 @sio.event
-async def save_map(sid, filename):
+async def save_map(sid, data):
+    # data kann entweder ein String (alter Aufruf) oder ein Objekt {filename, view} sein
+    if isinstance(data, dict):
+        filename = data.get('filename', '')
+        new_view = data.get('view')
+        if isinstance(new_view, dict):
+            for k, v in new_view.items():
+                state['scene']['view'][k] = v
+    else:
+        filename = data or ''
     # Bestehende .json-Endung entfernen, dann neu anhängen (kein Doppel-".json")
     name = filename or ""
     if name.lower().endswith('.json'):
