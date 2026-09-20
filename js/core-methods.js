@@ -247,10 +247,8 @@ export const coreMethods = {
         this._doSaveMap(this.saveMapName);
     },
     _doSaveMap(name) {
-        // Aktuelle GM-View an den Backend-State melden, damit sie mitgespeichert wird.
-        // (view wird sonst nicht gebroadcastet, aber im Backend-State abgelegt.)
-        socket.emit('update_scene', { view: this.scene.view });
-        socket.emit('save_map', name, (res) => {
+        // Aktuelle GM-View direkt mit dem Speichern übertragen, damit sie mitgespeichert wird
+        socket.emit('save_map', { filename: name, view: this.scene.view }, (res) => {
             if(res.error) alert(this.t('errSave') + res.error);
             else {
                 this.currentMapName = name;
