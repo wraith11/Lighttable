@@ -282,7 +282,14 @@ export const coreMethods = {
         this.scene.fow_shapes = [];
         this.scene.fow_visited = [];
         this.scene.tokens = {};
-        this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
+        // Hintergrund direkt auf dem bestehenden Objekt leeren (referenzstabil)
+        if(this.scene.background_image) {
+            this.scene.background_image.url = null;
+            this.scene.background_image.repeat = false;
+            this.scene.background_image.scale = 1.0;
+        } else {
+            this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
+        }
         this.currentMapName = "";
         this.saveMapName = "";
         this.sync();
