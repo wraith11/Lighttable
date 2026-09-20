@@ -70,7 +70,6 @@ export class GameRenderer {
         this._renderDirty = true; 
         this.lastFlickerUpdate = 0;
         this.lastFoWPathLength = 0;
-        this.lastPlayerViewHash = ""; 
         
         this._cacheState = { grid: '', overlay: '', pFrame: '' };
 
