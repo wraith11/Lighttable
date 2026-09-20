@@ -664,21 +664,9 @@ export const coreMethods = {
 
         Object.values(this.scene.tokens).forEach(t => {
             try {
-                const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
-                                t.y >= viewY - margin && t.y <= viewY + h + margin);
-                
-                if (!inView && t.blob_id) {
-                    t.blob_id = null; 
-                    t.on_board = false;
-                    if (!t.modified) {
-                        delete this.scene.tokens[t.uuid];
-                        tokenListChanged = true;
-                    } else {
-                        changed = true;
-                    }
-                    return;
-                }
-
+                // Kein hartes Verwerfen an der Player-View-Grenze mehr: Ein Token mit
+                // blob_id bleibt an seiner Position, auch wenn er außerhalb der View liegt.
+                // Das Abmelden übernimmt handleBlobs, wenn der Blob wirklich verschwindet.
                 if (this.scene.tracking_paused) return;
 
                 if(t.blob_id && this.blobs[String(t.blob_id)]) {
