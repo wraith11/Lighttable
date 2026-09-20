@@ -59,6 +59,8 @@ export const coreMethods = {
         if(this.isGM) {
             this.scene.view.x = window.innerWidth / 2;
             this.scene.view.y = window.innerHeight / 2;
+            // Zoom auf 1.0 zurücksetzen (verhindert "zufällig hereingezoomt" beim Start)
+            this.scene.view.scale = 1.0;
         }
     },
     onResize() { if(this.renderer) this.renderer.onResize(); },
