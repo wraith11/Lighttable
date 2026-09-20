@@ -288,12 +288,13 @@ export const coreMethods = {
         this.scene.fow_shapes = [];
         this.scene.fow_visited = [];
         this.scene.tokens = {};
+        // Hintergrund VOR dem Sync leeren, damit auch der Server-State ohne Hintergrund ist
+        if(this.scene.background_image) this.scene.background_image.url = null;
         this.currentMapName = "";
         this.saveMapName = "";
         this.sync();
         if(this.renderer) {
             this.renderer.resetFoWMemory();
-            // Hintergrund sofort entfernen (Container leeren + url null)
             this.renderer.clearBackground();
             this.renderer.mapDirty = true;
             this.renderer.fowDirty = true;
