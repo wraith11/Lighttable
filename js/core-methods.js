@@ -297,6 +297,8 @@ export const coreMethods = {
             this.renderer.resetFoWMemory();
             this.renderer.mapDirty = true;
             this.renderer.fowDirty = true;
+            // Sofort neu aufbauen, damit der Hintergrund ohne F5 verschwindet
+            this.renderer.rebuildMap();
             this.renderer.requestRender();
         }
     },
