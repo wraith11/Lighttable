@@ -545,6 +545,19 @@ async def load_map(sid, filename):
     return {'error': 'File not found'}
 
 @sio.event
+async def delete_map(sid, filename):
+    # Nur Dateinamen im maps-Verzeichnis löschen (Path-Traversal verhindern)
+    safe_name = os.path.basename(filename or "")
+    full_path = os.path.join(MAPS_DIR, safe_name)
+    if safe_name and os.path.exists(full_path) and os.path.isfile(full_path):
+        try:
+            os.remove(full_path)
+            await sio.emit('map_list_update', get_map_list())
+            return {'success': True}
+        except Exception as e: return {'error': str(e)}
+    return {'error': 'File not found'}
+
+@sio.event
 async def upload_asset(sid, data):
     try:
         if ',' in data['data']: _, encoded = data['data'].split(",", 1)
