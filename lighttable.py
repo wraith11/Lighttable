@@ -561,6 +561,23 @@ async def load_map(sid, filename):
     return {'error': 'File not found'}
 
 @sio.event
+async def new_map(sid):
+    # Szene zurücksetzen (leere Karte) und init an alle Clients senden.
+    # Dadurch ersetzt jeder Client seine Scene frisch und baut die Map neu (kein Hintergrund).
+    sc = state['scene']
+    sc['objects'] = []
+    sc['walls'] = []
+    sc['columns'] = []
+    sc['lights'] = []
+    sc['drawings'] = []
+    sc['fow_shapes'] = []
+    sc['fow_visited'] = []
+    sc['tokens'] = {}
+    sc['background_image'] = {'url': None, 'x': 0, 'y': 0, 'scale': 1.0, 'repeat': False, 'opacity': 1.0}
+    await sio.emit('init', state['scene'])
+    return {'success': True}
+
+@sio.event
 async def delete_map(sid, filename):
     # Nur Dateinamen im maps-Verzeichnis löschen (Path-Traversal verhindern)
     safe_name = os.path.basename(filename or "")
