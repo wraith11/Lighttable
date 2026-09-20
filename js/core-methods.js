@@ -268,6 +268,27 @@ export const coreMethods = {
             });
         }
     },
+    // Neue leere Karte erstellen (aktuelle Szene zurücksetzen)
+    newMap() {
+        if(!confirm(this.t('confirmNewMap'))) return;
+        this.scene.objects = [];
+        this.scene.walls = [];
+        this.scene.columns = [];
+        this.scene.lights = [];
+        this.scene.drawings = [];
+        this.scene.fow_shapes = [];
+        this.scene.fow_visited = [];
+        this.scene.tokens = {};
+        this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
+        this.currentMapName = "";
+        this.saveMapName = "";
+        this.sync();
+        if(this.renderer) {
+            this.renderer.mapDirty = true;
+            this.renderer.fowDirty = true;
+            this.renderer.requestRender();
+        }
+    },
 
     addObjectAt(pos, src, type) {
         const id = Date.now();
