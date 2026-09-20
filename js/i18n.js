@@ -73,7 +73,7 @@ export const translations = {
     fowReset: "FOW Reset",
     background: "Background",
     uploadImage: "Upload image",
-    scale: "Scale:", remove: "Remove",
+    scale: "Scale:", remove: "Remove", repeat: "Repeat",
     // Settings tab
     camSetupBtn: "Camera Setup",
     mapMgmt: "Map Management",
