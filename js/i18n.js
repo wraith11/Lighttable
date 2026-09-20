@@ -164,7 +164,7 @@ export const translations = {
     scale: "Skalierung:", remove: "Entfernen", repeat: "Wiederholen",
     camSetupBtn: "Kamera Setup",
     mapMgmt: "Karten Management",
-    mapName: "Kartenname", save: "Speichern", saveAs: "Speichern unter",
+    mapName: "Kartenname", save: "Speichern", saveAs: "Speichern unter", newMap: "Neue Karte", confirmNewMap: "Neue leere Karte erstellen? Ungespeicherte Änderungen gehen verloren.",
     system: "System",
     playerLink: "Player Link:",
     saveSettings: "Einstellungen Speichern",
