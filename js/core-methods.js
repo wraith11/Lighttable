@@ -280,19 +280,18 @@ export const coreMethods = {
     // Neue leere Karte erstellen (aktuelle Szene zurücksetzen)
     newMap() {
         if(!confirm(this.t('confirmNewMap'))) return;
-        this.scene.objects = [];
-        this.scene.walls = [];
-        this.scene.columns = [];
-        this.scene.lights = [];
-        this.scene.drawings = [];
-        this.scene.fow_shapes = [];
-        this.scene.fow_visited = [];
-        this.scene.tokens = {};
-        // Hintergrund VOR dem Sync leeren, damit auch der Server-State ohne Hintergrund ist
-        if(this.scene.background_image) this.scene.background_image.url = null;
         this.currentMapName = "";
         this.saveMapName = "";
-        this.sync();
+        // Server-seitig leere Karte erzeugen; der zurückkommende init-Handler baut die
+        // Scene frisch neu auf (garantiert ohne Hintergrund / alten Inhalt).
+        socket.emit('new_map', (res) => {
+            if(res && res.error) alert(this.t('errSave') + res.error);
+        });
+        // Lokal sofort leeren, damit kein alter Zustand zwischenzeitlich sichtbar bleibt
+        if(this.scene.background_image) this.scene.background_image.url = null;
+        this.scene.objects = []; this.scene.walls = []; this.scene.columns = [];
+        this.scene.lights = []; this.scene.drawings = []; this.scene.fow_shapes = [];
+        this.scene.fow_visited = []; this.scene.tokens = {};
         if(this.renderer) {
             this.renderer.resetFoWMemory();
             this.renderer.clearBackground();
