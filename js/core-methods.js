@@ -562,7 +562,17 @@ export const coreMethods = {
                     if (!other.modified) delete this.scene.tokens[other.uuid];
                 }
             });
-            if(this.blobs[t.blob_id]) { this.updateTokenPos(); }
+            if(this.blobs[String(t.blob_id)]) {
+                // Sofort an die aktuelle Blob-Position setzen (Token haben keine eigene Position)
+                const pv = this.scene.player_view;
+                const w = pv.width_cells * this.scene.grid_size;
+                const h = w / pv.aspect;
+                const b = this.blobs[String(t.blob_id)];
+                t.x = (pv.x - w/2) + b.x * w;
+                t.y = (pv.y - h/2) + b.y * h;
+                t.on_board = true;
+                this.updateTokenPos();
+            }
             t.on_board = true;
             this.markTokenModified(t); 
             // BUGFIX: Sicht sofort aufdecken, sobald ein Token einem Blob zugewiesen wird
