@@ -954,7 +954,7 @@ export class GameRenderer {
                     return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
                              Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
                 });
-                l._poly = calculateVisibility({x:l.x, y:l.y, radius: effR}, nearby, this._visGridCache);
+                l._poly = calculateVisibility({x:l.x, y:l.y, radius: effR}, nearby);
                 l._polyKey = key;
             }
             return l._poly;
