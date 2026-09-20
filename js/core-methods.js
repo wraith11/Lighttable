@@ -271,6 +271,14 @@ export const coreMethods = {
             });
         }
     },
+    // Gespeicherte Karte löschen
+    deleteMap(filename) {
+        if(!confirm(this.t('confirmDeleteMap', filename))) return;
+        socket.emit('delete_map', filename, (res) => {
+            if(res.error) alert(this.t('errDeleteMap') + res.error);
+            else if(this.currentMapName === filename) { this.currentMapName = ""; }
+        });
+    },
     // Neue leere Karte erstellen (aktuelle Szene zurücksetzen)
     newMap() {
         if(!confirm(this.t('confirmNewMap'))) return;
