@@ -283,10 +283,12 @@ export class GameRenderer {
         const vh = Math.max(1, vw / pv.aspect);
 
         if (!this.fowMemoryTexture) {
-            this.fowWorldX = pv.x - vw/2 - 200;
-            this.fowWorldY = pv.y - vh/2 - 200;
-            this.fowWorldW = vw + 400;
-            this.fowWorldH = vh + 400;
+            // Feld-Rand = volle Default-Vision (400), damit eine Figur am Rand der
+            // Player-View ihre komplette Sichtweite innerhalb des Felds aufdeckt.
+            this.fowWorldX = pv.x - vw/2 - 400;
+            this.fowWorldY = pv.y - vh/2 - 400;
+            this.fowWorldW = vw + 800;
+            this.fowWorldH = vh + 800;
             this.fowMemoryScale = 1.0;
             this.fowMemoryTexture = PIXI.RenderTexture.create({ 
                 width: Math.max(1, Math.ceil(this.fowWorldW * this.fowMemoryScale)), 
