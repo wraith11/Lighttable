@@ -441,7 +441,9 @@ async def update_scene(sid, data):
     for key, value in data.items():
         if key in ['player_view', 'view', 'blackout_config'] or key in simple_config_keys: continue 
         
-        if key == 'background_image' and isinstance(value, dict): state['scene']['background_image'].update(value)
+        if key == 'background_image' and isinstance(value, dict):
+            # Komplett ersetzen (kein .update), damit url:null den Hintergrund zuverlässig leert
+            state['scene']['background_image'] = dict(value)
         elif key == 'fow_visited' and isinstance(value, list):
              state['scene']['fow_visited'] = value
         else: state['scene'][key] = value
