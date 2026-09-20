@@ -470,7 +470,10 @@ export class GameRenderer {
         // Live Vision (applies to both Temporary and Permanent modes)
         const segV = this._segmentsVersion;
         Object.values(this.scene.tokens).forEach(t => {
-            if (t.has_vision) { 
+            // Live-Vision nur für Tokens mit sichtbarem Blob (abandoned Token zeigen kein Sichtfeld)
+            if (!t.has_vision) return;
+            if (!t.blob_id || !this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
+            { 
                 // D1: Vision-Polygon cachen – nur neu berechnen bei Bewegung, Reichweiten- oder Wandänderung
                 const vKey = `${Math.round(t.x)}_${Math.round(t.y)}_${Math.round(t.vision_range)}_${segV}`;
                 if (t._visionKey !== vKey) {
