@@ -287,6 +287,7 @@ export const coreMethods = {
         this.saveMapName = "";
         this.sync();
         if(this.renderer) {
+            this.renderer.resetFoWMemory();
             this.renderer.mapDirty = true;
             this.renderer.fowDirty = true;
             this.renderer.requestRender();
