@@ -411,6 +411,8 @@ export const coreMethods = {
              socket.emit('upload_asset', {name: file.name, data: evt.target.result, path: this.currentAssetPath}, (res) => {
                  if(res && res.url) { 
                      this.scene.background_image.url = res.url;
+                     // Wiederholen standardmäßig aus (nur bei Bedarf aktivierbar)
+                     this.scene.background_image.repeat = false;
                      const pv = this.scene.player_view; const gs = this.scene.grid_size; const pvW = pv.width_cells * gs;
                      const img = new Image(); img.src = res.url;
                      img.onload = () => {
