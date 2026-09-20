@@ -565,8 +565,6 @@ export class GameRenderer {
             this.fowDirty = true; 
             this._cachedSegments = null; 
             this._segmentsVersion++;
-            // Grid-Cache für calculateVisibility ungültig machen
-            if (this._visGridCache) this._visGridCache.version = this._segmentsVersion;
         }
 
         if (this.depthGraphics) {
