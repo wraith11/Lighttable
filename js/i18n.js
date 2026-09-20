@@ -161,7 +161,7 @@ export const translations = {
     fowReset: "FOW Reset",
     background: "Hintergrund",
     uploadImage: "Bild hochladen",
-    scale: "Skalierung:", remove: "Entfernen",
+    scale: "Skalierung:", remove: "Entfernen", repeat: "Wiederholen",
     camSetupBtn: "Kamera Setup",
     mapMgmt: "Karten Management",
     mapName: "Kartenname", save: "Speichern", saveAs: "Speichern unter",
