@@ -277,10 +277,11 @@ export class GameRenderer {
         const gs = this.scene.grid_size;
         const w = Math.max(1, pv.width_cells * gs);
         const h = Math.max(1, w / pv.aspect);
-        // Erweitertes FoW-Feld: 1.3x Player-View, damit auch außerhalb der aktuellen
-        // Sicht aufgedeckt wird (falls die View später verschoben wird).
-        const fw = w * 1.3;
-        const fh = h * 1.3;
+        // Erweitertes FoW-Feld: Player-View + 200px in jede Richtung, damit die Sicht
+        // von Figuren am Rand der Player-View nicht abgeschnitten wird und es beim
+        // Verschieben der View nicht komisch aussieht.
+        const fw = w + 400;
+        const fh = h + 400;
 
         // KEIN forceRebuild bei View-Änderung: Die Memory-Textur bleibt stabil und wird
         // beim Verschieben der Player-View über das Perm-Sprite (renderFoW) mitverschoben.
