@@ -1344,7 +1344,10 @@ export class GameRenderer {
         let anyMoved = false;
 
         Object.values(this.scene.tokens).forEach(t => {
-            if (!t.blob_id && !t.on_board) return;
+            // Token werden NUR angezeigt, wenn ein Blob zugewiesen UND aktuell sichtbar ist.
+            // Ohne sichtbaren Blob (abandoned / verloren) verschwinden sie von der Karte.
+            if (!t.blob_id) return;
+            if (!this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
             
             activeTokenIds.add(t.uuid);
             
