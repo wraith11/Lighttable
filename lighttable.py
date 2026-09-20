@@ -508,8 +508,13 @@ async def save_settings(sid):
 
 @sio.event
 async def save_map(sid, filename):
-    base_name = "".join([c for c in filename if c.isalnum() or c in (' ', '_', '-')])
-    safe_name = base_name + (".json" if not base_name.lower().endswith('.json') else "")
+    # Bestehende .json-Endung entfernen, dann neu anhängen (kein Doppel-".json")
+    name = filename or ""
+    if name.lower().endswith('.json'):
+        name = name[:-5]
+    # Sicheres Filtern – Punkt für evtl. vorhandene Endungen erlauben, Endung wird neu gesetzt
+    base_name = "".join([c for c in name if c.isalnum() or c in (' ', '_', '-', '.')])
+    safe_name = base_name + ".json"
     full_path = os.path.join(MAPS_DIR, safe_name)
     try:
         map_data = state['scene'].copy()
