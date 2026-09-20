@@ -508,7 +508,8 @@ async def save_settings(sid):
 
 @sio.event
 async def save_map(sid, filename):
-    safe_name = "".join([c for c in filename if c.isalnum() or c in (' ', '_', '-')]) + ".json"
+    base_name = "".join([c for c in filename if c.isalnum() or c in (' ', '_', '-')])
+    safe_name = base_name + (".json" if not base_name.lower().endswith('.json') else "")
     full_path = os.path.join(MAPS_DIR, safe_name)
     try:
         map_data = state['scene'].copy()
