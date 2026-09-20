@@ -77,7 +77,7 @@ export const translations = {
     // Settings tab
     camSetupBtn: "Camera Setup",
     mapMgmt: "Map Management",
-    mapName: "Map name", save: "Save", saveAs: "Save As", newMap: "New Map", confirmNewMap: "Create a new empty map? Unsaved changes will be lost.",
+    mapName: "Map name", save: "Save", saveAs: "Save As", newMap: "New Map", confirmNewMap: "Create a new empty map? Unsaved changes will be lost.", deleteMap: "Delete map", confirmDeleteMap: "Delete map '%s'?", errDeleteMap: "Error deleting map: ",
     system: "System",
     playerLink: "Player Link:",
     saveSettings: "Save Settings",
