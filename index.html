@@ -473,6 +473,9 @@
                     <div class="section-title">{{ t('mapMgmt') }}</div>
                     <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
+                            <button class="btn" @click="newMap" :title="t('newMap')"><i class="fas fa-file"></i> {{ t('newMap') }}</button>
+                        </div>
+                        <div style="display:flex; gap:5px; margin-bottom:5px;">
                             <input v-model="saveMapName" :placeholder="t('mapName')" style="flex:1; margin:0;">
                         </div>
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
