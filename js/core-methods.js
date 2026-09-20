@@ -288,22 +288,15 @@ export const coreMethods = {
         this.scene.fow_shapes = [];
         this.scene.fow_visited = [];
         this.scene.tokens = {};
-        // Hintergrund direkt auf dem bestehenden Objekt leeren (referenzstabil)
-        if(this.scene.background_image) {
-            this.scene.background_image.url = null;
-            this.scene.background_image.repeat = false;
-            this.scene.background_image.scale = 1.0;
-        } else {
-            this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
-        }
         this.currentMapName = "";
         this.saveMapName = "";
         this.sync();
         if(this.renderer) {
             this.renderer.resetFoWMemory();
+            // Hintergrund sofort entfernen (Container leeren + url null)
+            this.renderer.clearBackground();
             this.renderer.mapDirty = true;
             this.renderer.fowDirty = true;
-            // Sofort neu aufbauen, damit der Hintergrund ohne F5 verschwindet
             this.renderer.rebuildMap();
             this.renderer.requestRender();
         }
