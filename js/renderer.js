@@ -270,6 +270,15 @@ export class GameRenderer {
     
     setBlobs(blobs) { this.activeBlobs = blobs; }
 
+    // Setzt die FoW-Memory-Textur zurück (wird beim nächsten Einbrennen neu aufgebaut)
+    resetFoWMemory() {
+        if (this.fowMemoryTexture) { this.fowMemoryTexture.destroy(true); this.fowMemoryTexture = null; }
+        if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+        this.lastFoWPathLength = 0;
+        this.fowBlurDirty = false;
+        this.fowWorldX = this.fowWorldY = this.fowWorldW = this.fowWorldH = 0;
+    }
+
     updateFoWMemory(forceRebuild = false) {
         if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
         
