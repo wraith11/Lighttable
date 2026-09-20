@@ -121,12 +121,15 @@ function buildSegmentGrid(segments, cellSize) {
 }
 
 function querySegmentGrid(grid, origin, radius, cellSize) {
+    // Abfrage-Radius um die Hälfte der Default-Vision (400 → +200) vergrößern,
+    // damit eine am Rand stehende Figur ihren vollen Sichtradius abdeckt.
+    const queryRadius = radius + 200;
     // +1 Zelle Rand in jede Richtung: Segmente an Zellgrenzen gehen sonst verloren,
     // was zu Lücken (Bleeding-Linien) an senkrechten Zellgrenzen führt.
-    const minX = Math.floor((origin.x - radius) / cellSize) - 1;
-    const maxX = Math.floor((origin.x + radius) / cellSize) + 1;
-    const minY = Math.floor((origin.y - radius) / cellSize) - 1;
-    const maxY = Math.floor((origin.y + radius) / cellSize) + 1;
+    const minX = Math.floor((origin.x - queryRadius) / cellSize) - 1;
+    const maxX = Math.floor((origin.x + queryRadius) / cellSize) + 1;
+    const minY = Math.floor((origin.y - queryRadius) / cellSize) - 1;
+    const maxY = Math.floor((origin.y + queryRadius) / cellSize) + 1;
     const result = [];
     const seen = new Set();
     for (let gx = minX; gx <= maxX; gx++) {
