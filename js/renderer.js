@@ -282,11 +282,10 @@ export class GameRenderer {
         // Sicht aufgedeckt wird (falls die View später verschoben wird).
         const fw = w * 1.3;
         const fh = h * 1.3;
-        
-        // OPTIMIZATION: Round values to prevent micro-jitter rebuilds
-        const viewHash = `${Math.round(pv.x)}_${Math.round(pv.y)}_${Math.round(w)}_${Math.round(h)}`;
-        if (viewHash !== this.lastPlayerViewHash) forceRebuild = true;
-        this.lastPlayerViewHash = viewHash;
+
+        // KEIN forceRebuild bei View-Änderung: Die Memory-Textur bleibt stabil und wird
+        // beim Verschieben der Player-View über das Perm-Sprite (renderFoW) mitverschoben.
+        // Ein Rebuild bei jedem move_player-Event würde bei FoW permanent einfrieren.
 
         if (!this.fowMemoryTexture || forceRebuild) {
              if (this.fowMemoryTexture) this.fowMemoryTexture.destroy(true);
