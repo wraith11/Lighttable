@@ -444,21 +444,12 @@ export class GameRenderer {
         visionContainer.scale.set(this.world.scale.x, this.world.scale.y);
         visionContainer.rotation = this.world.rotation;
 
-        // Permanent Memory Layer
+        // Permanent Memory Layer (fest in der Welt verankert, nicht an die Player-View gebunden)
         if (this.scene.fow_mode === 'permanent' && this.fowMemoryTexture) {
              this.ensureFoWBlur();
-             const pv = this.scene.player_view;
-             const gs = this.scene.grid_size;
-             const w = pv.width_cells * gs;
-             const h = w / pv.aspect;
-             // Erweitertes FoW-Feld (Player-View + 400px) zentriert auf die Player-View
-             const fw = w + 400;
-             const fh = h + 400;
-             
              const tex = this.fowBlurredTexture || this.fowMemoryTexture;
              const permSprite = new PIXI.Sprite(tex);
-             permSprite.position.set(pv.x - fw/2, pv.y - fh/2);
-             // Memory-Textur in voller Auflösung → Skalierung 1
+             permSprite.position.set(this.fowWorldX, this.fowWorldY);
              const invScale = 1 / (this.fowMemoryScale || 1.0);
              permSprite.scale.set(invScale, invScale);
              permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
