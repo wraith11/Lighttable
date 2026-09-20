@@ -486,6 +486,7 @@
                             <div v-for="m in mapList" :key="m" class="row" style="padding:5px; border-bottom:1px solid #333; cursor:pointer;" @click="loadMap(m)">
                                 <span style="flex:1">{{m}}</span>
                                 <i class="fas fa-download"></i>
+                                <i class="fas fa-trash" style="color:var(--danger); margin-left:6px; cursor:pointer;" @click.stop="deleteMap(m)" :title="t('deleteMap')"></i>
                             </div>
                         </div>
                     </div>
