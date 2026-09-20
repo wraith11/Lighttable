@@ -273,48 +273,70 @@ export class GameRenderer {
     updateFoWMemory(forceRebuild = false) {
         if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
         
+        const visited = this.scene.fow_visited || [];
+
+        // --- FESTES Welt-Feld: wird automatisch erweitert, wenn neue Punkte außerhalb liegen.
+        // Start: Player-View + 400px Rand, fest in der Welt verankert (nicht an die View gebunden).
         const pv = this.scene.player_view;
         const gs = this.scene.grid_size;
-        const w = Math.max(1, pv.width_cells * gs);
-        const h = Math.max(1, w / pv.aspect);
-        // Erweitertes FoW-Feld: Player-View + 200px in jede Richtung, damit die Sicht
-        // von Figuren am Rand der Player-View nicht abgeschnitten wird und es beim
-        // Verschieben der View nicht komisch aussieht.
-        const fw = w + 400;
-        const fh = h + 400;
+        const vw = Math.max(1, pv.width_cells * gs);
+        const vh = Math.max(1, vw / pv.aspect);
 
-        // KEIN forceRebuild bei View-Änderung: Die Memory-Textur bleibt stabil und wird
-        // beim Verschieben der Player-View über das Perm-Sprite (renderFoW) mitverschoben.
-        // Ein Rebuild bei jedem move_player-Event würde bei FoW permanent einfrieren.
-
-        if (!this.fowMemoryTexture || forceRebuild) {
-             if (this.fowMemoryTexture) this.fowMemoryTexture.destroy(true);
-             // Memory-Textur in voller Auflösung – reduziert Interpolations-/Moiré-Artefakte
-             // beim Hochskalieren, die als parallele Linien erscheinen können.
-             this.fowMemoryScale = 1.0;
-             this.fowMemoryTexture = PIXI.RenderTexture.create({ 
-                 width: Math.max(1, Math.ceil(fw * this.fowMemoryScale)), 
-                 height: Math.max(1, Math.ceil(fh * this.fowMemoryScale)),
-                 scaleMode: PIXI.SCALE_MODES.LINEAR
-             });
-             if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
-             this.fowBlurDirty = true;
-             this.lastFoWPathLength = 0; 
-        }
-        
-        const visited = this.scene.fow_visited || [];
-        
-        // Safety check: if visited array was reset, force rebuild
-        if (visited.length < this.lastFoWPathLength) {
+        if (!this.fowMemoryTexture) {
+            this.fowWorldX = pv.x - vw/2 - 200;
+            this.fowWorldY = pv.y - vh/2 - 200;
+            this.fowWorldW = vw + 400;
+            this.fowWorldH = vh + 400;
+            this.fowMemoryScale = 1.0;
+            this.fowMemoryTexture = PIXI.RenderTexture.create({ 
+                width: Math.max(1, Math.ceil(this.fowWorldW * this.fowMemoryScale)), 
+                height: Math.max(1, Math.ceil(this.fowWorldH * this.fowMemoryScale)),
+                scaleMode: PIXI.SCALE_MODES.LINEAR
+            });
+            if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+            this.lastFoWPathLength = 0; 
+            this.fowBlurDirty = true;
             forceRebuild = true;
-            this.lastFoWPathLength = 0;
         }
 
+        // Safety: visited wurde zurückgesetzt
+        if (visited.length < this.lastFoWPathLength) { forceRebuild = true; this.lastFoWPathLength = 0; }
         if (visited.length === this.lastFoWPathLength && !forceRebuild) return;
 
-        // THROTTLE: Nicht bei JEDER Token-Bewegung einbrennen (verhindert Ruckeln im
-        // permanenten FoW bei aktivem Tracking). Neue Punkte werden gesammelt und
-        // gebündelt ~alle 150ms eingebrannt + weichgezeichnet.
+        // --- Automatische Erweiterung des Welt-Felds, falls neue Punkte außerhalb liegen.
+        if (!forceRebuild) {
+            let needsGrow = false;
+            let minX = this.fowWorldX, minY = this.fowWorldY, maxX = this.fowWorldX+this.fowWorldW, maxY = this.fowWorldY+this.fowWorldH;
+            for (let i = this.lastFoWPathLength; i < visited.length; i++) {
+                const p = visited[i]; const r = (p.radius||400);
+                if (p.x - r < minX) { minX = p.x - r; needsGrow = true; }
+                if (p.x + r > maxX) { maxX = p.x + r; needsGrow = true; }
+                if (p.y - r < minY) { minY = p.y - r; needsGrow = true; }
+                if (p.y + r > maxY) { maxY = p.y + r; needsGrow = true; }
+            }
+            if (needsGrow) {
+                // Alten Inhalt in eine größere Textur verschieben (neuer Welt-Ursprung)
+                const oldTex = this.fowMemoryTexture;
+                const oldX = this.fowWorldX, oldY = this.fowWorldY;
+                const nw = Math.max(this.fowWorldW, (maxX - minX) + 200);
+                const nh = Math.max(this.fowWorldH, (maxY - minY) + 200);
+                const newTex = PIXI.RenderTexture.create({ width: Math.max(1, Math.ceil(nw * this.fowMemoryScale)), height: Math.max(1, Math.ceil(nh * this.fowMemoryScale)), scaleMode: PIXI.SCALE_MODES.LINEAR });
+                // Alten Inhalt an neue Position kopieren
+                const oldSprite = new PIXI.Sprite(oldTex);
+                oldSprite.position.set((oldX - minX) * this.fowMemoryScale, (oldY - minY) * this.fowMemoryScale);
+                this.pixiApp.renderer.render(oldSprite, { renderTexture: newTex, clear: true, transform: null });
+                oldSprite.destroy({children:true});
+                oldTex.destroy(true);
+                this.fowMemoryTexture = newTex;
+                this.fowWorldX = minX; this.fowWorldY = minY; this.fowWorldW = nw; this.fowWorldH = nh;
+                if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+                this.fowBlurDirty = true;
+                // Nach dem Wachsen alles neu einbrennen (nur den Inhalt, die alten Punkte)
+                forceRebuild = true;
+            }
+        }
+
+        // THROTTLE: Bündeln auf ~150ms
         const now = performance.now();
         if (!forceRebuild && (now - (this._lastFoWBakeTime || 0)) < 150) return;
 
@@ -322,19 +344,16 @@ export class GameRenderer {
         const brush = new PIXI.Graphics();
         brush.beginFill(0xFFFFFF, 1.0); 
 
-        // OPTIMIZATION: Only draw new segments unless forced
         const startIdx = forceRebuild ? 0 : this.lastFoWPathLength;
-        const viewX = pv.x - fw/2;
-        const viewY = pv.y - fh/2;
-        const ms = this.fowMemoryScale || 0.5;
+        const viewX = this.fowWorldX;
+        const viewY = this.fowWorldY;
+        const ms = this.fowMemoryScale || 1.0;
 
         for (let i = startIdx; i < visited.length; i++) {
             const pt = visited[i];
             const relX = (pt.x - viewX) * ms;
             const relY = (pt.y - viewY) * ms;
-            
-            // Loose culling for drawing bounds (erweitertes FoW-Feld)
-            if (relX < -pt.radius * ms || relX > fw * ms + pt.radius * ms || relY < -pt.radius * ms || relY > fh * ms + pt.radius * ms) continue;
+            if (relX < -pt.radius * ms || relX > this.fowWorldW * ms + pt.radius * ms || relY < -pt.radius * ms || relY > this.fowWorldH * ms + pt.radius * ms) continue;
 
             const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments);
             if (poly.length > 0) {
@@ -346,19 +365,12 @@ export class GameRenderer {
             }
         }
         brush.endFill();
-        // Scharf einbrennen; der weiche Rand wird direkt danach über ensureFoWBlur
-        // auf die geblurrte Textur angewendet (dauerhaft weich).
-        this.pixiApp.renderer.render(brush, { 
-            renderTexture: this.fowMemoryTexture, 
-            clear: forceRebuild, 
-            transform: null
-        });
+        this.pixiApp.renderer.render(brush, { renderTexture: this.fowMemoryTexture, clear: forceRebuild, transform: null });
         brush.destroy();
 
         this.lastFoWPathLength = visited.length;
         this._lastFoWBakeTime = now;
         this.fowBlurDirty = true;
-        // Der Blur wird beim nächsten renderFoW über ensureFoWBlur sofort angewendet.
     }
 
     // Wendet den weichen Rand der Memory-Sicht an. Läuft nach jedem Bake (fowBlurDirty),
