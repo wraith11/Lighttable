@@ -698,6 +698,16 @@ export class GameRenderer {
         return anyFlicker || darknessChanged;
     }
 
+    // Entfernt den Hintergrund-Sprite sofort und zuverlässig (für "Neue Karte")
+    clearBackground() {
+        while (this.containers.bgImage.children.length > 0) {
+            this.containers.bgImage.removeChildAt(0).destroy({ children: true, texture: false, baseTexture: false });
+        }
+        if (this.scene.background_image) this.scene.background_image.url = null;
+        this.mapDirty = true;
+        this.requestRender();
+    }
+
     rebuildMap() {
         const cleanContainer = (container) => {
             while(container.children.length > 0) {
