@@ -320,8 +320,8 @@ export class GameRenderer {
                 // Alten Inhalt in eine größere Textur verschieben (neuer Welt-Ursprung)
                 const oldTex = this.fowMemoryTexture;
                 const oldX = this.fowWorldX, oldY = this.fowWorldY;
-                const nw = Math.max(this.fowWorldW, (maxX - minX) + 200);
-                const nh = Math.max(this.fowWorldH, (maxY - minY) + 200);
+                const nw = Math.max(this.fowWorldW, (maxX - minX) + 800);
+                const nh = Math.max(this.fowWorldH, (maxY - minY) + 800);
                 const newTex = PIXI.RenderTexture.create({ width: Math.max(1, Math.ceil(nw * this.fowMemoryScale)), height: Math.max(1, Math.ceil(nh * this.fowMemoryScale)), scaleMode: PIXI.SCALE_MODES.LINEAR });
                 // Alten Inhalt an neue Position kopieren
                 const oldSprite = new PIXI.Sprite(oldTex);
