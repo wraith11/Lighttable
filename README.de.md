@@ -157,18 +157,22 @@ Die UI ist **mehrsprachig** (Englisch als Standard, Deutsch verfügbar):
 Das Tracking erkennt Figuren über **IR-Reflektorflächen** und eine **IR-Kamera**. So baust du es auf:
 
 ### Benötigte Hardware
-- **Kamera mit IR-Filter-Linse** – viele „IR-only“-oder „Webcam mit IR-Filter“-Modelle eignen sich. Ohne Filter sieht die Kamera sichtbares Licht, was das Tracking stört.
+- **Kamera mit IR-Filter-Linse** – eine „IR-only“-oder „Webcam mit IR-Filter“. 
 - **IR-Beleuchtung** – ein oder mehrere IR-Emitter (z.&nbsp;B. IR-LED-Scheinwerfer mit 850 nm), die den Tisch gleichmäßig ausleuchten. Die Reflektorflächen werfen das IR-Licht zur Kamera zurück.
-- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. von unten an den Base).
+- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. unten an der Base).
+
+Ich habe eine USB-Webcam-Platine mit Nachsicht (inkl. IR-Emitter), einen günstigen IR850 Infrarotfilter für irgendeinen Fotoapperat und ein passendes schwarzes Plastikgehäuse auf Amazon gekauft. Ich habe den Helligkeitssensor abgeklebt, so dass die Kamera immer im Nachsicht Modus ist. Dann habe ich eine Aussparung in das Gehäuse gemacht, die Linse davor geklebt und die Kamera im Gehäuse hinter der Linse platziert, so dass die IR-Emitter durch die Linse leuchten können. Siehe unten unter "Bilder & Screenshots" - **IR-Sensor**
 
 ### Aufbau
 1. **Kamera positionieren** – senkrecht über dem Spielfeld, z.&nbsp;B. an einem Stativ über dem Tisch oder am Beamer-Gestänge. Die Kamera sollte das gesamte Spielfeld erfassen.
 2. **IR-Beleuchtung** gleichmäßig über den Tisch richten – ohne grelle Hotspots.
-3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll.
+3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll. Ich habe der Basis einen dünnen Streifen zwischen die Beine geklebt, so das der Reflektor von allen Seiten zu sehen ist. 
 4. **Kamera im System einrichten:**
    - In der GM-Ansicht: **Settings → Camera Setup**.
    - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
    - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
+Siehe unten unter "Bilder & Screenshots" - **Kamera-Einstellungen**
+
 
 ### Kalibrierung & Korrekturoptionen
 Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Parameter ein:
@@ -243,7 +247,7 @@ Lighttable/
 
 ---
 
-## Screenshots
+## Bilder & Screenshots
 
 | Editor (GM-Ansicht) | Spiel-Ansicht (GM + Player) |
 |---------------------|------------------------------|
@@ -251,7 +255,7 @@ Lighttable/
 
 | Kamera | IR-Sensor | Reales Setup |
 |--------|-----------|--------------|
-| ![Kamera](assets/screenshots/Cam.png) | ![IR-Sensor](assets/screenshots/IR-Sensor.jpg) | ![Reales Setup](assets/screenshots/RealLife.jpg) |
+| ![Kamera-Einstellungen](assets/screenshots/Cam.png) | ![IR-Sensor](assets/screenshots/IR-Sensor.jpg) | ![Reales Setup](assets/screenshots/RealLife.jpg) |
 
 ---
 
