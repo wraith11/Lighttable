@@ -534,6 +534,36 @@ export const interactionMethods = {
 
     onKeyDown(e) {
         if(!this.isGM) return;
+        // STRG+C / STRG+V zum Kopieren von Objekten
+        if((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+            if(this.selectedObj) {
+                this._clipboard = JSON.parse(JSON.stringify(this.selectedObj));
+                e.preventDefault();
+            }
+            return;
+        }
+        if((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            if(this._clipboard) {
+                const c = this._clipboard;
+                const nid = Date.now();
+                const copy = {...c, id: nid, x: c.x + 50, y: c.y + 50};
+                if(c.x1 !== undefined) { copy.x1 = c.x1 + 50; copy.x2 = c.x2 + 50; copy.y1 = c.y1 + 50; copy.y2 = c.y2 + 50; }
+                if(this.selectedObjIsWall || (c.x1 !== undefined)) {
+                    this.scene.walls.push(copy);
+                } else if(this.selectedObjIsColumn || (c.vertices !== undefined)) {
+                    this.scene.columns.push(copy);
+                } else if(this.selectedObjIsLight || (c.radius !== undefined && c.color)) {
+                    this.scene.lights.push(copy);
+                } else {
+                    this.scene.objects.push(copy);
+                }
+                this.selObjId = nid;
+                this.sync();
+                if(this.renderer) { this.renderer.mapDirty = true; this.renderer.requestRender(); }
+                e.preventDefault();
+            }
+            return;
+        }
         if(e.key === 'Escape') {
             if(this.showColorPicker) { this.showColorPicker=false; return; }
             this.setTool('select'); this.brushTexture = null; this.selObjId = null; 
