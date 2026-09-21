@@ -250,7 +250,8 @@ export const interactionMethods = {
         }
         else if(this.tool === 'column') {
             this.drag.mode='column';
-            this.drag.temp={x:pos.x, y:pos.y, radius:10, id:'temp_'+Date.now(), vertices: this.toolSettings.columnVertices, rotation: 0, color: this.drawColor, texture: this.brushTexture, tilesPerAxis: this.tilesPerAxis, z: 10};
+            const csx = this.snapMode ? snap(pos.x) : pos.x; const csy = this.snapMode ? snap(pos.y) : pos.y;
+            this.drag.temp={x:csx, y:csy, radius:10, id:'temp_'+Date.now(), vertices: this.toolSettings.columnVertices, rotation: 0, color: this.drawColor, texture: this.brushTexture, tilesPerAxis: this.tilesPerAxis, z: 10};
         }
         else if(this.tool === 'brush') { 
             this.drag.mode='brush'; 
