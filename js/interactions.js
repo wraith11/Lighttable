@@ -555,14 +555,19 @@ export const interactionMethods = {
                 if(c.x1 !== undefined) { copy.x1 = c.x1 + 50; copy.x2 = c.x2 + 50; copy.y1 = c.y1 + 50; copy.y2 = c.y2 + 50; }
                 if(this.selectedObjIsWall || (c.x1 !== undefined)) {
                     this.scene.walls.push(copy);
+                    this.selectedObjIsWall = true; this.selectedObjIsColumn = false; this.selectedObjIsLight = false;
                 } else if(this.selectedObjIsColumn || (c.vertices !== undefined)) {
                     this.scene.columns.push(copy);
+                    this.selectedObjIsColumn = true; this.selectedObjIsWall = false; this.selectedObjIsLight = false;
                 } else if(this.selectedObjIsLight || (c.radius !== undefined && c.color)) {
                     this.scene.lights.push(copy);
+                    this.selectedObjIsLight = true; this.selectedObjIsWall = false; this.selectedObjIsColumn = false;
                 } else {
                     this.scene.objects.push(copy);
+                    this.selectedObjIsWall = false; this.selectedObjIsColumn = false; this.selectedObjIsLight = false;
                 }
                 this.selObjId = nid;
+                if(this.renderer) this.renderer.selectedObjId = nid;
                 this.sync();
                 if(this.renderer) { this.renderer.mapDirty = true; this.renderer.requestRender(); }
                 e.preventDefault();
