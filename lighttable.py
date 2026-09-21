@@ -186,14 +186,10 @@ def safe_asset_path(subdir=''):
 def get_dir_content(subdir=''):
     base_abs = os.path.abspath(ASSET_DIR)
     target_path, subdir = safe_asset_path(subdir)
-    # Ordner, die im Editor ausgeblendet werden sollen (z. B. Screenshots für die Readme)
-    hidden_folders = {'screenshots'}
     items = []
     if os.path.exists(target_path) and os.path.isdir(target_path):
         for f in os.listdir(target_path):
             if f.startswith('.'): continue
-            if os.path.isdir(os.path.join(target_path, f)) and f in hidden_folders:
-                continue
             full_p = os.path.join(target_path, f)
             rel_p = os.path.join(subdir, f).replace("\\", "/")
             if os.path.isdir(full_p): items.append({'name': f, 'type': 'folder', 'path': rel_p})
