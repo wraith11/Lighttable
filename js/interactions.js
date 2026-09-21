@@ -212,7 +212,7 @@ export const interactionMethods = {
             }
             for(let i=this.scene.walls.length-1; i>=0; i--) {
                 const w = this.scene.walls[i];
-                if(w.invisible && !this.debugMode) continue;
+                // Unsichtbare Wände sind im Select-Tool anklickbar (GM)
                 if (this.scene.background_locked && (w.z !== undefined ? w.z : 5) < 0) continue;
 
                 let hit = false;
