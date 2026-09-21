@@ -54,6 +54,8 @@ export const interactionMethods = {
                 this.sync(); 
                 // FORCE RENDER: Ensure the renderer knows something changed immediately
                 if (this.renderer) {
+                    this.renderer.mapDirty = true;
+                    this.renderer.drawingsDirty = true;
                     this.renderer._renderDirty = true;
                     this.renderer.requestRender();
                 }
