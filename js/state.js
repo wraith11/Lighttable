@@ -73,6 +73,7 @@ export function getInitialState() {
         camW: 1280, camH: 720, imgW: 2000, imgH: 720, cornerDragIdx: -1, tempCorners: [],
         colorPicker: null, openTokenId: null, lightColorPicker: null, tokenColorPicker: null,
         _lastSyncTime: 0, _syncTimer: null,
-        currentMapName: ""
+        currentMapName: "",
+        _clipboard: null
     };
 }
