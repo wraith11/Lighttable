@@ -593,7 +593,7 @@ export class GameRenderer {
         this.renderFoW(); 
         this.renderOverlays(viewChanged);
 
-        if (this.drawingsDirty) { this.renderStaticDrawings(); this.drawingsDirty = false; }
+        if (this.drawingsDirty || this.mapRebuilt) { this.renderStaticDrawings(); this.drawingsDirty = false; this.mapRebuilt = false; }
         
         const isDrawing = this.dragState.active && ['brush','grid_paint','rect_paint','circle_paint'].includes(this.dragState.mode);
         if (isDrawing) { this.renderPreviewDrawing(); } 
