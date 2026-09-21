@@ -245,11 +245,13 @@ Lighttable/
 
 ## Screenshots
 
-| GM-Ansicht | Player-Ansicht | Setup |
-|------------|----------------|-------|
-| ![GM-Ansicht](assets/screenshots/gm.png) | ![Player-Ansicht](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+| Editor (GM-Ansicht) | Spiel-Ansicht (GM + Player) |
+|---------------------|------------------------------|
+| ![Editor (GM-Ansicht)](assets/screenshots/EditorView.png) | ![Spiel-Ansicht](assets/screenshots/PlayingView.png) |
 
-> Screenshots folgen in Kürze.
+| Kamera | IR-Sensor | Reales Setup |
+|--------|-----------|--------------|
+| ![Kamera](assets/screenshots/Cam.png) | ![IR-Sensor](assets/screenshots/IR-Sensor.jpg) | ![Reales Setup](assets/screenshots/RealLife.jpg) |
 
 ---
 
