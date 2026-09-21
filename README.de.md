@@ -255,9 +255,13 @@ Lighttable/
 |-----------------------------|
 | ![Spiel-Ansicht](docs/images/PlayingView.png) |
 
-| Kamera-Einstellungen | IR-Sensor | Reales Setup |
-|----------------------|-----------|--------------|
-| ![Kamera-Einstellungen](docs/images/CamSettings.png) | ![IR-Sensor](docs/images/IR-Sensor.jpg) | ![Reales Setup](docs/images/RealLife.jpg) |
+| Map-Editor | Kamera-Einstellungen | Reales Setup |
+|------------|----------------------|--------------|
+| ![Map-Editor](docs/images/MapEditor.png) | ![Kamera-Einstellungen](docs/images/CamSettings.png) | ![Reales Setup](docs/images/RealLife.jpg) |
+
+| IR-Sensor |
+|-----------|
+| ![IR-Sensor](docs/images/IR-Sensor.jpg) |
 
 ---
 
