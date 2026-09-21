@@ -139,8 +139,9 @@ export class GameRenderer {
         this.containers.bg.zIndex = ++z;       
         this.containers.draw.zIndex = ++z;     
         this.containers.preview.zIndex = ++z;  
-        this.containers.grid.zIndex = ++z;
+        // mapLow (Objekte unter Ebene 0) gehören zum Hintergrund → unter das Grid
         this.containers.mapLow.zIndex = ++z; 
+        this.containers.grid.zIndex = ++z;
         this.containers.shadows.zIndex = ++z;
         this.containers.mapOutline.zIndex = ++z; 
         this.containers.structure.zIndex = ++z; 
