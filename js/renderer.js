@@ -54,6 +54,7 @@ export class GameRenderer {
         this.lightsDirty = true;
         this.flickerDirty = false;
         this.drawingsDirty = true; 
+        this.mapRebuilt = false;
         this.fowDirty = true; 
         this.fowBlurDirty = false;
         this.fowBlurredTexture = null;
