@@ -445,18 +445,14 @@ export const coreMethods = {
                      this.scene.background_image.url = res.url;
                      // Wiederholen standardmäßig aus (nur bei Bedarf aktivierbar)
                      this.scene.background_image.repeat = false;
-                     const pv = this.scene.player_view; const gs = this.scene.grid_size; const pvW = pv.width_cells * gs;
-                     const img = new Image(); img.src = res.url;
-                     img.onload = () => {
-                         let scale = 1.0; if(img.width > pvW) scale = pvW / img.width;
-                         this.scene.background_image.scale = scale; this.scene.background_image.x = pv.x; this.scene.background_image.y = pv.y; 
-                         this.sync();
-                         // BUGFIX: Force Render nach Upload
-                         if(this.renderer) {
-                             this.renderer.mapDirty = true;
-                             this.renderer.requestRender();
-                         }
-                     };
+                     const pv = this.scene.player_view;
+                     this.scene.background_image.scale = 1.0; this.scene.background_image.x = 0; this.scene.background_image.y = 0; 
+                     this.sync();
+                     // BUGFIX: Force Render nach Upload
+                     if(this.renderer) {
+                         this.renderer.mapDirty = true;
+                         this.renderer.requestRender();
+                     }
                  }
              });
         };
