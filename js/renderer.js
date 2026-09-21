@@ -730,7 +730,7 @@ export class GameRenderer {
             const cfg = this.scene.background_image;
             const tex = PIXI.Texture.from(cfg.url);
             let s; 
-            const actualScale = cfg.scale * 0.1;
+            const actualScale = cfg.scale;
             if(cfg.repeat) {
                 s = new PIXI.TilingSprite(tex, 100000, 100000); 
                 s.tileScale.set(actualScale); s.tilePosition.set(cfg.x, cfg.y); s.position.set(-50000, -50000);
