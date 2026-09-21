@@ -241,7 +241,9 @@ export const interactionMethods = {
             return; 
         }
         
-        const snap = (v) => Math.round(v/50)*50;
+        // Snapping auf halbes Grid (Schnittpunkte) – Ausnahme: Kreis-Hintergrund-Tool
+        const halfGrid = (this.scene.grid_size || 50) / 2;
+        const snap = (v) => Math.round(v/halfGrid)*halfGrid;
         
         if(this.tool === 'wall') { 
             this.drag.mode='wall'; 
