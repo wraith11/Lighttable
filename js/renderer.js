@@ -577,6 +577,7 @@ export class GameRenderer {
         if (this.mapDirty) {
             this.rebuildMap();
             this.mapDirty = false;
+            this.mapRebuilt = true;
             this.lightsDirty = true; 
             this.fowDirty = true; 
             this._cachedSegments = null; 
