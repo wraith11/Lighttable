@@ -334,7 +334,9 @@ export const interactionMethods = {
         }
 
         const pos = this.renderer.getWorldPos(e);
-        const snap = (v) => Math.round(v/50)*50;
+        // Snapping auf halbes Grid (Schnittpunkte) – Ausnahme: Kreis-Hintergrund-Tool
+        const halfGrid = (this.scene.grid_size || 50) / 2;
+        const snap = (v) => Math.round(v/halfGrid)*halfGrid;
 
         if(this.drag.mode === 'wall') {
             this.drag.temp.x2 = this.snapMode ? snap(pos.x) : pos.x; 
