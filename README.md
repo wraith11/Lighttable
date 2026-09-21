@@ -1,9 +1,5 @@
 <p align="center">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="100%" style="border-radius:8px;">
-    <image href="docs/images/MapEditor.png" x="0" y="0" width="1200" height="300" preserveAspectRatio="xMidYMid slice"/>
-    <path d="M1200,300 L1200,60 C1020,20 840,110 560,70 C380,45 180,90 0,40 L0,300 Z" fill="rgba(8,12,20,0.72)"/>
-    <text x="58%" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="60" font-weight="bold" fill="#ffffff" text-anchor="middle" transform="rotate(-2 58% 180)">LightTable Ultimate</text>
-  </svg>
+  <img src="docs/images/banner.svg" alt="LightTable Ultimate" width="100%" style="border-radius:8px;">
 </p>
 
 > 🌐 **Language / Sprache:** [English](README.md) · [Deutsch](README.de.md)
