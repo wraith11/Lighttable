@@ -1368,8 +1368,9 @@ export class GameRenderer {
         Object.values(this.scene.tokens).forEach(t => {
             // Token werden NUR angezeigt, wenn ein Blob zugewiesen UND aktuell sichtbar ist.
             // Ohne sichtbaren Blob (abandoned / verloren) verschwinden sie von der Karte.
+            // Altes Verhalten: Token mit blob_id werden gerendert, auch wenn der Blob
+            // kurz verdeckt ist – sie bleiben an ihrer gespeicherten Position.
             if (!t.blob_id) return;
-            if (!this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
             
             activeTokenIds.add(t.uuid);
             
