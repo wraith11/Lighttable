@@ -20,14 +20,16 @@ export const interactionMethods = {
 
         if(this.drag.mode === 'stamp' && this.brushTexture) {
                 if(this.scene.objects_locked) return;
-                this.scene.objects.push({ id: Date.now(), type: 'image', src: this.brushTexture, z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                this.renderer.mapDirty = true;
-                this.sync(); this.drag.active = false; return;
+                this.addObjectAt(pos, this.brushTexture, 'image');
+                this.drag.active = false; return;
         }
 
         this.drag.active = true;
         this.drag.start = {x:e.clientX, y:e.clientY}; 
         this.drag.worldStart = pos;
+        // BUGFIX: Stale drag.mode zurücksetzen (z. B. 'pan' nach Rechtsklick), damit
+        // ein Linksklick nicht versehentlich weiter die Sicht verschiebt.
+        this.drag.mode = null;
 
         if(this.tool === 'fow_reveal') { 
             this.drag.mode = 'fow_paint'; this.drag.fowType = 'reveal'; 
@@ -379,49 +381,52 @@ export const interactionMethods = {
             const s = {type: this.drag.fowType, x:pos.x, y:pos.y, radius: 50};
             this.scene.fow_shapes.push(s); 
             this.renderer.drawFoWShapeToTexture(s);
-            this.sync();
+            this.syncThrottled();
         }
         else if(this.drag.mode === 'move_player') {
             const gs = this.scene.grid_size;
             const pv = this.scene.player_view;
             if(this.snapMode) { pv.x = Math.round(pos.x/gs)*gs; pv.y = Math.round(pos.y/gs)*gs; } 
             else { pv.x = pos.x; pv.y = pos.y; }
-            this.sync();
+            this.syncThrottled();
         }
         else if(this.selectedObj) {
                 const o = this.selectedObj;
                 if(this.drag.mode === 'obj') {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
-                    this.sync();
+                    this.renderer.mapDirty = true; // Objekt-Sprite-Position aktualisieren
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'light' && this.selectedObjIsLight) {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
                     this.renderer.lightsDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'column_move' && this.selectedObjIsColumn) {
                     if(this.snapMode) { o.x = snap(pos.x); o.y = snap(pos.y); } else { o.x = pos.x; o.y = pos.y; }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'resize') {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     const scale = dist / this.drag.initialDist;
                     o.width = this.drag.initialWidth * scale; o.height = this.drag.initialHeight * scale;
-                    this.sync();
+                    this.renderer.mapDirty = true; // Sprite-Größe aktualisieren
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'resize_column') {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     o.radius = Math.max(10, dist); 
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'rotate') {
                     o.rotation = (Math.atan2(pos.y - o.y, pos.x - o.x) * 180 / Math.PI) + 90;
                     if(this.snapMode) o.rotation = Math.round(o.rotation / 45) * 45;
-                    this.sync();
+                    this.renderer.mapDirty = true; // Sprite-Rotation aktualisieren
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'wall_move') {
                     if(this.snapMode) {
@@ -435,21 +440,21 @@ export const interactionMethods = {
                     }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
                 else if(this.drag.mode === 'wall_drag') {
                     if(this.drag.handle === 'p1') { o.x1 = this.snapMode ? snap(pos.x) : pos.x; o.y1 = this.snapMode ? snap(pos.y) : pos.y; }
                     else { o.x2 = this.snapMode ? snap(pos.x) : pos.x; o.y2 = this.snapMode ? snap(pos.y) : pos.y; }
                     this.renderer.fowDirty = true;
                     this.renderer.mapDirty = true;
-                    this.sync();
+                    this.syncThrottled();
                 }
         }
         else if(this.drag.mode === 'token') {
             const t = this.drag.temp;
             t.x = pos.x; t.y = pos.y; 
             this.renderer.fowDirty = true;
-            this.sync();
+            this.syncThrottled();
         }
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
         this.renderer.setDragState(this.drag, this.selObjId);
@@ -501,7 +506,7 @@ export const interactionMethods = {
             this.renderer.drawingsDirty = true;
             this.sync(); 
         }
-        else if(['move_player','obj','light','token','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.sync();
+        else if(['move_player','obj','light','token','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.flushSync();
         
         this.drag.mode = null; this.drag.temp = null;
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
@@ -514,7 +519,8 @@ export const interactionMethods = {
         if(!this.isGM || !this.renderer) return;
         e.preventDefault();
         const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        const oldScale = this.scene.view.scale; const newScale = oldScale * scaleFactor;
+        const oldScale = this.scene.view.scale; 
+        const newScale = Math.min(4, Math.max(0.1, oldScale * scaleFactor));
         const rect = this.renderer.pixiApp.view.getBoundingClientRect();
         const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
         const worldX = (mouseX - this.scene.view.x) / oldScale; const worldY = (mouseY - this.scene.view.y) / oldScale;
@@ -535,25 +541,26 @@ export const interactionMethods = {
             e.preventDefault();
             const step = e.shiftKey ? 10 : 1;
             const o = this.selectedObj;
-            if(e.key === 'ArrowLeft') o.x -= step;
-            if(e.key === 'ArrowRight') o.x += step;
-            if(e.key === 'ArrowUp') o.y -= step;
-            if(e.key === 'ArrowDown') o.y += step;
-            
-            if(this.selectedObjIsWall) {
-                o.x1 = (e.key==='ArrowLeft'?o.x1-step:(e.key==='ArrowRight'?o.x1+step:o.x1));
-                o.x2 = (e.key==='ArrowLeft'?o.x2-step:(e.key==='ArrowRight'?o.x2+step:o.x2));
-                o.y1 = (e.key==='ArrowUp'?o.y1-step:(e.key==='ArrowDown'?o.y1+step:o.y1));
-                o.y2 = (e.key==='ArrowUp'?o.y2-step:(e.key==='ArrowDown'?o.y2+step:o.y2));
+
+            if (this.selectedObjIsWall) {
+                // Wände haben kein x/y, nur Endpunkte x1/y1/x2/y2 – verschiebe diese direkt
+                const dx = e.key === 'ArrowLeft' ? -step : (e.key === 'ArrowRight' ? step : 0);
+                const dy = e.key === 'ArrowUp' ? -step : (e.key === 'ArrowDown' ? step : 0);
+                o.x1 += dx; o.y1 += dy; o.x2 += dx; o.y2 += dy;
                 this.renderer.fowDirty = true;
                 this.renderer.mapDirty = true;
+            } else {
+                if(e.key === 'ArrowLeft') o.x -= step;
+                if(e.key === 'ArrowRight') o.x += step;
+                if(e.key === 'ArrowUp') o.y -= step;
+                if(e.key === 'ArrowDown') o.y += step;
+                if(this.selectedObjIsColumn) {
+                    this.renderer.fowDirty = true;
+                    this.renderer.mapDirty = true;
+                }
+                if(this.selectedObjIsLight) this.renderer.lightsDirty = true;
             }
-            if(this.selectedObjIsColumn) {
-                this.renderer.fowDirty = true;
-                this.renderer.mapDirty = true;
-            }
-            if(this.selectedObjIsLight) this.renderer.lightsDirty = true;
-            
+
             this.sync();
             this.renderer.requestRender();
             return;
@@ -584,12 +591,7 @@ export const interactionMethods = {
         this.setTool('select');
 
         if(assetUrl && assetUrl.startsWith('/assets/')) {
-                const id = Date.now();
-                this.scene.objects.push({ id: id, type: 'image', src: assetUrl, layer: 'object', z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                this.selObjId = id; 
-                this.renderer.mapDirty = true;
-                this.sync(); 
-                if(this.renderer) this.renderer.requestRender();
+                this.addObjectAt(pos, assetUrl, 'image');
                 return;
         }
 
@@ -601,12 +603,7 @@ export const interactionMethods = {
                         if(e.target.closest('.drop-zone')) return;
                         if(['brush', 'grid_paint', 'rect_paint', 'circle_paint', 'wall'].includes(this.tool)) this.brushTexture = res.url;
                         else {
-                            const id = Date.now();
-                            this.scene.objects.push({ id: id, type: res.type, src: res.url, layer: 'object', z: 5, x: pos.x, y: pos.y, scale: 1.0, width:100, height:100, rotation: 0 });
-                            this.selObjId = id; 
-                            this.renderer.mapDirty = true;
-                            this.sync();
-                            if(this.renderer) this.renderer.requestRender();
+                            this.addObjectAt(pos, res.url, res.type);
                         }
                     }
             });

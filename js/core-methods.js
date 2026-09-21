@@ -59,6 +59,8 @@ export const coreMethods = {
         if(this.isGM) {
             this.scene.view.x = window.innerWidth / 2;
             this.scene.view.y = window.innerHeight / 2;
+            // Zoom auf 1.0 zurücksetzen (verhindert "zufällig hereingezoomt" beim Start)
+            this.scene.view.scale = 1.0;
         }
     },
     onResize() { if(this.renderer) this.renderer.onResize(); },
@@ -162,6 +164,7 @@ export const coreMethods = {
             if (this.selectedObjIsLight) {
                 this.selObjId = null;
                 this.selectedObjIsLight = false;
+                if(this.renderer) this.renderer.selectedObjId = null;
             }
             if (this.tool === 'light') {
                 this.setTool('select');
@@ -181,7 +184,14 @@ export const coreMethods = {
             if(['brush', 'grid_paint', 'rect_paint', 'circle_paint'].includes(t)) return;
         }
         this.tool = t; this.drag.mode = null; 
-        if(t !== 'select') this.selObjId = null; 
+        if(t !== 'select') {
+            this.selObjId = null; 
+            this.selectedObjIsWall = false;
+            this.selectedObjIsLight = false;
+            this.selectedObjIsColumn = false;
+            // Renderer-Auswahl zurücksetzen, damit der Auswahl-Rahmen verschwindet
+            if(this.renderer) this.renderer.selectedObjId = null;
+        }
         if(this.renderer) this.renderer.requestRender();
     },
 
@@ -194,25 +204,130 @@ export const coreMethods = {
             this.renderer.requestRender();
         }
     },
+    // Gedrosselter Sync: lokal sofort rendern, Netzwerk-Broadcast auf ~20fps begrenzt.
+    // Verhindert, dass bei jedem mousemove das komplette Scene-Objekt gesendet wird.
+    // WICHTIG: Setzt KEIN mapDirty – das würde bei move_player/obj unnötig die Map neu
+    // bauen und alle FoW-Sicht-Caches ungültig machen (Freeze bei FoW permanent).
+    // Struktur-Änderungen (Wände/Säulen) setzen mapDirty selbst.
+    syncThrottled() {
+        if (this.renderer) {
+            this.renderer.lightsDirty = true;
+            this.renderer.startLightLoop();
+            this.renderer.requestRender();
+        }
+        if (this._syncTimer) return;
+        const now = Date.now();
+        const wait = 50 - (now - (this._lastSyncTime || 0));
+        if (wait <= 0) {
+            socket.emit('update_scene', this.scene);
+            this._lastSyncTime = now;
+        } else {
+            this._syncTimer = setTimeout(() => {
+                this._syncTimer = null;
+                socket.emit('update_scene', this.scene);
+                this._lastSyncTime = Date.now();
+            }, wait);
+        }
+    },
+    // Bricht einen noch ausstehenden gedrosselten Sync ab und sendet sofort den finalen Zustand.
+    flushSync() {
+        if (this._syncTimer) { clearTimeout(this._syncTimer); this._syncTimer = null; }
+        this.sync();
+    },
     saveGame() { socket.emit('save_settings'); },
     
-    saveMap() {
+    // Speichern: überschreibt die aktuell geladene/gespeicherte Karte unter demselben Namen.
+    saveCurrentMap() {
+        if (!this.currentMapName) { this.saveMapAs(); return; }
+        this._doSaveMap(this.currentMapName);
+    },
+    // Speichern unter: speichert unter dem im Eingabefeld stehenden Namen.
+    saveMapAs() {
         if(!this.saveMapName) return;
-        socket.emit('save_map', this.saveMapName, (res) => {
-            if(res.error) alert("Fehler beim Speichern: " + res.error);
-            else { this.saveMapName = ""; alert("Karte gespeichert!"); }
+        this._doSaveMap(this.saveMapName);
+    },
+    _doSaveMap(name) {
+        // Aktuelle GM-View direkt mit dem Speichern übertragen, damit sie mitgespeichert wird
+        socket.emit('save_map', { filename: name, view: this.scene.view }, (res) => {
+            if(res.error) alert(this.t('errSave') + res.error);
+            else {
+                this.currentMapName = name;
+                this.saveMapName = "";
+                alert(this.t('mapSaved'));
+            }
         });
     },
     loadMap(filename) {
-        if(confirm("Karte '" + filename + "' laden? Ungespeicherte Änderungen gehen verloren.")) {
+        if(confirm(this.t('confirmLoad', filename))) {
             socket.emit('load_map', filename, (res) => {
-                if(res.error) alert("Fehler beim Laden: " + res.error);
+                if(res.error) alert(this.t('errLoad') + res.error);
                 else {
+                    this.currentMapName = filename;
                     this.scene.player_view_blackout = true;
                     this.sync();
                 }
             });
         }
+    },
+    // Gespeicherte Karte löschen
+    deleteMap(filename) {
+        if(!confirm(this.t('confirmDeleteMap', filename))) return;
+        socket.emit('delete_map', filename, (res) => {
+            if(res.error) alert(this.t('errDeleteMap') + res.error);
+            else if(this.currentMapName === filename) { this.currentMapName = ""; }
+        });
+    },
+    // Neue leere Karte erstellen (aktuelle Szene zurücksetzen)
+    newMap() {
+        if(!confirm(this.t('confirmNewMap'))) return;
+        this.currentMapName = "";
+        this.saveMapName = "";
+        // Server-seitig leere Karte erzeugen; der zurückkommende init-Handler baut die
+        // Scene frisch neu auf (garantiert ohne Hintergrund / alten Inhalt).
+        socket.emit('new_map', (res) => {
+            if(res && res.error) alert(this.t('errSave') + res.error);
+        });
+        // Lokal sofort leeren, damit kein alter Zustand zwischenzeitlich sichtbar bleibt
+        if(this.scene.background_image) this.scene.background_image.url = null;
+        this.scene.objects = []; this.scene.walls = []; this.scene.columns = [];
+        this.scene.lights = []; this.scene.drawings = []; this.scene.fow_shapes = [];
+        this.scene.fow_visited = []; this.scene.tokens = {};
+        if(this.renderer) {
+            this.renderer.resetFoWMemory();
+            this.renderer.clearBackground();
+            this.renderer.mapDirty = true;
+            this.renderer.fowDirty = true;
+            this.renderer.rebuildMap();
+            this.renderer.requestRender();
+        }
+    },
+
+    addObjectAt(pos, src, type) {
+        const id = Date.now();
+        const base = this.scene.grid_size * 2;
+        const obj = {
+            id: id, type: type || 'image', src: src, layer: 'object', z: 5,
+            x: pos.x, y: pos.y, scale: 1.0, width: base, height: base, rotation: 0
+        };
+        this.scene.objects.push(obj);
+        this.selObjId = id;
+        // Bildproportionen übernehmen, sobald das Asset geladen ist
+        if ((type || 'image') === 'image') {
+            const img = new Image();
+            img.onload = () => {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    const ratio = img.naturalHeight / img.naturalWidth;
+                    obj.height = Math.max(1, Math.round(base * ratio));
+                    this.renderer.mapDirty = true;
+                    this.sync();
+                    this.renderer.requestRender();
+                }
+            };
+            img.src = src;
+        }
+        this.renderer.mapDirty = true;
+        this.sync();
+        return obj;
     },
 
     deleteSelected() { 
@@ -235,8 +350,8 @@ export const coreMethods = {
             }
             this.selObjId=null; 
             this.sync(); 
-            // BUGFIX: Sofortiges Rendern nach Löschen
-            if(this.renderer) this.renderer.requestRender();
+            // BUGFIX: Renderer-Auswahl zurücksetzen, damit der Auswahl-Rahmen sofort verschwindet
+            if(this.renderer) { this.renderer.selectedObjId = null; this.renderer.requestRender(); }
         }
     },
     
@@ -271,7 +386,7 @@ export const coreMethods = {
         this.sync();
     },
     resetFoW() {
-        if (confirm("Wirklich den gesamten Fog of War zurücksetzen?")) {
+        if (confirm(this.t('confirmFowReset'))) {
             this.scene.fow_visited = [];
             this.sync();
             if(this.renderer) {
@@ -301,7 +416,7 @@ export const coreMethods = {
     },
     updateCamParams() { socket.emit('update_cam_params', this.camParams); },
     resetCamera() {
-        if(confirm("Kamera-Einstellungen wirklich auf Standard zurücksetzen?")) {
+        if(confirm(this.t('confirmCamReset'))) {
             socket.emit('reset_camera');
         }
     },
@@ -315,7 +430,7 @@ export const coreMethods = {
     navigateAssets(path) { this.currentAssetPath = path; socket.emit('request_assets', {path: path}); },
     navigateUp() { if(!this.currentAssetPath) return; const parts = this.currentAssetPath.split('/'); parts.pop(); this.navigateAssets(parts.join('/')); },
     createNewFolder() {
-        const name = prompt("Ordnername:");
+        const name = prompt(this.t('folderName'));
         if(name) socket.emit('create_folder', {path: this.currentAssetPath, name: name});
     },
     clickAsset(a) {
@@ -329,6 +444,8 @@ export const coreMethods = {
              socket.emit('upload_asset', {name: file.name, data: evt.target.result, path: this.currentAssetPath}, (res) => {
                  if(res && res.url) { 
                      this.scene.background_image.url = res.url;
+                     // Wiederholen standardmäßig aus (nur bei Bedarf aktivierbar)
+                     this.scene.background_image.repeat = false;
                      const pv = this.scene.player_view; const gs = this.scene.grid_size; const pvW = pv.width_cells * gs;
                      const img = new Image(); img.src = res.url;
                      img.onload = () => {
@@ -406,7 +523,7 @@ export const coreMethods = {
         this.scene.tokens[id] = { 
             uuid: id, name: 'Neu', x: (this.renderer.pixiApp.screen.width/2 - this.scene.view.x) / this.scene.view.scale, 
             y: (this.renderer.pixiApp.screen.height/2 - this.scene.view.y) / this.scene.view.scale,
-            on_board: false, blob_id: null, has_vision: false, vision_range: 200, 
+            on_board: false, blob_id: null, has_vision: false, vision_range: 400, 
             spotlight_color: '#aaaaaa', size: 45, style: 'ring', hp: 10, max_hp: 10, show_hp: false,
             markers: [{},{},{},{},{}], rings: [], modified: true 
         }; 
@@ -454,11 +571,46 @@ export const coreMethods = {
                     if (!other.modified) delete this.scene.tokens[other.uuid];
                 }
             });
-            if(this.blobs[t.blob_id]) { this.updateTokenPos(); }
+            if(this.blobs[String(t.blob_id)]) {
+                // Sofort an die aktuelle Blob-Position setzen (Token haben keine eigene Position)
+                const pv = this.scene.player_view;
+                const w = pv.width_cells * this.scene.grid_size;
+                const h = w / pv.aspect;
+                const b = this.blobs[String(t.blob_id)];
+                t.x = (pv.x - w/2) + b.x * w;
+                t.y = (pv.y - h/2) + b.y * h;
+                t.on_board = true;
+                this.updateTokenPos();
+            }
             t.on_board = true;
             this.markTokenModified(t); 
+            // BUGFIX: Sicht sofort aufdecken, sobald ein Token einem Blob zugewiesen wird
+            this.revealTokenVision(t);
         }
         this.sync();
+    },
+
+    // BUGFIX: Deckt bei permanentem FoW die Sicht am aktuellen Token-Ort sofort auf
+    // (ohne auf die nächste Bewegung warten zu müssen).
+    revealTokenVision(t) {
+        if (!t || !t.has_vision) return;
+        if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
+        if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
+            const pt = { x: Math.round(t.x), y: Math.round(t.y), radius: t.vision_range || 400 };
+            this.scene.fow_visited.push(pt);
+            this._fowDeltaBuffer.push(pt);
+            t._lastFowPos = {x: t.x, y: t.y};
+            this.flushFowDelta();
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.requestRender();
+            }
+        }
+    },
+    toggleTokenVision(t) {
+        t.has_vision = !t.has_vision;
+        if (t.has_vision) this.revealTokenVision(t);
+        this.markTokenModified(t);
     },
     markTokenModified(t) {
         if (!t.modified) { t.modified = true; }
@@ -483,7 +635,7 @@ export const coreMethods = {
                 this.scene.tokens[id] = {
                     uuid: id, name: "", blob_id: String(bid), 
                     x: initX, y: initY, 
-                    on_board: true, has_vision: false, vision_range: 200,
+                    on_board: true, has_vision: false, vision_range: 400,
                     spotlight_color: '#aaaaaa', size: 45, style: 'dot',
                     markers: [{},{},{},{},{}], rings: [], modified: false
                 };
@@ -516,6 +668,32 @@ export const coreMethods = {
         if (changes) this.sync();
     },
     
+    // A2: Puffer für neue fow_visited-Punkte, die als Delta gesendet werden
+    _fowDeltaBuffer: [],
+    _fowFullTimer: null,
+    _fowFullCount: 0,
+
+    // A2: Neue Sicht-Punkte als Delta senden (nicht die ganze Szene).
+    // Zusätzlich alle FOW_FULL_INTERVAL Sekunden den vollständigen Stand zum Abgleich senden.
+    flushFowDelta() {
+        if (this._fowDeltaBuffer.length === 0) return;
+        const points = this._fowDeltaBuffer;
+        this._fowDeltaBuffer = [];
+        socket.emit('fow_visited_delta', { points });
+        this._fowFullCount += points.length;
+        if (this._fowFullCount >= 200) { this.emitFowFull(); this._fowFullCount = 0; }
+    },
+    emitFowFull() {
+        socket.emit('fow_visited_full', { points: this.scene.fow_visited });
+    },
+    startFowSync() {
+        if (this._fowFullTimer) return;
+        this._fowFullTimer = setInterval(() => this.emitFowFull(), 10000);
+    },
+    stopFowSync() {
+        if (this._fowFullTimer) { clearInterval(this._fowFullTimer); this._fowFullTimer = null; }
+    },
+
     updateTokenPos() {
         let changed = false;
         let tokenListChanged = false;
@@ -530,52 +708,49 @@ export const coreMethods = {
         let fowChanged = false;
 
         Object.values(this.scene.tokens).forEach(t => {
-            const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
-                            t.y >= viewY - margin && t.y <= viewY + h + margin);
-            
-            if (!inView && t.blob_id) {
-                t.blob_id = null; 
-                t.on_board = false;
-                if (!t.modified) {
-                    delete this.scene.tokens[t.uuid];
-                    tokenListChanged = true;
-                } else {
-                    changed = true;
+            try {
+                // Kein hartes Verwerfen an der Player-View-Grenze mehr: Ein Token mit
+                // blob_id bleibt an seiner Position, auch wenn er außerhalb der View liegt.
+                // Das Abmelden übernimmt handleBlobs, wenn der Blob wirklich verschwindet.
+                if (this.scene.tracking_paused) return;
+
+                if(t.blob_id && this.blobs[String(t.blob_id)]) {
+                    const b = this.blobs[String(t.blob_id)]; 
+                    let targetX = viewX + b.x * w; 
+                    let targetY = viewY + b.y * h;
+                    const dx = targetX - t.x;
+                    const dy = targetY - t.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist > 3.0) { 
+                        t.x = targetX; 
+                        t.y = targetY; 
+                        changed = true; 
+                        
+                        if (isPermanent && t.has_vision) {
+                             const vr = t.vision_range || 400;
+                             if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
+                                 const pt = {
+                                     x: Math.round(t.x), 
+                                     y: Math.round(t.y), 
+                                     radius: vr
+                                 };
+                                 this.scene.fow_visited.push(pt);
+                                 this._fowDeltaBuffer.push(pt);
+                                 t._lastFowPos = {x: t.x, y: t.y};
+                                 fowChanged = true;
+                             }
+                        }
+                    } 
                 }
-                return;
-            }
-
-            if (this.scene.tracking_paused) return;
-
-            if(t.blob_id && this.blobs[t.blob_id]) {
-                const b = this.blobs[t.blob_id]; 
-                let targetX = viewX + b.x * w; 
-                let targetY = viewY + b.y * h;
-                const dx = targetX - t.x;
-                const dy = targetY - t.y;
-                const dist = Math.hypot(dx, dy);
-
-                if (dist > 3.0) { 
-                    t.x = targetX; 
-                    t.y = targetY; 
-                    changed = true; 
-                    
-                    if (isPermanent && t.has_vision) {
-                         if (!t._lastFowPos || Math.hypot(t.x - t._lastFowPos.x, t.y - t._lastFowPos.y) > 25) {
-                             this.scene.fow_visited.push({
-                                 x: Math.round(t.x), 
-                                 y: Math.round(t.y), 
-                                 radius: t.vision_range
-                             });
-                             t._lastFowPos = {x: t.x, y: t.y};
-                             fowChanged = true;
-                         }
-                    }
-                } 
+            } catch (err) {
+                // BUGFIX: Ein einzelner Token/Blob darf den Rest nicht abreißen
+                console.warn("updateTokenPos token error", err);
             }
         });
         
-        if (fowChanged || tokenListChanged) this.sync();
+        if (fowChanged) this.flushFowDelta();
+        if (tokenListChanged) this.sync();
         
         if (this.renderer) {
              if (fowChanged) this.renderer.fowDirty = true;

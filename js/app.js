@@ -3,6 +3,7 @@ import { getInitialState } from './state.js';
 import { interactionMethods } from './interactions.js';
 import { coreMethods } from './core-methods.js';
 import { socket } from './socket-client.js';
+import { translations } from './i18n.js';
 
 const { createApp } = Vue;
 
@@ -55,7 +56,25 @@ createApp({
     methods: {
         ...interactionMethods,
         ...coreMethods,
-        
+
+        // i18n: liefert den übersetzten String für den aktuellen Zustand (lang).
+        // Format-Platzhalter wie '%s' werden mit args ersetzt.
+        t(key, ...args) {
+            const dict = translations[this.lang] || translations.en || {};
+            let s = dict[key] !== undefined ? dict[key] : (translations.en[key] !== undefined ? translations.en[key] : key);
+            if (args && args.length) {
+                args.forEach(a => { s = s.replace('%s', a); });
+            }
+            return s;
+        },
+        // Sprache setzen (persistiert in localStorage, wirkt sofort auf alle UI-Texte).
+        setLang(lang) {
+            if (translations[lang]) {
+                this.lang = lang;
+                try { localStorage.setItem('lt_lang', lang); } catch(e){}
+            }
+        },
+
         setupEventListeners() {
             window.addEventListener('mousedown', this.onDown);
             window.addEventListener('mousemove', this.onMove);
@@ -108,6 +127,8 @@ createApp({
                 this.renderer.rebuildMap();
                 this.renderer.drawingsDirty = true; 
                 this.renderer.lightsDirty = true; // BUGFIX: Lights dirty setzen beim init
+                // BUGFIX: Nach Refresh Tag/Nacht-Übergang (Darkness) starten, sonst bleibt es bei "Tag"
+                this.renderer.startLightLoop();
                 this.renderer.requestRender(); 
             }
         });
@@ -173,11 +194,35 @@ createApp({
         // NEU: Empfange Kamera Liste
         socket.on('available_cameras', (cams) => { this.availableCameras = cams; });
         
+        // A2: fow_visited Delta/Full empfangen (auf jedem Client anwenden)
+        // Kein direktes updateFoWMemory(true) – renderFoW bakt inkrementell (false).
+        socket.on('fow_visited_delta', (data) => {
+            const points = data.points || [];
+            if (points.length === 0) return;
+            if (!this.scene.fow_visited) this.scene.fow_visited = [];
+            this.scene.fow_visited.push(...points);
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.requestRender();
+            }
+        });
+        socket.on('fow_visited_full', (data) => {
+            const points = data.points || [];
+            this.scene.fow_visited = points;
+            if (this.renderer) {
+                this.renderer.fowDirty = true;
+                this.renderer.requestRender();
+            }
+        });
+        // A2: Periodischer Vollabgleich nur auf der GM-Seite senden
+        if (this.isGM) this.startFowSync();
+        
         // --- PERFORMANCE OPTIMIZATION: REMOVED PERMANENT TICKER ---
         // The render loop is now event-driven via requestRender()
     },
     beforeUnmount() { 
         this.removeEventListeners(); 
         window.removeEventListener('keydown', this.onKeyDown);
+        this.stopFowSync();
     }
 }).mount('#app');

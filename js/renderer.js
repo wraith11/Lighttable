@@ -35,6 +35,8 @@ export class GameRenderer {
         
         this.lightMaskContainer = new PIXI.Container();
         this.lightTintContainer = new PIXI.Container();
+        this.flickerMaskContainer = new PIXI.Container();
+        this.flickerTintContainer = new PIXI.Container();
         
         this.depthLayer = new PIXI.Container();
         // Statischer Blur für Konsistenz beim Zoomen
@@ -50,10 +52,17 @@ export class GameRenderer {
 
         this.mapDirty = true; 
         this.lightsDirty = true;
+        this.flickerDirty = false;
         this.drawingsDirty = true; 
         this.fowDirty = true; 
+        this.fowBlurDirty = false;
+        this.fowBlurredTexture = null;
+        this.fowMemoryScale = 0.5;
+        this._fowSettleTimer = null;
+        this._lastFoWRenderTime = 0;
+        this._lastFoWViewHash = "";
         this._cachedSegments = null;
-        this.shadowsNeedCaching = false;
+        this._segmentsVersion = 0;
         
         this._lastScale = -1;
         this._lastViewX = -99999;
@@ -61,7 +70,6 @@ export class GameRenderer {
         this._renderDirty = true; 
         this.lastFlickerUpdate = 0;
         this.lastFoWPathLength = 0;
-        this.lastPlayerViewHash = ""; 
         
         this._cacheState = { grid: '', overlay: '', pFrame: '' };
 
@@ -155,11 +163,15 @@ export class GameRenderer {
         });
         
         this.pixiApp.stage.addChild(this.containers.nightLayer);
-        this.containers.nightLayer.addChild(this.lightTintContainer);
+        // Tint-Container gehören in die Welt UNTER dem FoW (zIndex 900 < 1000),
+        // damit der Nebel die Licht-Farbtönung verdeckt.
+        this.lightTintContainer.zIndex = 900;
+        this.flickerTintContainer.zIndex = 900;
+        this.world.addChild(this.lightTintContainer);
+        this.world.addChild(this.flickerTintContainer);
 
         this.containers.shadows.filters = [this.shadowFilter];
         this.containers.shadows.alpha = 0.5;
-        this.containers.shadows.cacheAsBitmap = true; 
         
         this.requestRender();
     }
@@ -245,19 +257,12 @@ export class GameRenderer {
     setDragState(drag, selId) {
         if (drag.active) {
             this._renderDirty = true;
-            // Disable shadow caching ONLY for structural changes (walls/columns)
-            // BUGFIX: Removed 'obj' from here to prevent shadow flickering when moving furniture
-            if(drag.mode === 'wall_move' || drag.mode === 'wall_drag' || drag.mode === 'column_move') {
-                this.containers.shadows.cacheAsBitmap = false;
-            }
         } else {
              const newHash = `${drag.mode}_${selId}`;
              if (this.lastDragHash !== newHash) {
                  this._renderDirty = true;
                  this.lastDragHash = newHash;
              }
-             // Re-enable caching on drop handled via shadowsNeedCaching logic in render()
-             this.shadowsNeedCaching = true;
         }
         this.dragState = drag;
         this.selectedObjId = selId;
@@ -265,84 +270,168 @@ export class GameRenderer {
     
     setBlobs(blobs) { this.activeBlobs = blobs; }
 
+    // Setzt die FoW-Memory-Textur zurück (wird beim nächsten Einbrennen neu aufgebaut)
+    resetFoWMemory() {
+        if (this.fowMemoryTexture) { this.fowMemoryTexture.destroy(true); this.fowMemoryTexture = null; }
+        if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+        this.lastFoWPathLength = 0;
+        this.fowBlurDirty = false;
+        this.fowWorldX = this.fowWorldY = this.fowWorldW = this.fowWorldH = 0;
+    }
+
     updateFoWMemory(forceRebuild = false) {
         if (!this.scene.fow_active || this.scene.fow_mode !== 'permanent') return;
         
+        const visited = this.scene.fow_visited || [];
+
+        // --- FESTES Welt-Feld: wird automatisch erweitert, wenn neue Punkte außerhalb liegen.
+        // Start: Player-View + 400px Rand, fest in der Welt verankert (nicht an die View gebunden).
         const pv = this.scene.player_view;
         const gs = this.scene.grid_size;
-        const w = Math.max(1, pv.width_cells * gs);
-        const h = Math.max(1, w / pv.aspect);
-        
-        // OPTIMIZATION: Round values to prevent micro-jitter rebuilds
-        const viewHash = `${Math.round(pv.x)}_${Math.round(pv.y)}_${Math.round(w)}_${Math.round(h)}`;
-        if (viewHash !== this.lastPlayerViewHash) forceRebuild = true;
-        this.lastPlayerViewHash = viewHash;
+        const vw = Math.max(1, pv.width_cells * gs);
+        const vh = Math.max(1, vw / pv.aspect);
 
-        if (!this.fowMemoryTexture || forceRebuild) {
-             if (this.fowMemoryTexture) this.fowMemoryTexture.destroy(true);
-             this.fowMemoryTexture = PIXI.RenderTexture.create({ 
-                 width: Math.ceil(w), 
-                 height: Math.ceil(h),
-                 scaleMode: PIXI.SCALE_MODES.LINEAR
-             });
-             this.lastFoWPathLength = 0; 
-        }
-        
-        const visited = this.scene.fow_visited || [];
-        
-        // Safety check: if visited array was reset, force rebuild
-        if (visited.length < this.lastFoWPathLength) {
+        if (!this.fowMemoryTexture) {
+            // Feld-Rand = volle Default-Vision (400), damit eine Figur am Rand der
+            // Player-View ihre komplette Sichtweite innerhalb des Felds aufdeckt.
+            this.fowWorldX = pv.x - vw/2 - 400;
+            this.fowWorldY = pv.y - vh/2 - 400;
+            this.fowWorldW = vw + 800;
+            this.fowWorldH = vh + 800;
+            this.fowMemoryScale = 1.0;
+            this.fowMemoryTexture = PIXI.RenderTexture.create({ 
+                width: Math.max(1, Math.ceil(this.fowWorldW * this.fowMemoryScale)), 
+                height: Math.max(1, Math.ceil(this.fowWorldH * this.fowMemoryScale)),
+                scaleMode: PIXI.SCALE_MODES.LINEAR
+            });
+            if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+            this.lastFoWPathLength = 0; 
+            this.fowBlurDirty = true;
             forceRebuild = true;
-            this.lastFoWPathLength = 0;
         }
 
+        // Safety: visited wurde zurückgesetzt
+        if (visited.length < this.lastFoWPathLength) { forceRebuild = true; this.lastFoWPathLength = 0; }
         if (visited.length === this.lastFoWPathLength && !forceRebuild) return;
+
+        // --- Automatische Erweiterung des Welt-Felds, falls neue Punkte außerhalb liegen.
+        if (!forceRebuild) {
+            let needsGrow = false;
+            let minX = this.fowWorldX, minY = this.fowWorldY, maxX = this.fowWorldX+this.fowWorldW, maxY = this.fowWorldY+this.fowWorldH;
+            for (let i = this.lastFoWPathLength; i < visited.length; i++) {
+                const p = visited[i]; const r = (p.radius||400);
+                if (p.x - r < minX) { minX = p.x - r; needsGrow = true; }
+                if (p.x + r > maxX) { maxX = p.x + r; needsGrow = true; }
+                if (p.y - r < minY) { minY = p.y - r; needsGrow = true; }
+                if (p.y + r > maxY) { maxY = p.y + r; needsGrow = true; }
+            }
+            if (needsGrow) {
+                // Alten Inhalt in eine größere Textur verschieben (neuer Welt-Ursprung)
+                const oldTex = this.fowMemoryTexture;
+                const oldX = this.fowWorldX, oldY = this.fowWorldY;
+                const nw = Math.max(this.fowWorldW, (maxX - minX) + 800);
+                const nh = Math.max(this.fowWorldH, (maxY - minY) + 800);
+                const newTex = PIXI.RenderTexture.create({ width: Math.max(1, Math.ceil(nw * this.fowMemoryScale)), height: Math.max(1, Math.ceil(nh * this.fowMemoryScale)), scaleMode: PIXI.SCALE_MODES.LINEAR });
+                // Alten Inhalt an neue Position kopieren
+                const oldSprite = new PIXI.Sprite(oldTex);
+                oldSprite.position.set((oldX - minX) * this.fowMemoryScale, (oldY - minY) * this.fowMemoryScale);
+                this.pixiApp.renderer.render(oldSprite, { renderTexture: newTex, clear: true, transform: null });
+                oldSprite.destroy({children:true});
+                oldTex.destroy(true);
+                this.fowMemoryTexture = newTex;
+                this.fowWorldX = minX; this.fowWorldY = minY; this.fowWorldW = nw; this.fowWorldH = nh;
+                if (this.fowBlurredTexture) { this.fowBlurredTexture.destroy(true); this.fowBlurredTexture = null; }
+                this.fowBlurDirty = true;
+                // Nach dem Wachsen alles neu einbrennen (nur den Inhalt, die alten Punkte)
+                forceRebuild = true;
+            }
+        }
+
+        // THROTTLE: Bündeln auf ~150ms
+        const now = performance.now();
+        if (!forceRebuild && (now - (this._lastFoWBakeTime || 0)) < 150) return;
 
         const segments = this.getSegments();
         const brush = new PIXI.Graphics();
         brush.beginFill(0xFFFFFF, 1.0); 
 
-        // OPTIMIZATION: Only draw new segments unless forced
         const startIdx = forceRebuild ? 0 : this.lastFoWPathLength;
-        const viewX = pv.x - w/2;
-        const viewY = pv.y - h/2;
+        const viewX = this.fowWorldX;
+        const viewY = this.fowWorldY;
+        const ms = this.fowMemoryScale || 1.0;
 
         for (let i = startIdx; i < visited.length; i++) {
             const pt = visited[i];
-            const relX = pt.x - viewX;
-            const relY = pt.y - viewY;
-            
-            // Loose culling for drawing bounds
-            if (relX < -pt.radius || relX > w + pt.radius || relY < -pt.radius || relY > h + pt.radius) continue;
+            const relX = (pt.x - viewX) * ms;
+            const relY = (pt.y - viewY) * ms;
+            if (relX < -pt.radius * ms || relX > this.fowWorldW * ms + pt.radius * ms || relY < -pt.radius * ms || relY > this.fowWorldH * ms + pt.radius * ms) continue;
 
             const poly = calculateVisibility({x: pt.x, y: pt.y, radius: pt.radius}, segments);
             if (poly.length > 0) {
-                brush.moveTo(poly[0].x - viewX, poly[0].y - viewY);
-                for (let j=1; j<poly.length; j++) brush.lineTo(poly[j].x - viewX, poly[j].y - viewY);
+                brush.moveTo((poly[0].x - viewX) * ms, (poly[0].y - viewY) * ms);
+                for (let j=1; j<poly.length; j++) brush.lineTo((poly[j].x - viewX) * ms, (poly[j].y - viewY) * ms);
                 brush.closePath();
             } else {
-                brush.drawCircle(relX, relY, pt.radius);
+                brush.drawCircle(relX, relY, pt.radius * ms);
             }
         }
         brush.endFill();
-        brush.filters = [new PIXI.BlurFilter(15)]; 
-
-        // OPTIMIZATION: clear: false preserves history (baking)
-        this.pixiApp.renderer.render(brush, { 
-            renderTexture: this.fowMemoryTexture, 
-            clear: forceRebuild, 
-            transform: null
-        });
+        this.pixiApp.renderer.render(brush, { renderTexture: this.fowMemoryTexture, clear: forceRebuild, transform: null });
+        brush.destroy();
 
         this.lastFoWPathLength = visited.length;
+        this._lastFoWBakeTime = now;
+        this.fowBlurDirty = true;
+    }
+
+    // Wendet den weichen Rand der Memory-Sicht an. Läuft nach jedem Bake (fowBlurDirty),
+    // damit der FoW-Rand dauerhaft weich ist – unabhängig davon, ob sich Token bewegen.
+    ensureFoWBlur() {
+        if (!this.fowBlurDirty) return;
+        this.fowBlurDirty = false;
+        if (!this.fowMemoryTexture) return;
+        const w = this.fowMemoryTexture.width;
+        const h = this.fowMemoryTexture.height;
+        if (!this.fowBlurredTexture || this.fowBlurredTexture.width !== w || this.fowBlurredTexture.height !== h) {
+            if (this.fowBlurredTexture) this.fowBlurredTexture.destroy(true);
+            this.fowBlurredTexture = PIXI.RenderTexture.create({width: w, height: h});
+        }
+        if (!this.fowBlurFilter) this.fowBlurFilter = new PIXI.BlurFilter(24);
+        const src = new PIXI.Sprite(this.fowMemoryTexture);
+        src.filters = [this.fowBlurFilter];
+        this.pixiApp.renderer.render(src, {renderTexture: this.fowBlurredTexture, clear: true, transform: null});
+        src.destroy({children: true});
     }
 
     renderFoW() {
-        this.containers.fow.removeChildren();
-        if (!this.scene.fow_active) return;
+        if (!this.scene.fow_active) {
+            // FoW ausgeschaltet → alle FoW-Sprites entfernen, damit die Map aufgedeckt ist
+            while (this.containers.fow.children.length > 0) {
+                this.containers.fow.removeChildAt(0).destroy({ children: true });
+            }
+            return;
+        }
+
+        // PERFORMANCE: FoW-Rendering drosseln (~15fps), damit das Tracking im Main-Thread
+        // nicht ausgebremst wird. Wichtige Änderungen (fowDirty, View-Wechsel) rendern sofort.
+        const now = performance.now();
+        const viewHashNow = `${Math.round(this.world.x)}_${Math.round(this.world.y)}_${Math.round(this.world.scale.x*100)}`;
+        const viewChangedNow = viewHashNow !== this._lastFoWViewHash;
+        if (viewChangedNow) this._lastFoWViewHash = viewHashNow;
+        if (!this.fowDirty && !viewChangedNow && (now - (this._lastFoWRenderTime || 0)) < 66) {
+            return;
+        }
+        this._lastFoWRenderTime = now;
+
+        // Zerstöre vorherige FoW-Sprites erst NACH der Drosselung, damit das letzte
+        // FoW-Bild zwischen zwei Renders stehen bleibt (kein Flackern).
+        while (this.containers.fow.children.length > 0) {
+            this.containers.fow.removeChildAt(0).destroy({ children: true });
+        }
 
         const segments = this.getSegments();
-        this.updateFoWMemory(this.fowDirty);
+        // false = inkrementell einbrennen (nur neue Punkte), statt bei jeder Bewegung alles neu zu baken
+        this.updateFoWMemory(false);
         this.fowDirty = false;
 
         const screenW = this.pixiApp.screen.width;
@@ -359,29 +448,39 @@ export class GameRenderer {
         blackRect.drawRect(0, 0, screenW, screenH);
         blackRect.endFill();
         this.pixiApp.renderer.render(blackRect, { renderTexture: this.fowScreenTexture, clear: true });
+        blackRect.destroy();
 
         const visionContainer = new PIXI.Container();
         visionContainer.position.set(this.world.x, this.world.y);
         visionContainer.scale.set(this.world.scale.x, this.world.scale.y);
         visionContainer.rotation = this.world.rotation;
 
-        // Permanent Memory Layer
+        // Permanent Memory Layer (fest in der Welt verankert, nicht an die Player-View gebunden)
         if (this.scene.fow_mode === 'permanent' && this.fowMemoryTexture) {
-             const pv = this.scene.player_view;
-             const gs = this.scene.grid_size;
-             const w = pv.width_cells * gs;
-             const h = w / pv.aspect;
-             
-             const permSprite = new PIXI.Sprite(this.fowMemoryTexture);
-             permSprite.position.set(pv.x - w/2, pv.y - h/2);
+             this.ensureFoWBlur();
+             const tex = this.fowBlurredTexture || this.fowMemoryTexture;
+             const permSprite = new PIXI.Sprite(tex);
+             permSprite.position.set(this.fowWorldX, this.fowWorldY);
+             const invScale = 1 / (this.fowMemoryScale || 1.0);
+             permSprite.scale.set(invScale, invScale);
              permSprite.blendMode = PIXI.BLEND_MODES.DST_OUT; 
              visionContainer.addChild(permSprite);
         }
 
         // Live Vision (applies to both Temporary and Permanent modes)
+        const segV = this._segmentsVersion;
         Object.values(this.scene.tokens).forEach(t => {
-            if (t.has_vision) { 
-                const poly = calculateVisibility({x:t.x, y:t.y, radius: t.vision_range}, segments);
+            // Live-Vision nur für Tokens mit sichtbarem Blob (abandoned Token zeigen kein Sichtfeld)
+            if (!t.has_vision) return;
+            if (!t.blob_id || !this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
+            { 
+                // D1: Vision-Polygon cachen – nur neu berechnen bei Bewegung, Reichweiten- oder Wandänderung
+                const vKey = `${Math.round(t.x)}_${Math.round(t.y)}_${Math.round(t.vision_range)}_${segV}`;
+                if (t._visionKey !== vKey) {
+                    t._visionPoly = calculateVisibility({x:t.x, y:t.y, radius: t.vision_range}, segments);
+                    t._visionKey = vKey;
+                }
+                const poly = t._visionPoly;
                 if(poly.length > 0) {
                     // Create gradient texture (brightness 1.0 = fully clear)
                     const tex = this.createVisionTexture(t.vision_range);
@@ -403,6 +502,7 @@ export class GameRenderer {
         });
 
         this.pixiApp.renderer.render(visionContainer, { renderTexture: this.fowScreenTexture, clear: false });
+        visionContainer.destroy({ children: true });
 
         const finalSprite = new PIXI.Sprite(this.fowScreenTexture);
         const invScale = 1 / this.world.scale.x;
@@ -457,17 +557,11 @@ export class GameRenderer {
         }
 
         if (this.dragState.active) this._renderDirty = true;
-        if (this.mapDirty || this.lightsDirty || this.drawingsDirty || this.fowDirty) this._renderDirty = true;
+        if (this.mapDirty || this.lightsDirty || this.flickerDirty || this.drawingsDirty || this.fowDirty) this._renderDirty = true;
 
-        // Optimization: Return early if nothing to render and shadows are stable
-        if (!this._renderDirty && !this.shadowsNeedCaching) {
+        // Optimization: Return early if nothing to render
+        if (!this._renderDirty) {
              return; 
-        }
-
-        // Handle delayed cache enabling for shadows to prevent artifacts
-        if (this.shadowsNeedCaching && !this.mapDirty) {
-             this.containers.shadows.cacheAsBitmap = true;
-             this.shadowsNeedCaching = false;
         }
 
         let bgHex = 0x222222;
@@ -485,6 +579,7 @@ export class GameRenderer {
             this.lightsDirty = true; 
             this.fowDirty = true; 
             this._cachedSegments = null; 
+            this._segmentsVersion++;
         }
 
         if (this.depthGraphics) {
@@ -528,6 +623,7 @@ export class GameRenderer {
         ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
         const tex = PIXI.Texture.from(canvas); 
         this.textureCache[key] = tex;
+        this.capTextureCache();
         return tex;
     }
 
@@ -545,7 +641,23 @@ export class GameRenderer {
         ctx.fillStyle = grd; ctx.fillRect(0, 0, dim, dim);
         const tex = PIXI.Texture.from(canvas); 
         this.textureCache[key] = tex;
+        this.capTextureCache();
         return tex;
+    }
+
+    // E: Begrenzt den Texture-Cache, damit er durch viele Radius-/Helligkeits-Kombinationen nicht unbegrenzt wächst.
+    capTextureCache() {
+        const MAX = 80;
+        const keys = Object.keys(this.textureCache);
+        if (keys.length <= MAX) return;
+        // Älteste Einträge entfernen (einfachste Eviction-Reihenfolge)
+        const excess = keys.length - MAX;
+        for (let i = 0; i < excess; i++) {
+            const k = keys[i];
+            const tex = this.textureCache[k];
+            if (tex) { try { tex.destroy(true); } catch(e){} }
+            delete this.textureCache[k];
+        }
     }
     
     animateLights() {
@@ -563,7 +675,7 @@ export class GameRenderer {
                 anyFlicker = true;
             } else { l.currentFlickerRadius = 0; }
         });
-        if (anyFlicker) { this.lightsDirty = true; this._renderDirty = true; }
+        if (anyFlicker) { this.flickerDirty = true; this._renderDirty = true; }
         
         let targetDarkness = 0;
         if (this.scene.time_of_day === 'night') targetDarkness = 0.70; 
@@ -580,18 +692,23 @@ export class GameRenderer {
             }
         }
         
-        if (darknessChanged) { this.lightsDirty = true; this._renderDirty = true; }
+        if (darknessChanged) { this.flickerDirty = true; this._renderDirty = true; }
         
         // Return true if we need to keep animating (flicker active or transition active)
         return anyFlicker || darknessChanged;
     }
 
+    // Entfernt den Hintergrund-Sprite sofort und zuverlässig (für "Neue Karte")
+    clearBackground() {
+        while (this.containers.bgImage.children.length > 0) {
+            this.containers.bgImage.removeChildAt(0).destroy({ children: true, texture: false, baseTexture: false });
+        }
+        if (this.scene.background_image) this.scene.background_image.url = null;
+        this.mapDirty = true;
+        this.requestRender();
+    }
+
     rebuildMap() {
-        // Disable caching immediately to allow updates
-        this.containers.shadows.cacheAsBitmap = false;
-        // Mark for re-caching in the next render cycle to avoid artifacts
-        this.shadowsNeedCaching = true;
-        
         const cleanContainer = (container) => {
             while(container.children.length > 0) {
                 const child = container.getChildAt(0);
@@ -792,7 +909,7 @@ export class GameRenderer {
         const lc = this.containers.lights; 
         
         if (this.lightsDirty) {
-             lc.removeChildren(); 
+             while (lc.children.length > 0) lc.removeChildAt(0).destroy();
              if(this.isGM && this.scene.show_light_icons) {
                 this.scene.lights.forEach(l => {
                     const icon = new PIXI.Graphics();
@@ -804,15 +921,36 @@ export class GameRenderer {
 
         if (!this.scene.lights_active) {
             nl.visible = false;
+            this.lightTintContainer.visible = false;
+            this.flickerTintContainer.visible = false;
             this.lightsDirty = false;
+            this.flickerDirty = false;
             return;
         }
         nl.visible = true;
+        this.lightTintContainer.visible = true;
+        this.flickerTintContainer.visible = true;
         
-        if (!this.lightsDirty && !viewChanged) {
-             this.nightSprite.alpha = this.currentDarkness; 
+        if (!this.lightsDirty && !this.flickerDirty && !viewChanged) {
+             if (this.nightSprite) this.nightSprite.alpha = this.currentDarkness; 
              return;
         }
+
+        // C1: Darkness nur rendern, wenn tatsächlich sichtbar (Nachts). Tint bleibt immer erhalten.
+        const needDarkness = this.currentDarkness > 0.005;
+
+        const segments = this.getSegments();
+        const segVersion = this._segmentsVersion;
+        const viewBounds = this.getVisibleWorldBounds();
+
+        const setWorld = (c) => {
+            c.position.set(this.world.x, this.world.y);
+            c.scale.set(this.world.scale.x, this.world.scale.y);
+            c.rotation = this.world.rotation;
+        };
+        // Tint-Container sind jetzt Kinder der Welt und erben deren Transform – keine manuelle Welt-Transform nötig
+        setWorld(this.lightMaskContainer);
+        setWorld(this.flickerMaskContainer);
 
         const cleanAndDestroy = (container) => {
              while (container.children.length > 0) {
@@ -822,68 +960,50 @@ export class GameRenderer {
             }
         };
 
-        cleanAndDestroy(this.lightMaskContainer);
-        cleanAndDestroy(this.lightTintContainer);
-        
-        if (!this.darknessTexture || this.darknessTexture.width !== this.pixiApp.screen.width || this.darknessTexture.height !== this.pixiApp.screen.height) {
-            if(this.darknessTexture) this.darknessTexture.destroy(true);
-            this.darknessTexture = PIXI.RenderTexture.create({width: this.pixiApp.screen.width, height: this.pixiApp.screen.height});
-            
-            if (this.nightSprite) this.nightSprite.destroy();
-            this.nightSprite = new PIXI.Sprite(this.darknessTexture);
-            this.nightSprite.blendMode = PIXI.BLEND_MODES.NORMAL;
-            nl.addChildAt(this.nightSprite, 0); 
-        }
+        const inView = (l, effR) => {
+            return !(l.x + effR < viewBounds.x || l.x - effR > viewBounds.x + viewBounds.width ||
+                     l.y + effR < viewBounds.y || l.y - effR > viewBounds.y + viewBounds.height);
+        };
 
-        this.darknessBg.clear();
-        this.darknessBg.beginFill(0x050510, 1.0); 
-        this.darknessBg.drawRect(0,0, this.pixiApp.screen.width, this.pixiApp.screen.height);
-        this.darknessBg.endFill();
-        this.pixiApp.renderer.render(this.darknessBg, {renderTexture: this.darknessTexture, clear: true});
+        // C2: Sicht-Polygon pro Licht cachen (Weltkoordinaten, view-unabhängig).
+        // Neu nur, wenn Position/effektiver Radius/Wände sich ändern.
+        const getCachedPoly = (l, effR) => {
+            const key = `${Math.round(l.x)}_${Math.round(l.y)}_${Math.round(effR)}_${segVersion}`;
+            if (l._polyKey !== key) {
+                const cullDist = effR + 50;
+                const nearby = segments.filter(s => {
+                    return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
+                             Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
+                });
+                l._poly = calculateVisibility({x:l.x, y:l.y, radius: effR}, nearby);
+                l._polyKey = key;
+            }
+            return l._poly;
+        };
 
-        const segments = this.getSegments();
-        
-        this.lightTintContainer.position.set(this.world.x, this.world.y);
-        this.lightTintContainer.scale.set(this.world.scale.x, this.world.scale.y);
-        this.lightTintContainer.rotation = this.world.rotation;
-        
-        this.lightMaskContainer.position.set(this.world.x, this.world.y);
-        this.lightMaskContainer.scale.set(this.world.scale.x, this.world.scale.y);
-        this.lightMaskContainer.rotation = this.world.rotation;
-
-        const viewBounds = this.getVisibleWorldBounds();
-
-        this.scene.lights.forEach(l => {
+        const buildGraphics = (l, maskContainer, tintContainer) => {
             const flickerOffset = l.currentFlickerRadius || 0;
             const baseRadius = l.radius;
             const effectiveRadius = baseRadius + flickerOffset;
+            if (!inView(l, effectiveRadius)) return;
+            const poly = getCachedPoly(l, effectiveRadius);
+            if (poly.length === 0) return;
+            const tex = this.createGradientTexture(baseRadius, l.brightness === undefined ? 0.5 : l.brightness);
             const flickerScale = effectiveRadius / baseRadius;
+            const matrix = new PIXI.Matrix();
+            matrix.translate(-tex.width / 2, -tex.height / 2);
+            matrix.scale(flickerScale, flickerScale);
+            matrix.translate(l.x, l.y);
 
-            if (l.x + effectiveRadius < viewBounds.x || l.x - effectiveRadius > viewBounds.x + viewBounds.width ||
-                l.y + effectiveRadius < viewBounds.y || l.y - effectiveRadius > viewBounds.y + viewBounds.height) return;
-
-            const cullDist = effectiveRadius + 50; 
-            const nearbySegments = segments.filter(s => {
-                return !(Math.max(s.a.x, s.b.x) < l.x - cullDist || Math.min(s.a.x, s.b.x) > l.x + cullDist ||
-                         Math.max(s.a.y, s.b.y) < l.y - cullDist || Math.min(s.a.y, s.b.y) > l.y + cullDist);
-            });
-
-            const poly = calculateVisibility({x:l.x, y:l.y, radius: effectiveRadius}, nearbySegments);
-            
-            if(poly.length > 0) {
-                const tex = this.createGradientTexture(baseRadius, l.brightness === undefined ? 0.5 : l.brightness);
-                const matrix = new PIXI.Matrix();
-                matrix.translate(-tex.width / 2, -tex.height / 2);
-                matrix.scale(flickerScale, flickerScale);
-                matrix.translate(l.x, l.y);
-
+            if (needDarkness && maskContainer) {
                 const holeG = new PIXI.Graphics();
                 holeG.beginTextureFill({ texture: tex, matrix: matrix });
                 holeG.drawPolygon(poly); 
                 holeG.endFill();
                 holeG.blendMode = PIXI.BLEND_MODES.DST_OUT;
-                this.lightMaskContainer.addChild(holeG);
-                
+                maskContainer.addChild(holeG);
+            }
+            if (tintContainer) {
                 const colorG = new PIXI.Graphics();
                 colorG.beginTextureFill({ texture: tex, matrix: matrix });
                 colorG.drawPolygon(poly);
@@ -891,13 +1011,54 @@ export class GameRenderer {
                 colorG.blendMode = PIXI.BLEND_MODES.ADD;
                 colorG.tint = l.color ? parseInt(l.color.replace('#', ''), 16) : 0xffaa00;
                 colorG.alpha = (l.color_intensity !== undefined) ? l.color_intensity : 0.2;
-                this.lightTintContainer.addChild(colorG);
+                tintContainer.addChild(colorG);
             }
-        });
+        };
 
-        this.pixiApp.renderer.render(this.lightMaskContainer, { renderTexture: this.darknessTexture, clear: false });
-        this.nightSprite.alpha = this.currentDarkness; 
+        // C3: Flackernde von statischen Lichtern trennen.
+        // Statische Lichter werden nur bei lightsDirty (strukturelle Änderung) neu aufgebaut,
+        // nicht bei jedem Flacker-Tick.
+        const staticLights = this.scene.lights.filter(l => !l.flicker);
+        const flickerLights = this.scene.lights.filter(l => !!l.flicker);
+
+        if (this.lightsDirty) {
+            cleanAndDestroy(this.lightMaskContainer);
+            cleanAndDestroy(this.lightTintContainer);
+            staticLights.forEach(l => buildGraphics(l, this.lightMaskContainer, this.lightTintContainer));
+            cleanAndDestroy(this.flickerMaskContainer);
+            cleanAndDestroy(this.flickerTintContainer);
+            flickerLights.forEach(l => buildGraphics(l, this.flickerMaskContainer, this.flickerTintContainer));
+        } else if (this.flickerDirty) {
+            // Nur Flacker-Layer neu aufbauen
+            cleanAndDestroy(this.flickerMaskContainer);
+            cleanAndDestroy(this.flickerTintContainer);
+            flickerLights.forEach(l => buildGraphics(l, this.flickerMaskContainer, this.flickerTintContainer));
+        }
+
+        // Darkness-Texture aufbauen (C1: nur wenn Darkness sichtbar)
+        if (needDarkness) {
+            if (!this.darknessTexture || this.darknessTexture.width !== this.pixiApp.screen.width || this.darknessTexture.height !== this.pixiApp.screen.height) {
+                if(this.darknessTexture) this.darknessTexture.destroy(true);
+                this.darknessTexture = PIXI.RenderTexture.create({width: this.pixiApp.screen.width, height: this.pixiApp.screen.height});
+                if (this.nightSprite) this.nightSprite.destroy();
+                this.nightSprite = new PIXI.Sprite(this.darknessTexture);
+                this.nightSprite.blendMode = PIXI.BLEND_MODES.NORMAL;
+                nl.addChildAt(this.nightSprite, 0); 
+            }
+
+            this.darknessBg.clear();
+            this.darknessBg.beginFill(0x050510, 1.0); 
+            this.darknessBg.drawRect(0,0, this.pixiApp.screen.width, this.pixiApp.screen.height);
+            this.darknessBg.endFill();
+            this.pixiApp.renderer.render(this.darknessBg, {renderTexture: this.darknessTexture, clear: true});
+
+            this.pixiApp.renderer.render(this.lightMaskContainer, { renderTexture: this.darknessTexture, clear: false });
+            this.pixiApp.renderer.render(this.flickerMaskContainer, { renderTexture: this.darknessTexture, clear: false });
+        }
+
+        if (this.nightSprite) this.nightSprite.alpha = this.currentDarkness; 
         this.lightsDirty = false;
+        this.flickerDirty = false;
     }
 
     renderOverlays(viewChanged) {
@@ -1073,22 +1234,16 @@ export class GameRenderer {
 
     renderStaticDrawings() {
         const gs = this.scene.grid_size;
-        const visitedIds = new Set();
+        // Container komplett leeren – verhindert, dass gelöschte Hintergrund-Grafiken
+        // (Kreise/Rechteck-Pinsel) als "Geister" verdunkelt stehen bleiben.
+        while (this.containers.draw.children.length > 0) {
+            this.containers.draw.removeChildAt(0).destroy({ children: true, texture: true, baseTexture: false });
+        }
+        this.drawingCache = {};
         
         if (this.scene.drawings) {
             this.scene.drawings.forEach(item => {
                 if (!item.id) return; 
-                visitedIds.add(item.id);
-                if (this.drawingCache[item.id]) {
-                    if (this.drawingCache[item.id]._isPlaceholder) {
-                        const tex = PIXI.Texture.from(item.texture);
-                        if (tex.valid && tex.width > 1) {
-                            this.drawingCache[item.id].destroy({ children: true, texture: true, baseTexture: false });
-                            delete this.drawingCache[item.id];
-                        } else { return; }
-                    } else { return; }
-                }
-                
                 if (item.texture) {
                     const tex = PIXI.Texture.from(item.texture);
                     if (!tex.valid || tex.width <= 1) {
@@ -1106,13 +1261,6 @@ export class GameRenderer {
                 this.drawingCache[item.id] = g;
             });
         }
-        
-        Object.keys(this.drawingCache).forEach(id => {
-            if (!visitedIds.has(id)) {
-                this.drawingCache[id].destroy({ children: true, texture: true, baseTexture: false });
-                delete this.drawingCache[id];
-            }
-        });
     }
 
     renderPreviewDrawing() {
@@ -1218,7 +1366,10 @@ export class GameRenderer {
         let anyMoved = false;
 
         Object.values(this.scene.tokens).forEach(t => {
-            if (!t.blob_id && !t.on_board) return;
+            // Token werden NUR angezeigt, wenn ein Blob zugewiesen UND aktuell sichtbar ist.
+            // Ohne sichtbaren Blob (abandoned / verloren) verschwinden sie von der Karte.
+            if (!t.blob_id) return;
+            if (!this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
             
             activeTokenIds.add(t.uuid);
             
@@ -1239,12 +1390,14 @@ export class GameRenderer {
             const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
 
             if (tc._cachedProps !== currentProps) {
-                tc.removeChildren();
+                while (tc.children.length > 0) tc.removeChildAt(0).destroy();
                 const color = t.spotlight_color ? parseInt(t.spotlight_color.replace('#',''),16) : 0xffffff;
                 const g = new PIXI.Graphics();
                 g.beginFill(color, 1.0); g.drawCircle(0,0, t.size / 2); g.endFill();
                 const blurAmount = Math.max(1, 16 * this.world.scale.x);
-                g.filters = [new PIXI.BlurFilter(blurAmount)];
+                if (!tc._blurFilter) tc._blurFilter = new PIXI.BlurFilter(blurAmount);
+                else tc._blurFilter.blur = blurAmount;
+                g.filters = [tc._blurFilter];
                 tc.addChild(g);
                 this.drawTokenRings(tc, t);
 
@@ -1287,7 +1440,9 @@ export class GameRenderer {
         
         Object.keys(this.tokenCache).forEach(k => {
             if(!activeTokenIds.has(k)) {
-                this.tokenCache[k].destroy({children:true});
+                const tc = this.tokenCache[k];
+                if (tc._blurFilter) tc._blurFilter.destroy();
+                tc.destroy({children:true});
                 delete this.tokenCache[k];
             }
         });
