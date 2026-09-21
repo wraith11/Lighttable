@@ -161,14 +161,17 @@ The tracking detects figures via **IR reflective surfaces** and an **IR camera**
 - **IR illumination** – one or more IR emitters (e.g. IR LED floodlights at 850 nm) that evenly light the table. The reflective surfaces bounce the IR light back to the camera.
 - **Reflectors** – small reflective surfaces (e.g. retroreflective material, cat-eye film or small IR reflector dots) attached to your miniatures/figures (e.g. on the bottom of the base).
 
+I bought a USB webcam board with night vision (incl. IR emitter), a cheap IR850 infrared filter for a camera, and a matching black plastic housing on Amazon. I taped over the light sensor so the camera is always in night-vision mode. Then I cut a hole in the housing, glued the lens in front of it, and placed the camera inside the housing behind the lens so the IR emitters can shine through the lens. See "Images & Screenshots" below – **IR sensor**
+
 ### Setup
 1. **Position the camera** – vertically above the play area, e.g. on a tripod over the table or on the beamer rig. The camera should capture the whole play area.
 2. **Aim the IR light** evenly across the table – without harsh hotspots.
-3. **Attach reflectors** – to every figure you want tracked.
+3. **Attach reflectors** – to every figure you want tracked. I glued a thin strip between the legs of the base so the reflector is visible from all sides.
 4. **Set up the camera in the system:**
    - In the GM view: **Settings → Camera Setup**.
    - Select the camera and optionally open the driver dialog.
    - **Calibrate:** drag the four corner points onto the corners of the play area to warp the image.
+See "Images & Screenshots" below – **Camera settings**
 
 ### Calibration & correction options
 After alignment, set the tracking parameters in **Settings → Camera Setup**:
