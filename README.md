@@ -248,11 +248,11 @@ Lighttable/
 
 | Editor (GM view) | Playing view (GM + Player) |
 |------------------|----------------------------|
-| ![Editor (GM view)](docs/images/EditorView.png) | ![Playing view](docs/images/PlayingView.png) |
+| ![Editor (GM view)](assets/screenshots/EditorView.png) | ![Playing view](assets/screenshots/PlayingView.png) |
 
 | Camera | IR sensor | Real-life setup |
 |--------|-----------|-----------------|
-| ![Camera](docs/images/Cam.png) | ![IR sensor](docs/images/IR-Sensor.jpg) | ![Real-life setup](docs/images/RealLife.jpg) |
+| ![Camera](assets/screenshots/Cam.png) | ![IR sensor](assets/screenshots/IR-Sensor.jpg) | ![Real-life setup](assets/screenshots/RealLife.jpg) |
 
 ---
 
