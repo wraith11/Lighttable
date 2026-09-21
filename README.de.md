@@ -251,13 +251,13 @@ Lighttable/
 
 ## Bilder & Screenshots
 
-| Spiel-Ansicht (GM + Player) | Kamera-Einstellungen |
-|-----------------------------|----------------------|
-| ![Spiel-Ansicht](docs/images/PlayingView.png) | ![Kamera-Einstellungen](docs/images/CamSettings.png) |
+| Spiel-Ansicht (GM + Player) |
+|-----------------------------|
+| ![Spiel-Ansicht](docs/images/PlayingView.png) |
 
-| IR-Sensor | Reales Setup |
-|-----------|--------------|
-| ![IR-Sensor](docs/images/IR-Sensor.jpg) | ![Reales Setup](docs/images/RealLife.jpg) |
+| Kamera-Einstellungen | IR-Sensor | Reales Setup |
+|----------------------|-----------|--------------|
+| ![Kamera-Einstellungen](docs/images/CamSettings.png) | ![IR-Sensor](docs/images/IR-Sensor.jpg) | ![Reales Setup](docs/images/RealLife.jpg) |
 
 ---
 
