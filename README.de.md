@@ -1,12 +1,10 @@
-<div align="center">
-  <img src="docs/images/MapEditor.png" alt="LightTable Ultimate" width="100%" style="border-radius:8px;">
-  <div style="position:relative; display:inline-block; width:100%;">
-    <svg viewBox="0 0 1200 140" preserveAspectRatio="none" style="position:absolute; top:-140px; left:0; width:100%; height:140px; pointer-events:none;">
-      <path d="M1200,140 L1200,20 C1000,-10 800,60 520,30 C360,15 180,50 0,10 L0,140 Z" fill="rgba(10,15,25,0.75)"/>
-      <text x="60%" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="bold" fill="#ffffff" text-anchor="middle" transform="rotate(-3 60% 78)">LightTable Ultimate</text>
-    </svg>
-  </div>
-</div>
+<p align="center">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="100%" style="border-radius:8px;">
+    <image href="docs/images/MapEditor.png" x="0" y="0" width="1200" height="300" preserveAspectRatio="xMidYMid slice"/>
+    <path d="M1200,300 L1200,60 C1020,20 840,110 560,70 C380,45 180,90 0,40 L0,300 Z" fill="rgba(8,12,20,0.72)"/>
+    <text x="58%" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="60" font-weight="bold" fill="#ffffff" text-anchor="middle" transform="rotate(-2 58% 180)">LightTable Ultimate</text>
+  </svg>
+</p>
 
 > 🌐 **Sprache / Language:** [Deutsch](README.de.md) · [English](README.md)
 
