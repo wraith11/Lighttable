@@ -310,13 +310,15 @@ export const coreMethods = {
         };
         this.scene.objects.push(obj);
         this.selObjId = id;
-        // Originalgröße des Assets übernehmen (1:1 Pixel in Weltkoordinaten)
+        // Relative Größe des Assets beibehalten, aber auf Basisbreite = 1 Grid-Zelle skaliert
         if ((type || 'image') === 'image') {
             const img = new Image();
             img.onload = () => {
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                    obj.width = img.naturalWidth;
-                    obj.height = img.naturalHeight;
+                    const base = this.scene.grid_size || 50;
+                    const ratio = img.naturalHeight / img.naturalWidth;
+                    obj.width = base;
+                    obj.height = Math.max(1, Math.round(base * ratio));
                     this.renderer.mapDirty = true;
                     this.sync();
                     this.renderer.requestRender();
