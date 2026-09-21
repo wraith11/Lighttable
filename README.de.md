@@ -1,4 +1,12 @@
-# LightTable Ultimate
+<div align="center">
+  <img src="docs/images/MapEditor.png" alt="LightTable Ultimate" width="100%" style="border-radius:8px;">
+  <div style="position:relative; display:inline-block; width:100%;">
+    <svg viewBox="0 0 1200 140" preserveAspectRatio="none" style="position:absolute; top:-140px; left:0; width:100%; height:140px; pointer-events:none;">
+      <path d="M1200,140 L1200,20 C1000,-10 800,60 520,30 C360,15 180,50 0,10 L0,140 Z" fill="rgba(10,15,25,0.75)"/>
+      <text x="60%" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="bold" fill="#ffffff" text-anchor="middle" transform="rotate(-3 60% 78)">LightTable Ultimate</text>
+    </svg>
+  </div>
+</div>
 
 > 🌐 **Sprache / Language:** [Deutsch](README.de.md) · [English](README.md)
 
