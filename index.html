@@ -463,7 +463,7 @@
                     </div>
                     <div class="section-title">{{ t('background') }}</div>
                     <div class="drop-zone" style="padding:10px; font-size:0.8em; cursor:pointer;" onclick="document.getElementById('bg-upload').click()">{{ t('uploadImage') }}<input id="bg-upload" type="file" @change="handleBgUpload" style="display:none;"></div>
-                    <div v-if="scene.background_image && scene.background_image.url"><div class="row"><label>{{ t('scale') }}</label><input type="number" step="0.01" v-model.number="scene.background_image.scale" @change="sync"></div><div class="row"><input type="checkbox" v-model="scene.background_image.repeat" @change="sync"> <label>{{ t('repeat') }}</label></div><button class="btn danger" @click="scene.background_image.url=null; sync()">{{ t('remove') }}</button></div>
+                    <div v-if="scene.background_image && scene.background_image.url"><div class="row"><label>{{ t('scale') }}</label><input type="number" step="0.01" v-model.number="scene.background_image.scale" @change="sync"></div><div class="row"><label>X:</label><input type="number" v-model.number="scene.background_image.x" @change="sync"></div><div class="row"><label>Y:</label><input type="number" v-model.number="scene.background_image.y" @change="sync"></div><div class="row"><input type="checkbox" v-model="scene.background_image.repeat" @change="sync"> <label>{{ t('repeat') }}</label></div><button class="btn danger" @click="scene.background_image.url=null; sync()">{{ t('remove') }}</button></div>
                 </div>
 
                 <!-- Tab: Settings -->
