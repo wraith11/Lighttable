@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 echo "Starting ScryTable..."
-python3 lighttable.py "$@"
+python3 scrytable.py "$@"
