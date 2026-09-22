@@ -651,13 +651,11 @@ export const coreMethods = {
                 const isVisible = visibleIds.includes(bIdStr);
                 const isGhost = ghostIds.includes(bIdStr);
                 
+                // Abmelden NUR, wenn der Blob weder sichtbar noch im Ghost-Zustand ist.
+                // Der Backend-Ghost (GHOST_TIMEOUT=5s) hält verdeckte Blobs in lost_ids –
+                // dadurch bleibt der Token bei kurzen Verdeckungen (Hand im Zug) erhalten
+                // und wird erst abgemeldet, wenn der Blob wirklich entfernt wurde.
                 if (!isVisible && !isGhost) {
-                    // Blob ist weder sichtbar noch im Ghost-Zustand (länger weg).
-                    // Robustheit: erst nach einer kurzen Verzögerung abmelden, damit
-                    // kurze Verdeckungen den Token nicht sofort verschwinden lassen.
-                    const now = Date.now();
-                    if (!t._lostSince) t._lostSince = now;
-                    if (now - t._lostSince < 800) return; // 0.8s Toleranz
                     if (t.modified) { 
                         t.blob_id = null; 
                         t.on_board = false; 
@@ -665,7 +663,7 @@ export const coreMethods = {
                     else { tokensToDelete.push(t.uuid); }
                     changes = true;
                 } else {
-                    t._lostSince = 0; // Blob wieder da → zurücksetzen
+                    t._lostSince = 0; // Blob wieder da oder im Ghost → zurücksetzen
                 }
             }
         });
