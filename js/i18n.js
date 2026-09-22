@@ -169,9 +169,6 @@ export const translations = {
     errLoad: "Fehler beim Laden: ",
     confirmLoad: "Karte '%s' laden? Ungespeicherte Änderungen gehen verloren.",
     confirmFowReset: "Wirklich den gesamten Fog of War zurücksetzen?",
-    folderName: "Ordnername:",
-    confirmCamReset: "Kamera-Einstellungen wirklich auf Standard zurücksetzen?",
-    gmView: "GM", playerViewTitle: "Spieler",
-    title: "LightTable Ultimate"
+    confirmCamReset: "Kamera-Einstellungen wirklich auf Standard zurücksetzen?"
   }
 };
