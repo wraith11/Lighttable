@@ -310,15 +310,16 @@ export const coreMethods = {
         };
         this.scene.objects.push(obj);
         this.selObjId = id;
-        // Relative Größe des Assets beibehalten, aber auf Basisbreite = 1 Grid-Zelle skaliert
+        // Relative Größe der Assets zueinander beibehalten, aber in den richtigen Maßstab
+        // zu Feldern/Figuren umgerechnet: Ein 400px-Asset entspricht ~1 Grid-Zelle.
         if ((type || 'image') === 'image') {
             const img = new Image();
             img.onload = () => {
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                    const base = this.scene.grid_size || 50;
-                    const ratio = img.naturalHeight / img.naturalWidth;
-                    obj.width = base;
-                    obj.height = Math.max(1, Math.round(base * ratio));
+                    const gs = this.scene.grid_size || 50;
+                    const scaleFactor = gs / 400;
+                    obj.width = Math.max(1, Math.round(img.naturalWidth * scaleFactor));
+                    obj.height = Math.max(1, Math.round(img.naturalHeight * scaleFactor));
                     this.renderer.mapDirty = true;
                     this.sync();
                     this.renderer.requestRender();
