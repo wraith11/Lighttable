@@ -110,7 +110,6 @@ createApp({
         window.addEventListener('keydown', this.onKeyDown);
         
         // --- Socket Init ---
-        socket.emit('request_init');
         socket.emit('request_assets', {path: ''});
         // NEU: Media Liste anfordern
         if(this.isGM) socket.emit('request_media');
