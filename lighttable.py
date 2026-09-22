@@ -70,7 +70,7 @@ sio.attach(app)
 state = {
     'cam_params': {
         'camera_index': 0,
-        'threshold': 200, 'brightness': 0.5, 'contrast': 0.5, 
+        'threshold': 200, 
         'min_area': 15, 'max_area': 5000, 
         'corners': [[0, 0], [1280, 0], [1280, 720], [0, 720]], 
         'flip_x': False, 'flip_y': False, 
