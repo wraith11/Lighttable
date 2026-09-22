@@ -64,8 +64,8 @@
 ### 1. Projekt herunterladen
 
 ```bash
-git clone https://github.com/wraith11/Lighttable.git
-cd Lighttable
+git clone https://github.com/wraith11/ScryTable.git
+cd ScryTable
 ```
 
 > Möchtest du die neueste Entwicklungs-Version testen, wechsle auf den Branch `dev`:
