@@ -219,8 +219,8 @@ Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Pa
 ## Projektstruktur
 
 ```
-Lighttable/
-├── lighttable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
+ScryTable/
+├── scrytable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
 ├── index.html             # Vue-UI (GM- & Player-Ansicht, mehrsprachig)
 ├── css/style.css          # Styling
 ├── js/
