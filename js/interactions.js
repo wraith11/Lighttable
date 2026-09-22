@@ -210,12 +210,6 @@ export const interactionMethods = {
         }
         
         if(this.selectedObj) { this.selObjId = null; }
-        if(this.tokenClicked) { 
-            this.drag.mode='token'; 
-            this.drag.temp=this.tokenClickedRef; 
-            this.tokenClicked=false; 
-            return; 
-        }
         
         if(this.tool === 'move_player') { 
             this.drag.mode='move_player';
