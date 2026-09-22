@@ -9,15 +9,10 @@ venv/
 config.json
 maps/
 media/
-assets/*
-!assets/screenshots/
 
-# Betriebssystem
+# OS
 .DS_Store
 Thumbs.db
 
-# Doku & Lizenz (bewusst nicht versioniert)
-README.md
-README.de.md
-LICENSE
+# Nur lokale Doku-Bilder (Screenshots) – nicht beim Klonen mitliefern
 docs/
