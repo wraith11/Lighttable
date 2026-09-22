@@ -31,21 +31,6 @@ export const interactionMethods = {
         // ein Linksklick nicht versehentlich weiter die Sicht verschiebt.
         this.drag.mode = null;
 
-        if(this.tool === 'fow_reveal') { 
-            this.drag.mode = 'fow_paint'; this.drag.fowType = 'reveal'; 
-            const s = {type: 'reveal', x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.rebuildFoW(); 
-            this.sync(); return; 
-        }
-        if(this.tool === 'fow_hide') { 
-            this.drag.mode = 'fow_paint'; this.drag.fowType = 'hide'; 
-            const s = {type: 'hide', x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.rebuildFoW();
-            this.sync(); return; 
-        }
-
         if(this.tool === 'eraser' || e.button === 1) {
             if(this.scene.objects_locked) return; e.preventDefault();
             
