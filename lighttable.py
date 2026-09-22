@@ -696,8 +696,11 @@ def run_cv_loop(loop_ref):
                 last_camera_success_time = time.time()
             camera_reset_requested = False
             
-        if camera_settings_requested and cap and cap.isOpened(): 
-            cap.set(37, 1); camera_settings_requested = False
+        if camera_settings_requested:
+            # Flag in jedem Fall zurücksetzen, auch wenn die Kamera gerade nicht offen ist
+            if cap and cap.isOpened():
+                cap.set(37, 1)
+            camera_settings_requested = False
 
         frame = None
         if cap and cap.isOpened():
