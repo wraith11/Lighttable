@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Runtime / Zustandsdaten
+config.json
+maps/
+media/
+assets/*
+!assets/screenshots/
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Doku & Lizenz (bewusst nicht versioniert)
+README.md
+README.de.md
+LICENSE
+docs/
