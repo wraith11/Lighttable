@@ -266,14 +266,6 @@ class BlobTracker:
         assigned_tracks = set()
         assigned_points = set()
 
-        all_matches = []
-        for t_id in all_track_ids:
-            track = self.tracks[t_id]
-            for i, pt in enumerate(detected_points):
-                dist = math.hypot(track['x'] - pt['x'], track['y'] - pt['y'])
-                all_matches.append((t_id, i, dist))
-        all_matches.sort(key=lambda x: x[2])
-
         # Phase 1 + 2: Eindeutiges, positionsbasiertes Matching
         # Eine stabile Zuordnung ist der Schlüssel gegen Vertauschen bei dicht stehenden
         # Figuren. Ein Track wird einem Punkt NUR zugeordnet, wenn er deutlich näher ist
