@@ -218,8 +218,8 @@ After alignment, set the tracking parameters in **Settings → Camera Setup**:
 ## Project structure
 
 ```
-Lighttable/
-├── lighttable.py          # Python server (aiohttp + Socket.IO + OpenCV tracking)
+ScryTable/
+├── scrytable.py          # Python server (aiohttp + Socket.IO + OpenCV tracking)
 ├── index.html             # Vue UI (GM & Player view, multilingual)
 ├── css/style.css          # Styling
 ├── js/
