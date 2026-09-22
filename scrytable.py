@@ -274,57 +274,48 @@ class BlobTracker:
                 all_matches.append((t_id, i, dist))
         all_matches.sort(key=lambda x: x[2])
 
-        # Phase 1: Anker
-        # Etwas größere Schwelle, damit leicht zitternde, unverdeckte Blobs stabil
-        # an ihrer alten Position erkannt werden (bevorzugt vor Teleport).
-        for t_id, p_idx, dist in all_matches:
-            if t_id in assigned_tracks or p_idx in assigned_points: continue
-            if dist < self.ANCHOR_RADIUS * 2.0:
-                self._update_track(t_id, detected_points[p_idx], now, smoothing)
-                assigned_tracks.add(t_id)
-                assigned_points.add(p_idx)
+        # Phase 1 + 2: Eindeutiges, positionsbasiertes Matching
+        # Eine stabile Zuordnung ist der Schlüssel gegen Vertauschen bei dicht stehenden
+        # Figuren. Ein Track wird einem Punkt NUR zugeordnet, wenn er deutlich näher ist
+        # als jeder andere Track (eindeutig nächster Nachbar).
+        remaining_ghosts = list(all_track_ids)
+        remaining_points = list(range(len(detected_points)))
 
-        # Phase 2: Eindeutige Zuordnung für verdeckte (bewegte) Tracks
-        # Ein Punkt wird einem verdeckten Track NUR zugeordnet, wenn er deutlich näher
-        # an DIESEM Track liegt als am nächstnächsten anderen verdeckten Track.
-        # Das verhindert das Vertauschen von Blobs, wenn mehrere gleichzeitig
-        # wiederauftauchen (z. B. Hand wegziehen: C, A, B in beliebiger Reihenfolge).
-        remaining_ghosts = [tid for tid in all_track_ids if tid not in assigned_tracks]
-        remaining_points = [i for i in range(len(detected_points)) if i not in assigned_points]
-
-        if remaining_ghosts and remaining_points:
-            # Distanzmatrix: Ghost -> Punkt
-            dist_matrix = {}
-            for gid in remaining_ghosts:
-                g = self.tracks[gid]
-                dist_matrix[gid] = {}
-                for p_idx in remaining_points:
-                    pt = detected_points[p_idx]
-                    dist_matrix[gid][p_idx] = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
-
-            # Greedy mit Eindeutigkeits-Pflicht: jeder Punkt wird nur dem deutlich
-            # nächstliegenden Ghost zugeordnet.
-            matched = True
-            while matched:
-                matched = False
+        while True:
+            matched_any = False
+            # Für jeden Track den nächstgelegenen Punkt bestimmen
+            for t_id in [g for g in remaining_ghosts if g not in assigned_tracks]:
+                if t_id in assigned_tracks: continue
+                best_p = None; best_d = None
                 for p_idx in remaining_points:
                     if p_idx in assigned_points: continue
-                    # Ghost mit minimalem Abstand zu diesem Punkt
-                    best_gid = None; best_dist = None; second_dist = None
-                    for gid in remaining_ghosts:
-                        if gid in assigned_tracks: continue
-                        d = dist_matrix[gid][p_idx]
-                        if best_dist is None or d < best_dist:
-                            second_dist = best_dist
-                            best_dist = d; best_gid = gid
-                        elif second_dist is None or d < second_dist:
-                            second_dist = d
-                    # Nur zuordnen, wenn klar am nächsten (mind. 1.4x näher als der Zweite)
-                    if best_gid is not None and (second_dist is None or best_dist * 1.4 <= second_dist):
-                        self._update_track(best_gid, detected_points[p_idx], now, smoothing=0.0)
-                        assigned_tracks.add(best_gid)
-                        assigned_points.add(p_idx)
-                        matched = True
+                    pt = detected_points[p_idx]
+                    d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
+                    if best_d is None or d < best_d:
+                        best_d = d; best_p = p_idx
+                if best_p is None: continue
+
+                # Prüfen, ob dieser Track der eindeutig nächste für diesen Punkt ist
+                second = None
+                for t2 in remaining_ghosts:
+                    if t2 == t_id or t2 in assigned_tracks: continue
+                    pt2 = detected_points[best_p]
+                    d2 = math.hypot(self.tracks[t2]['x'] - pt2['x'], self.tracks[t2]['y'] - pt2['y'])
+                    if second is None or d2 < second:
+                        second = d2
+
+                # Zuordnen, wenn eindeutig am nächsten (mind. 1.5x näher als der Zweite)
+                if second is None or best_d * 1.5 <= second:
+                    # Anker-Schwelle: nur wenn Punkt nahe genug an der alten Position
+                    # (bei Bewegung > Schwelle bleibt Track vorerst Ghost)
+                    if best_d < self.ANCHOR_RADIUS * 2.5:
+                        self._update_track(t_id, detected_points[best_p], now, smoothing)
+                        assigned_tracks.add(t_id)
+                        assigned_points.add(best_p)
+                        matched_any = True
+
+            if not matched_any:
+                break
 
         # Phase 3: Cleanup & New
         to_delete = []
