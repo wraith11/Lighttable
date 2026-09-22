@@ -89,9 +89,7 @@ export const translations = {
     confirmFowReset: "Really reset the entire Fog of War?",
     folderName: "Folder name:",
     confirmCamReset: "Really reset camera settings to default?",
-    // Player view / misc
-    gmView: "GM", playerViewTitle: "Player",
-    title: "LightTable Ultimate"
+    folderName: "Folder name:",
   },
 
   de: {
