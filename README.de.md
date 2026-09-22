@@ -175,7 +175,8 @@ Ich habe eine USB-Webcam-Platine mit Nachtsicht (inkl. IR-Emitter), einen günst
    - In der GM-Ansicht: **Settings → Camera Setup**.
    - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
    - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
-Siehe unten unter „Bilder & Screenshots“ – **Kamera-Einstellungen**
+
+> 📷 **Siehe:** [Kamera-Einstellungen in „Bilder & Screenshots“](#bilder--screenshots)
 
 
 ### Kalibrierung & Korrekturoptionen
