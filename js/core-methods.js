@@ -491,7 +491,6 @@ export const coreMethods = {
         if(!this.scene.background_image) this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
         if(!this.scene.time_of_day) this.scene.time_of_day = 'day';
         if(!this.scene.fow_mode) this.scene.fow_mode = 'temporary';
-        if(this.scene.wall_collision === undefined) this.scene.wall_collision = false;
         if(this.scene.show_blob_ids === undefined) this.scene.show_blob_ids = true;
         if(this.scene.background_locked === undefined) this.scene.background_locked = false;
         if(this.scene.show_light_icons === undefined) this.scene.show_light_icons = true;
