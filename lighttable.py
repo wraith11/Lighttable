@@ -84,7 +84,7 @@ state = {
     'scene': {
         'grid_size': 50, 'show_grid': True, 'background_color': '#222222',
         'background_image': { 'url': None, 'x': 0, 'y': 0, 'scale': 1.0, 'repeat': False, 'opacity': 1.0 },
-        'fow_active': False, 'fow_mode': 'temporary', 'ambient_light': 0.1,
+        'fow_active': False, 'fow_mode': 'temporary',
         'objects_locked': False, 
         'show_blob_ids': True,
         'background_locked': False, 'show_light_icons': True,
