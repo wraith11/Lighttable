@@ -22,7 +22,6 @@ export function getInitialState() {
         selectedMediaSlot: 0, // 0..3
 
         snapMode: true,
-        debugMode: false,
         rightClickStart: {x:0, y:0},
         isRightClickPan: false,
         rightClickDidMove: false,
