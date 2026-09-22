@@ -45,7 +45,6 @@ createApp({
     watch: {
         selObjId(newVal) { this.updateLightColorPicker(); },
         tool(newVal) { if(newVal === 'light') this.updateLightColorPicker(); },
-        openTokenId(newVal) { },
         'scene.player_view': {
             handler() { this.updateTokenPos(); },
             deep: true
