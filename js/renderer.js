@@ -58,7 +58,6 @@ export class GameRenderer {
         this.fowDirty = true; 
         this.fowBlurDirty = false;
         this.fowBlurredTexture = null;
-        this.fowMemoryScale = 0.5;
         this._fowSettleTimer = null;
         this._lastFoWRenderTime = 0;
         this._lastFoWViewHash = "";
