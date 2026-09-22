@@ -88,6 +88,7 @@ createApp({
             window.removeEventListener('mousemove', this.onMove);
             window.removeEventListener('mouseup', this.onUp);
             window.removeEventListener('wheel', this.onWheel);
+            window.removeEventListener('contextmenu', this.onContextMenu);
             window.removeEventListener('dragover', (e) => e.preventDefault());
             window.removeEventListener('drop', this.dropFile);
         },
