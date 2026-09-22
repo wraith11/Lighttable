@@ -479,14 +479,10 @@ export const interactionMethods = {
                     this.sync();
                 }
         }
-        else if(this.drag.mode === 'brush' || this.drag.mode === 'fow_paint') {
-            if(this.drag.mode === 'brush') {
-                this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp)));
-                this.renderer.drawingsDirty = true;
-                this.sync();
-            } else {
-                this.sync();
-            }
+        else if(this.drag.mode === 'brush') {
+            this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp)));
+            this.renderer.drawingsDirty = true;
+            this.sync();
         }
         else if(['grid_paint','rect_paint','circle_paint'].includes(this.drag.mode)) { 
             this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp))); 
