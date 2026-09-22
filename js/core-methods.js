@@ -634,26 +634,28 @@ export const coreMethods = {
         }
 
         const visibleIds = Object.keys(data.blobs).map(String);
-        const ghostIds = (data.lost_ids || []).map(String);
         const tokensToDelete = [];
         
         Object.values(this.scene.tokens).forEach(t => {
             if (t.blob_id) {
                 const bIdStr = String(t.blob_id);
                 const isVisible = visibleIds.includes(bIdStr);
-                const isGhost = ghostIds.includes(bIdStr);
                 
-                // Abmelden NUR, wenn der Blob weder sichtbar noch im Ghost-Zustand ist.
-                // Der Backend-Ghost (GHOST_TIMEOUT=5s) hält verdeckte Blobs in lost_ids –
-                // dadurch bleibt der Token bei kurzen Verdeckungen (Hand im Zug) erhalten
-                // und wird erst abgemeldet, wenn der Blob wirklich entfernt wurde.
-                if (!isVisible && !isGhost) {
+                if (!isVisible) {
+                    // Blob aktuell nicht sichtbar (verdeckt). Token an alter Position lassen,
+                    // bis er wirklich als verloren gilt. Eigener Timer verhindert Flackern:
+                    // erst nach GHOST_DELAY (≈ Backend-Ghost-Timeout) abmelden.
+                    const now = Date.now();
+                    if (!t._lostSince) t._lostSince = now;
+                    if (now - t._lostSince < 4000) return; // ~4s Toleranz
                     if (t.modified) { 
                         t.blob_id = null; 
                         t.on_board = false; 
                     } 
                     else { tokensToDelete.push(t.uuid); }
                     changes = true;
+                } else {
+                    t._lostSince = 0; // Blob wieder sichtbar → zurücksetzen
                 }
             }
         });
