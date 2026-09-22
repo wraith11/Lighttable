@@ -533,9 +533,6 @@ export const coreMethods = {
     removeTokenRing(t, index) {
         if(t.rings && t.rings[index]) { t.rings.splice(index, 1); this.sync(); }
     },
-    updateTokenRing(t, index, key, value) {
-        if(t.rings && t.rings[index]) { t.rings[index][key] = value; this.sync(); }
-    },
     
     blinkToken(t) {
         const originalColor = t.spotlight_color;
