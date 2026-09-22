@@ -643,11 +643,11 @@ export const coreMethods = {
                 
                 if (!isVisible) {
                     // Blob aktuell nicht sichtbar (verdeckt). Token an alter Position lassen,
-                    // bis er wirklich als verloren gilt. Eigener Timer verhindert Flackern:
-                    // erst nach GHOST_DELAY (≈ Backend-Ghost-Timeout) abmelden.
+                    // bis er wirklich als verloren gilt. Timer synchron zum Backend-Ghost
+                    // (GHOST_TIMEOUT=5s) – verhindert Flackern und doppelte Tokens.
                     const now = Date.now();
                     if (!t._lostSince) t._lostSince = now;
-                    if (now - t._lostSince < 4000) return; // ~4s Toleranz
+                    if (now - t._lostSince < 5000) return; // ~5s Toleranz (wie Backend-Ghost)
                     if (t.modified) { 
                         t.blob_id = null; 
                         t.on_board = false; 
