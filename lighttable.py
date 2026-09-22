@@ -862,7 +862,7 @@ async def start_background_tasks(app):
     threading.Thread(target=open_browser, daemon=True).start()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="LightTable Ultimate Server")
+    parser = argparse.ArgumentParser(description="ScryTable Server")
     parser.add_argument('--host', default=None, help='Host/IP to bind (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=None, help='Port to bind (default: 8080)')
     args = parser.parse_args()
