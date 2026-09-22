@@ -1,5 +1,4 @@
 import os
-import sys
 
 # Versuch, Logging stummzuschalten (Fehlertolerant)
 try:
