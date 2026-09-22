@@ -59,7 +59,7 @@ export function getInitialState() {
         
         camParams: { 
             camera_index: 0,
-            threshold: 200, brightness: 0.5, contrast: 0.5, 
+            threshold: 200, 
             corners: [[0,0],[1280,0],[1280,720],[0,720]], flip_x:false, flip_y:false,
             min_area: 10, max_area: 5000, smoothing: 0.2, hotspot_compensation: 0.0,
             merge_distance: 25, parallax_strength: 0.0, cam_pos_x: 0.5, cam_pos_y: 0.5
