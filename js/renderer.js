@@ -1387,9 +1387,11 @@ export class GameRenderer {
 
             const isSelected = (this.isGM && this.scene.tokens[this.selectedObjId] === t);
             
-            // Bugfix: Sync Issue. Include vision range and robust ring text in cache string.
-            // Using a simple JSON stringify of rings is usually enough, but we ensure structure is captured.
-            const ringsHash = t.rings ? JSON.stringify(t.rings) : '';
+            // Grober Ring-Hash statt JSON.stringify (weniger Serialisierung pro Render)
+            let ringsHash = '';
+            if (t.rings && t.rings.length) {
+                ringsHash = t.rings.length + '|' + t.rings.map(r => (r.color||'') + ':' + (r.text||'').length).join(',');
+            }
             const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
 
             if (tc._cachedProps !== currentProps) {
