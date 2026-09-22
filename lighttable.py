@@ -21,7 +21,7 @@ import webbrowser
 import socket
 
 import argparse
-print("LightTable Server starting...")
+print("ScryTable Server starting...")
 
 # --- KONFIGURATION ---
 DEFAULT_HOST = "0.0.0.0"
