@@ -481,7 +481,8 @@ async def update_cam_params(sid, data):
     for k, v in data.items():
         state['cam_params'][k] = v
     save_state_to_disk()
-    await sio.emit('cam_params_sync', state['cam_params'])
+    # Kamera-Parameter nur an den Sender (GM) – Player brauchen sie nicht
+    await sio.emit('cam_params_sync', state['cam_params'], to=sid)
 
 @sio.event
 async def change_camera(sid, index):
