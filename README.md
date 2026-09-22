@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="LightTable Ultimate" width="100%" style="border-radius:8px;">
+  <img src="docs/images/banner.svg" alt="ScryTable" width="100%" style="border-radius:8px;">
 </p>
 
 > 🌐 **Language / Sprache:** [English](README.md) · [Deutsch](README.de.md)
 
-**LightTable Ultimate** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
+**ScryTable** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
 
 - **GM view** for building and controlling the map (in the game master's browser).
 - **Player views** that can simply be opened in a browser – e.g. on an Android TV stick connected to the beamer.
