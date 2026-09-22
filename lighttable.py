@@ -283,23 +283,31 @@ class BlobTracker:
                 assigned_tracks.add(t_id)
                 assigned_points.add(p_idx)
 
-        # Phase 2: Teleport
+        # Phase 2: Teleport (Best Guess)
+        # Verdeckte Tracks werden nur auf einen Punkt teleportiert, wenn dieser Punkt
+        # ihrem zuletzt bekannten Ort deutlich am nächsten ist (im Vergleich zu anderen
+        # verdeckten Tracks). Das verhindert falsche Zuordnungen, wenn mehrere Figuren
+        # gleichzeitig bewegt/teilweise verdeckt werden.
         remaining_ghosts = [tid for tid in all_track_ids if tid not in assigned_tracks]
         remaining_points = [i for i in range(len(detected_points)) if i not in assigned_points]
 
         if remaining_ghosts and remaining_points:
-            remaining_ghosts.sort(key=lambda gid: self.tracks[gid]['last_seen'])
-            teleport_matches = []
+            # Für jeden verdeckten Track: Abstand zu jedem verbleibenden Punkt
+            ghost_candidates = []
             for gid in remaining_ghosts:
                 g = self.tracks[gid]
                 for p_idx in remaining_points:
                     pt = detected_points[p_idx]
                     dist = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
-                    teleport_matches.append((gid, p_idx, dist))
-            teleport_matches.sort(key=lambda x: x[2])
-            
-            for gid, p_idx, dist in teleport_matches:
+                    ghost_candidates.append((dist, gid, p_idx))
+            ghost_candidates.sort(key=lambda x: x[0])
+
+            for dist, gid, p_idx in ghost_candidates:
                 if gid in assigned_tracks or p_idx in assigned_points: continue
+                # Konservativ: nur wenn deutlich näher als ANCHOR_RADIUS*2.5
+                # (sonst ist die Zuordnung zu unsicher – Track bleibt verloren)
+                if dist > self.ANCHOR_RADIUS * 2.5:
+                    continue
                 self._update_track(gid, detected_points[p_idx], now, smoothing=0.0)
                 assigned_tracks.add(gid)
                 assigned_points.add(p_idx)
