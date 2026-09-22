@@ -107,7 +107,7 @@ On first start, the folders `assets/`, `maps/` and `media/` are created automati
 ## Start
 
 ```bash
-python lighttable.py
+python scrytable.py
 ```
 
 Or use one of the **start scripts**:
@@ -129,13 +129,13 @@ By default the server binds to `0.0.0.0` (all interfaces) on port `8080`. This c
 
 ```bash
 # Use a different port
-python lighttable.py --port 9090
+python scrytable.py --port 9090
 
 # Allow only local connections
-python lighttable.py --host 127.0.0.1
+python scrytable.py --host 127.0.0.1
 
 # Both
-python lighttable.py --host 0.0.0.0 --port 9090
+python scrytable.py --host 0.0.0.0 --port 9090
 ```
 
 Alternatively, set host/port permanently in **`config.json`** under the `"server"` section:
