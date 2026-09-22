@@ -431,12 +431,6 @@ export const interactionMethods = {
                     this.syncThrottled();
                 }
         }
-        else if(this.drag.mode === 'token') {
-            const t = this.drag.temp;
-            t.x = pos.x; t.y = pos.y; 
-            this.renderer.fowDirty = true;
-            this.syncThrottled();
-        }
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
         this.renderer.setDragState(this.drag, this.selObjId);
         this.renderer.requestRender();
