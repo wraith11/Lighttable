@@ -296,9 +296,12 @@ class BlobTracker:
                     if second is None or d2 < second:
                         second = d2
 
-                # Zuordnen, wenn eindeutig am nächsten ODER der einzige Kandidat ist.
-                # (Bei einem einzigen verbleibenden Track+Punkt wird immer teleportiert.)
-                if second is None or best_d * 1.5 <= second:
+                # Zuordnen, wenn:
+                # - der Punkt weit von allen anderen Tracks entfernt ist (>= Ankerbereich),
+                #   dann ist klar, dass er zu diesem Track gehört (auch wenn bewegt), ODER
+                # - der Punkt deutlich (1.5x) näher an diesem Track liegt als am zweiten
+                #   (verhindert Vertauschen bei dicht stehenden Figuren).
+                if second is None or second >= self.ANCHOR_RADIUS * 2.0 or best_d * 1.5 <= second:
                     self._update_track(t_id, detected_points[best_p], now, smoothing)
                     assigned_tracks.add(t_id)
                     assigned_points.add(best_p)
