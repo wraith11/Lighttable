@@ -662,8 +662,6 @@ export const coreMethods = {
                     } 
                     else { tokensToDelete.push(t.uuid); }
                     changes = true;
-                } else {
-                    t._lostSince = 0; // Blob wieder da oder im Ghost → zurücksetzen
                 }
             }
         });
