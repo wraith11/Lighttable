@@ -369,12 +369,6 @@ export const interactionMethods = {
             this.drag.temp.radius = Math.hypot(pos.x - this.drag.temp.x, pos.y - this.drag.temp.y);
             this.renderer.requestRender();
         }
-        else if(this.drag.mode === 'fow_paint') {
-            const s = {type: this.drag.fowType, x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.drawFoWShapeToTexture(s);
-            this.syncThrottled();
-        }
         else if(this.drag.mode === 'move_player') {
             const gs = this.scene.grid_size;
             const pv = this.scene.player_view;
