@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="LightTable Ultimate" width="100%" style="border-radius:8px;">
+  <img src="docs/images/banner.svg" alt="ScryTable" width="100%" style="border-radius:8px;">
 </p>
 
 > 🌐 **Sprache / Language:** [Deutsch](README.de.md) · [English](README.md)
 
-**LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
+**ScryTable** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
 
 - **GM-Ansicht** zum Bauen und Steuern der Karte (im Browser des Spielleiters).
 - **Player-Ansichten**, die einfach über den Browser geöffnet werden – z.&nbsp;B. auf einem Android-TV-Stick am Beamer.
