@@ -87,9 +87,7 @@ export const translations = {
     errLoad: "Error loading: ",
     confirmLoad: "Load map '%s'? Unsaved changes will be lost.",
     confirmFowReset: "Really reset the entire Fog of War?",
-    folderName: "Folder name:",
     confirmCamReset: "Really reset camera settings to default?",
-    folderName: "Folder name:",
   },
 
   de: {
