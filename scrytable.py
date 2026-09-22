@@ -266,49 +266,50 @@ class BlobTracker:
         assigned_tracks = set()
         assigned_points = set()
 
-        # Phase 1 + 2: Positionsbasiertes Matching mit Eindeutigkeits-Bremse
-        # - Eine einzeln bewegte Figur darf teleportiert werden (kein Konkurrent).
-        # - Bei mehreren nahen Tracks/Punkten wird NUR zugeordnet, wenn der Punkt klar
-        #   am nächsten ist (verhindert Vertauschen bei dicht stehenden Figuren).
-        remaining_ghosts = list(all_track_ids)
-        remaining_points = list(range(len(detected_points)))
+        # Phase 1: Anker – stabile Zuordnung für unverdeckte, kaum bewegte Figuren.
+        # Ein Track wird dem nächstgelegenen Punkt zugeordnet, der innerhalb der
+        # Anker-Reichweite liegt (Figur steht/rührt sich kaum). Das verankert Figuren
+        # zuverlässig an Ort und Stelle und verhindert Zittern/Vertauschen im Normalbetrieb.
+        for t_id in all_track_ids:
+            if t_id in assigned_tracks: continue
+            best_p = None; best_d = None
+            for p_idx in range(len(detected_points)):
+                if p_idx in assigned_points: continue
+                pt = detected_points[p_idx]
+                d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
+                if best_d is None or d < best_d:
+                    best_d = d; best_p = p_idx
+            if best_p is not None and best_d < self.ANCHOR_RADIUS:
+                self._update_track(t_id, detected_points[best_p], now, smoothing)
+                assigned_tracks.add(t_id)
+                assigned_points.add(best_p)
 
-        while True:
-            matched_any = False
-            for t_id in [g for g in remaining_ghosts if g not in assigned_tracks]:
-                if t_id in assigned_tracks: continue
-                # Nächstgelegenen freien Punkt für diesen Track finden
-                best_p = None; best_d = None
-                for p_idx in remaining_points:
-                    if p_idx in assigned_points: continue
-                    pt = detected_points[p_idx]
-                    d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
-                    if best_d is None or d < best_d:
-                        best_d = d; best_p = p_idx
-                if best_p is None: continue
+        # Phase 2: Teleport (Greedy) – für verdeckte/bewegte Figuren.
+        # Verbleibende Tracks werden den verbleibenden Punkten nach Distanz zugeordnet.
+        # Das erlaubt das Ziehen einer Figur über mehrere Felder (der Track folgt der
+        # Bewegung). Konflikte werden zugunsten des nächstgelegenen Tracks gelöst.
+        # Wichtig: Ein bestehender Ghost-Track wird dabei bevorzugt "reaktiviert",
+        # damit die Blob-ID stabil bleibt (kein neuer Token).
+        remaining_tracks = [t for t in all_track_ids if t not in assigned_tracks]
+        remaining_points = [p for p in range(len(detected_points)) if p not in assigned_points]
 
-                # Abstand des nächstnächsten anderen Tracks zu diesem Punkt
-                second = None
-                for t2 in remaining_ghosts:
-                    if t2 == t_id or t2 in assigned_tracks: continue
-                    d2 = math.hypot(self.tracks[t2]['x'] - detected_points[best_p]['x'],
-                                    self.tracks[t2]['y'] - detected_points[best_p]['y'])
-                    if second is None or d2 < second:
-                        second = d2
+        # Tracks, die am längsten verdeckt waren, zuerst behandeln (älteste zuerst).
+        remaining_tracks.sort(key=lambda t: self.tracks[t]['last_seen'])
 
-                # Zuordnen, wenn:
-                # - der Punkt weit von allen anderen Tracks entfernt ist (>= Ankerbereich),
-                #   dann ist klar, dass er zu diesem Track gehört (auch wenn bewegt), ODER
-                # - der Punkt deutlich (1.5x) näher an diesem Track liegt als am zweiten
-                #   (verhindert Vertauschen bei dicht stehenden Figuren).
-                if second is None or second >= self.ANCHOR_RADIUS * 2.0 or best_d * 1.5 <= second:
-                    self._update_track(t_id, detected_points[best_p], now, smoothing)
-                    assigned_tracks.add(t_id)
-                    assigned_points.add(best_p)
-                    matched_any = True
-
-            if not matched_any:
-                break
+        for t_id in remaining_tracks:
+            if t_id in assigned_tracks: continue
+            # Nächstgelegenen freien Punkt finden
+            best_p = None; best_d = None
+            for p_idx in remaining_points:
+                if p_idx in assigned_points: continue
+                pt = detected_points[p_idx]
+                d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
+                if best_d is None or d < best_d:
+                    best_d = d; best_p = p_idx
+            if best_p is None: continue
+            self._update_track(t_id, detected_points[best_p], now, smoothing=0.0)
+            assigned_tracks.add(t_id)
+            assigned_points.add(best_p)
 
         # Phase 3: Cleanup & New
         to_delete = []
