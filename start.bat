@@ -1,4 +1,4 @@
 @echo off
-echo Starting LightTable Ultimate...
-python lighttable.py %*
+echo Starting ScryTable...
+python scrytable.py %*
 pause
