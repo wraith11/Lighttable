@@ -275,41 +275,56 @@ class BlobTracker:
         all_matches.sort(key=lambda x: x[2])
 
         # Phase 1: Anker
+        # Etwas größere Schwelle, damit leicht zitternde, unverdeckte Blobs stabil
+        # an ihrer alten Position erkannt werden (bevorzugt vor Teleport).
         for t_id, p_idx, dist in all_matches:
             if t_id in assigned_tracks or p_idx in assigned_points: continue
-            if dist < self.ANCHOR_RADIUS:
+            if dist < self.ANCHOR_RADIUS * 2.0:
                 self._update_track(t_id, detected_points[p_idx], now, smoothing)
                 assigned_tracks.add(t_id)
                 assigned_points.add(p_idx)
 
-        # Phase 2: Teleport (Best Guess)
-        # Verdeckte Tracks werden nur auf einen Punkt teleportiert, wenn dieser Punkt
-        # ihrem zuletzt bekannten Ort deutlich am nächsten ist (im Vergleich zu anderen
-        # verdeckten Tracks). Das verhindert falsche Zuordnungen, wenn mehrere Figuren
-        # gleichzeitig bewegt/teilweise verdeckt werden.
+        # Phase 2: Eindeutige Zuordnung für verdeckte (bewegte) Tracks
+        # Ein Punkt wird einem verdeckten Track NUR zugeordnet, wenn er deutlich näher
+        # an DIESEM Track liegt als am nächstnächsten anderen verdeckten Track.
+        # Das verhindert das Vertauschen von Blobs, wenn mehrere gleichzeitig
+        # wiederauftauchen (z. B. Hand wegziehen: C, A, B in beliebiger Reihenfolge).
         remaining_ghosts = [tid for tid in all_track_ids if tid not in assigned_tracks]
         remaining_points = [i for i in range(len(detected_points)) if i not in assigned_points]
 
         if remaining_ghosts and remaining_points:
-            # Für jeden verdeckten Track: Abstand zu jedem verbleibenden Punkt
-            ghost_candidates = []
+            # Distanzmatrix: Ghost -> Punkt
+            dist_matrix = {}
             for gid in remaining_ghosts:
                 g = self.tracks[gid]
+                dist_matrix[gid] = {}
                 for p_idx in remaining_points:
                     pt = detected_points[p_idx]
-                    dist = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
-                    ghost_candidates.append((dist, gid, p_idx))
-            ghost_candidates.sort(key=lambda x: x[0])
+                    dist_matrix[gid][p_idx] = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
 
-            for dist, gid, p_idx in ghost_candidates:
-                if gid in assigned_tracks or p_idx in assigned_points: continue
-                # Konservativ: nur wenn deutlich näher als ANCHOR_RADIUS*2.5
-                # (sonst ist die Zuordnung zu unsicher – Track bleibt verloren)
-                if dist > self.ANCHOR_RADIUS * 2.5:
-                    continue
-                self._update_track(gid, detected_points[p_idx], now, smoothing=0.0)
-                assigned_tracks.add(gid)
-                assigned_points.add(p_idx)
+            # Greedy mit Eindeutigkeits-Pflicht: jeder Punkt wird nur dem deutlich
+            # nächstliegenden Ghost zugeordnet.
+            matched = True
+            while matched:
+                matched = False
+                for p_idx in remaining_points:
+                    if p_idx in assigned_points: continue
+                    # Ghost mit minimalem Abstand zu diesem Punkt
+                    best_gid = None; best_dist = None; second_dist = None
+                    for gid in remaining_ghosts:
+                        if gid in assigned_tracks: continue
+                        d = dist_matrix[gid][p_idx]
+                        if best_dist is None or d < best_dist:
+                            second_dist = best_dist
+                            best_dist = d; best_gid = gid
+                        elif second_dist is None or d < second_dist:
+                            second_dist = d
+                    # Nur zuordnen, wenn klar am nächsten (mind. 1.4x näher als der Zweite)
+                    if best_gid is not None and (second_dist is None or best_dist * 1.4 <= second_dist):
+                        self._update_track(best_gid, detected_points[p_idx], now, smoothing=0.0)
+                        assigned_tracks.add(best_gid)
+                        assigned_points.add(p_idx)
+                        matched = True
 
         # Phase 3: Cleanup & New
         to_delete = []
