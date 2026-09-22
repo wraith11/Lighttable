@@ -270,7 +270,7 @@ export const interactionMethods = {
             this.drag.temp={id:'d_'+Date.now(), type:'rect_paint', x:startX, y:startY, w:initialW, h:initialH, color:this.drawColor, texture:this.brushTexture, startX:startX, startY:startY, tilesPerAxis:this.tilesPerAxis}; 
             this.renderer.requestRender();
         }
-        else if(this.tool === 'circle_paint') { this.drag.mode='circle_paint'; this.drag.temp={id:'d_'+Date.now(), type:'circle_paint', x:pos.x, y:pos.y, radius:1, color:this.drawColor, size:this.toolSettings.brushSize, texture:this.brushTexture, tilesPerAxis:this.tilesPerAxis}; this.renderer.requestRender(); }
+        else if(this.tool === 'circle_paint') { this.drag.mode='circle_paint'; const csx2 = this.snapMode ? snap(pos.x) : pos.x; const csy2 = this.snapMode ? snap(pos.y) : pos.y; this.drag.temp={id:'d_'+Date.now(), type:'circle_paint', x:csx2, y:csy2, radius:1, color:this.drawColor, size:this.toolSettings.brushSize, texture:this.brushTexture, tilesPerAxis:this.tilesPerAxis}; this.renderer.requestRender(); }
         else if(this.tool === 'light') {
             let hitLightId = null;
             if (this.scene.show_light_icons) {
