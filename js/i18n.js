@@ -1,4 +1,4 @@
-// i18n-Übersetzungen für LightTable Ultimate.
+// i18n-Übersetzungen für ScryTable.
 // Englisch ist die Standard-Sprache (en), Deutsch ist alternativ verfügbar (de).
 export const translations = {
   en: {
