@@ -266,59 +266,44 @@ class BlobTracker:
         assigned_tracks = set()
         assigned_points = set()
 
-        # Phase 1: Anker – stabile Zuordnung für unverdeckte, kaum bewegte Figuren.
-        # Ein Track wird dem nächstgelegenen Punkt zugeordnet, der innerhalb der
-        # Anker-Reichweite liegt (Figur steht/rührt sich kaum). Das verankert Figuren
-        # zuverlässig an Ort und Stelle und verhindert Zittern/Vertauschen im Normalbetrieb.
+        # --- Original-Greedy (bewährte 2025-Logik) ---
+        # Phase 1: Anker – Alle (Track, Punkt, Distanz)-Paare global nach Distanz sortieren
+        # und der Reihe nach zuordnen, wenn der Punkt innerhalb ANCHOR_RADIUS liegt.
+        all_matches = []
         for t_id in all_track_ids:
-            if t_id in assigned_tracks: continue
-            best_p = None; best_d = None
-            for p_idx in range(len(detected_points)):
-                if p_idx in assigned_points: continue
-                pt = detected_points[p_idx]
-                d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
-                if best_d is None or d < best_d:
-                    best_d = d; best_p = p_idx
-            if best_p is not None and best_d < self.ANCHOR_RADIUS:
-                self._update_track(t_id, detected_points[best_p], now, smoothing)
-                assigned_tracks.add(t_id)
-                assigned_points.add(best_p)
+            track = self.tracks[t_id]
+            for i, pt in enumerate(detected_points):
+                dist = math.hypot(track['x'] - pt['x'], track['y'] - pt['y'])
+                all_matches.append((t_id, i, dist))
+        all_matches.sort(key=lambda x: x[2])
 
-        # Phase 2: Teleport für verdeckte/bewegte Figuren – ABER nur bei EINDEUTIGER
-        # Zuordnung. Ziel: Die Vor-Korrektur-Zuordnung soll stabil bleiben (kein ständiges
-        # Vermischen der Tokens), damit die turn-basierte Korrektur nur selten eingreifen muss.
-        #
-        # Ein Punkt wird einem Track zugeordnet, wenn ER EINDEUTIG ist:
-        #  - Der Punkt ist weit von ALLEN anderen Tracks entfernt (>= Ankerbereich) → dann
-        #    gehört er klar zu diesem Track, auch wenn die Figur weit bewegt wurde.
-        #  - ODER der Punkt ist deutlich (1.5x) näher an diesem Track als an jedem anderen.
-        # Mehrdeutige Punkte (zwischen mehreren Tracks) bleiben Ghost, bis die turn-Korrektur
-        # sie korrekt zuordnet. Das verhindert falsches Springen/Vermischen.
-        remaining_tracks = [t for t in all_track_ids if t not in assigned_tracks]
-        remaining_points = [p for p in range(len(detected_points)) if p not in assigned_points]
-
-        # Für jeden verbleibenden Track: nächsten Punkt + Distanz zum nächstnächsten Track
-        candidates = []
-        for t_id in remaining_tracks:
-            for p_idx in remaining_points:
-                pt = detected_points[p_idx]
-                d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
-                # Distanz dieses Punkts zum nächstnächsten anderen verbleibenden Track
-                second = None
-                for t2 in remaining_tracks:
-                    if t2 == t_id: continue
-                    d2 = math.hypot(self.tracks[t2]['x'] - pt['x'], self.tracks[t2]['y'] - pt['y'])
-                    if second is None or d2 < second:
-                        second = d2
-                candidates.append((d, second, t_id, p_idx))
-        candidates.sort(key=lambda x: x[0])
-
-        for d, second, t_id, p_idx in candidates:
+        # Phase 1: Anker
+        for t_id, p_idx, dist in all_matches:
             if t_id in assigned_tracks or p_idx in assigned_points: continue
-            # Eindeutig, wenn: weit von allen anderen ODER deutlich näher als der zweite
-            if second is None or second >= self.ANCHOR_RADIUS * 2.0 or d * 1.5 <= second:
-                self._update_track(t_id, detected_points[p_idx], now, smoothing=0.0)
+            if dist < self.ANCHOR_RADIUS:
+                self._update_track(t_id, detected_points[p_idx], now, smoothing)
                 assigned_tracks.add(t_id)
+                assigned_points.add(p_idx)
+
+        # Phase 2: Teleport
+        remaining_ghosts = [tid for tid in all_track_ids if tid not in assigned_tracks]
+        remaining_points = [i for i in range(len(detected_points)) if i not in assigned_points]
+
+        if remaining_ghosts and remaining_points:
+            remaining_ghosts.sort(key=lambda gid: self.tracks[gid]['last_seen'])
+            teleport_matches = []
+            for gid in remaining_ghosts:
+                g = self.tracks[gid]
+                for p_idx in remaining_points:
+                    pt = detected_points[p_idx]
+                    dist = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
+                    teleport_matches.append((gid, p_idx, dist))
+            teleport_matches.sort(key=lambda x: x[2])
+
+            for gid, p_idx, dist in teleport_matches:
+                if gid in assigned_tracks or p_idx in assigned_points: continue
+                self._update_track(gid, detected_points[p_idx], now, smoothing=0.0)
+                assigned_tracks.add(gid)
                 assigned_points.add(p_idx)
 
         # Phase 3: Cleanup & New
