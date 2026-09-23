@@ -731,6 +731,7 @@ export class GameRenderer {
             const cfg = this.scene.background_image;
             const tex = PIXI.Texture.from(cfg.url);
             let s; 
+            // Skala 1:1 (kein 0.1-Faktor mehr) – scale=1.0 entspricht der Originalbildgröße.
             const actualScale = cfg.scale;
             if(cfg.repeat) {
                 s = new PIXI.TilingSprite(tex, 100000, 100000); 
