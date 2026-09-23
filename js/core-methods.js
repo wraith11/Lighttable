@@ -702,19 +702,23 @@ export const coreMethods = {
 
         Object.values(this.scene.tokens).forEach(t => {
             try {
-                if (this.scene.tracking_paused) return;
-
-                // Token außerhalb der Player-View: Dort kann es keine Blobs geben.
-                // Wenn der Blob nicht mehr sichtbar ist, wird der Token abgemeldet
-                // (er kann außerhalb der View nicht wieder auftauchen).
+                // Original-Logik: Token außerhalb der Player-View werden abgemeldet
+                // (dort kann es keine Blobs geben).
                 const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
                                 t.y >= viewY - margin && t.y <= viewY + h + margin);
-                if (!inView && t.blob_id && !this.blobs[String(t.blob_id)]) {
-                    if (t.modified) { t.blob_id = null; t.on_board = false; }
-                    else { delete this.scene.tokens[t.uuid]; tokenListChanged = true; }
-                    changed = true;
+                if (!inView && t.blob_id) {
+                    t.blob_id = null; 
+                    t.on_board = false;
+                    if (!t.modified) {
+                        delete this.scene.tokens[t.uuid];
+                        tokenListChanged = true;
+                    } else {
+                        changed = true;
+                    }
                     return;
                 }
+
+                if (this.scene.tracking_paused) return;
 
                 if(t.blob_id && this.blobs[String(t.blob_id)]) {
                     const b = this.blobs[String(t.blob_id)]; 
