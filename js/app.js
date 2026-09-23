@@ -79,6 +79,8 @@ createApp({
             window.addEventListener('mousemove', this.onMove);
             window.addEventListener('mouseup', this.onUp);
             window.addEventListener('wheel', this.onWheel, { passive: false });
+            // Rechtsklick-Kontextmenü unterdrücken: `@contextmenu.prevent` auf #app reicht
+            // in Firefox nicht zuverlässig, deshalb global auf window. (Rechtsklick = Pan)
             window.addEventListener('contextmenu', this.onContextMenu);
             window.addEventListener('dragover', (e) => e.preventDefault());
             window.addEventListener('drop', this.dropFile);
