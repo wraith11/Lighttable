@@ -285,31 +285,26 @@ class BlobTracker:
                 assigned_points.add(best_p)
 
         # Phase 2: Teleport (Greedy) – für verdeckte/bewegte Figuren.
-        # Verbleibende Tracks werden den verbleibenden Punkten nach Distanz zugeordnet.
-        # Das erlaubt das Ziehen einer Figur über mehrere Felder (der Track folgt der
-        # Bewegung). Konflikte werden zugunsten des nächstgelegenen Tracks gelöst.
-        # Wichtig: Ein bestehender Ghost-Track wird dabei bevorzugt "reaktiviert",
-        # damit die Blob-ID stabil bleibt (kein neuer Token).
+        # ALLE (Track, Punkt, Distanz)-Paare global nach Distanz sortieren und der Reihe
+        # nach zuordnen. So bekommt immer das NÄCHSTE Track-Punkt-Paar den Zuschlag.
+        # Das ist positionsbasiert: Taucht ein Punkt allein auf, erhält der Track mit der
+        # nächsten alten Position ihn (Kontinuität) – kein willkürliches Vertauschen.
         remaining_tracks = [t for t in all_track_ids if t not in assigned_tracks]
         remaining_points = [p for p in range(len(detected_points)) if p not in assigned_points]
 
-        # Tracks, die am längsten verdeckt waren, zuerst behandeln (älteste zuerst).
-        remaining_tracks.sort(key=lambda t: self.tracks[t]['last_seen'])
-
+        candidates = []
         for t_id in remaining_tracks:
-            if t_id in assigned_tracks: continue
-            # Nächstgelegenen freien Punkt finden
-            best_p = None; best_d = None
             for p_idx in remaining_points:
-                if p_idx in assigned_points: continue
                 pt = detected_points[p_idx]
                 d = math.hypot(self.tracks[t_id]['x'] - pt['x'], self.tracks[t_id]['y'] - pt['y'])
-                if best_d is None or d < best_d:
-                    best_d = d; best_p = p_idx
-            if best_p is None: continue
-            self._update_track(t_id, detected_points[best_p], now, smoothing=0.0)
+                candidates.append((d, t_id, p_idx))
+        candidates.sort(key=lambda x: x[0])
+
+        for d, t_id, p_idx in candidates:
+            if t_id in assigned_tracks or p_idx in assigned_points: continue
+            self._update_track(t_id, detected_points[p_idx], now, smoothing=0.0)
             assigned_tracks.add(t_id)
-            assigned_points.add(best_p)
+            assigned_points.add(p_idx)
 
         # Phase 3: Cleanup & New
         to_delete = []
