@@ -45,7 +45,6 @@ createApp({
     watch: {
         selObjId(newVal) { this.updateLightColorPicker(); },
         tool(newVal) { if(newVal === 'light') this.updateLightColorPicker(); },
-        openTokenId(newVal) { },
         'scene.player_view': {
             handler() { this.updateTokenPos(); },
             deep: true
@@ -80,6 +79,8 @@ createApp({
             window.addEventListener('mousemove', this.onMove);
             window.addEventListener('mouseup', this.onUp);
             window.addEventListener('wheel', this.onWheel, { passive: false });
+            // Rechtsklick-Kontextmenü unterdrücken: `@contextmenu.prevent` auf #app reicht
+            // in Firefox nicht zuverlässig, deshalb global auf window. (Rechtsklick = Pan)
             window.addEventListener('contextmenu', this.onContextMenu);
             window.addEventListener('dragover', (e) => e.preventDefault());
             window.addEventListener('drop', this.dropFile);
@@ -113,7 +114,6 @@ createApp({
         window.addEventListener('keydown', this.onKeyDown);
         
         // --- Socket Init ---
-        socket.emit('request_init');
         socket.emit('request_assets', {path: ''});
         // NEU: Media Liste anfordern
         if(this.isGM) socket.emit('request_media');

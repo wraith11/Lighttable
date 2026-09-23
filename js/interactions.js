@@ -31,21 +31,6 @@ export const interactionMethods = {
         // ein Linksklick nicht versehentlich weiter die Sicht verschiebt.
         this.drag.mode = null;
 
-        if(this.tool === 'fow_reveal') { 
-            this.drag.mode = 'fow_paint'; this.drag.fowType = 'reveal'; 
-            const s = {type: 'reveal', x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.rebuildFoW(); 
-            this.sync(); return; 
-        }
-        if(this.tool === 'fow_hide') { 
-            this.drag.mode = 'fow_paint'; this.drag.fowType = 'hide'; 
-            const s = {type: 'hide', x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.rebuildFoW();
-            this.sync(); return; 
-        }
-
         if(this.tool === 'eraser' || e.button === 1) {
             if(this.scene.objects_locked) return; e.preventDefault();
             
@@ -54,6 +39,8 @@ export const interactionMethods = {
                 this.sync(); 
                 // FORCE RENDER: Ensure the renderer knows something changed immediately
                 if (this.renderer) {
+                    this.renderer.mapDirty = true;
+                    this.renderer.drawingsDirty = true;
                     this.renderer._renderDirty = true;
                     this.renderer.requestRender();
                 }
@@ -210,7 +197,7 @@ export const interactionMethods = {
             }
             for(let i=this.scene.walls.length-1; i>=0; i--) {
                 const w = this.scene.walls[i];
-                if(w.invisible && !this.debugMode) continue;
+                // Unsichtbare Wände sind im Select-Tool anklickbar (GM)
                 if (this.scene.background_locked && (w.z !== undefined ? w.z : 5) < 0) continue;
 
                 let hit = false;
@@ -223,12 +210,6 @@ export const interactionMethods = {
         }
         
         if(this.selectedObj) { this.selObjId = null; }
-        if(this.tokenClicked) { 
-            this.drag.mode='token'; 
-            this.drag.temp=this.tokenClickedRef; 
-            this.tokenClicked=false; 
-            return; 
-        }
         
         if(this.tool === 'move_player') { 
             this.drag.mode='move_player';
@@ -239,7 +220,9 @@ export const interactionMethods = {
             return; 
         }
         
-        const snap = (v) => Math.round(v/50)*50;
+        // Snapping auf halbes Grid (Schnittpunkte) – Ausnahme: Kreis-Hintergrund-Tool
+        const halfGrid = (this.scene.grid_size || 50) / 2;
+        const snap = (v) => Math.round(v/halfGrid)*halfGrid;
         
         if(this.tool === 'wall') { 
             this.drag.mode='wall'; 
@@ -248,7 +231,8 @@ export const interactionMethods = {
         }
         else if(this.tool === 'column') {
             this.drag.mode='column';
-            this.drag.temp={x:pos.x, y:pos.y, radius:10, id:'temp_'+Date.now(), vertices: this.toolSettings.columnVertices, rotation: 0, color: this.drawColor, texture: this.brushTexture, tilesPerAxis: this.tilesPerAxis, z: 10};
+            const csx = this.snapMode ? snap(pos.x) : pos.x; const csy = this.snapMode ? snap(pos.y) : pos.y;
+            this.drag.temp={x:csx, y:csy, radius:10, id:'temp_'+Date.now(), vertices: this.toolSettings.columnVertices, rotation: 0, color: this.drawColor, texture: this.brushTexture, tilesPerAxis: this.tilesPerAxis, z: 10};
         }
         else if(this.tool === 'brush') { 
             this.drag.mode='brush'; 
@@ -265,7 +249,7 @@ export const interactionMethods = {
             this.drag.temp={id:'d_'+Date.now(), type:'rect_paint', x:startX, y:startY, w:initialW, h:initialH, color:this.drawColor, texture:this.brushTexture, startX:startX, startY:startY, tilesPerAxis:this.tilesPerAxis}; 
             this.renderer.requestRender();
         }
-        else if(this.tool === 'circle_paint') { this.drag.mode='circle_paint'; this.drag.temp={id:'d_'+Date.now(), type:'circle_paint', x:pos.x, y:pos.y, radius:1, color:this.drawColor, size:this.toolSettings.brushSize, texture:this.brushTexture, tilesPerAxis:this.tilesPerAxis}; this.renderer.requestRender(); }
+        else if(this.tool === 'circle_paint') { this.drag.mode='circle_paint'; const csx2 = this.snapMode ? snap(pos.x) : pos.x; const csy2 = this.snapMode ? snap(pos.y) : pos.y; this.drag.temp={id:'d_'+Date.now(), type:'circle_paint', x:csx2, y:csy2, radius:1, color:this.drawColor, size:this.toolSettings.brushSize, texture:this.brushTexture, tilesPerAxis:this.tilesPerAxis}; this.renderer.requestRender(); }
         else if(this.tool === 'light') {
             let hitLightId = null;
             if (this.scene.show_light_icons) {
@@ -329,7 +313,9 @@ export const interactionMethods = {
         }
 
         const pos = this.renderer.getWorldPos(e);
-        const snap = (v) => Math.round(v/50)*50;
+        // Snapping auf halbes Grid (Schnittpunkte) – Ausnahme: Kreis-Hintergrund-Tool
+        const halfGrid = (this.scene.grid_size || 50) / 2;
+        const snap = (v) => Math.round(v/halfGrid)*halfGrid;
 
         if(this.drag.mode === 'wall') {
             this.drag.temp.x2 = this.snapMode ? snap(pos.x) : pos.x; 
@@ -377,12 +363,6 @@ export const interactionMethods = {
             this.drag.temp.radius = Math.hypot(pos.x - this.drag.temp.x, pos.y - this.drag.temp.y);
             this.renderer.requestRender();
         }
-        else if(this.drag.mode === 'fow_paint') {
-            const s = {type: this.drag.fowType, x:pos.x, y:pos.y, radius: 50};
-            this.scene.fow_shapes.push(s); 
-            this.renderer.drawFoWShapeToTexture(s);
-            this.syncThrottled();
-        }
         else if(this.drag.mode === 'move_player') {
             const gs = this.scene.grid_size;
             const pv = this.scene.player_view;
@@ -412,6 +392,7 @@ export const interactionMethods = {
                     const dist = Math.hypot(pos.x - o.x, pos.y - o.y);
                     const scale = dist / this.drag.initialDist;
                     o.width = this.drag.initialWidth * scale; o.height = this.drag.initialHeight * scale;
+                    if(this.snapMode) { o.width = snap(o.width); o.height = snap(o.height); }
                     this.renderer.mapDirty = true; // Sprite-Größe aktualisieren
                     this.syncThrottled();
                 }
@@ -450,12 +431,6 @@ export const interactionMethods = {
                     this.syncThrottled();
                 }
         }
-        else if(this.drag.mode === 'token') {
-            const t = this.drag.temp;
-            t.x = pos.x; t.y = pos.y; 
-            this.renderer.fowDirty = true;
-            this.syncThrottled();
-        }
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
         this.renderer.setDragState(this.drag, this.selObjId);
         this.renderer.requestRender();
@@ -492,21 +467,17 @@ export const interactionMethods = {
                     this.sync();
                 }
         }
-        else if(this.drag.mode === 'brush' || this.drag.mode === 'fow_paint') {
-            if(this.drag.mode === 'brush') {
-                this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp)));
-                this.renderer.drawingsDirty = true;
-                this.sync();
-            } else {
-                this.sync();
-            }
+        else if(this.drag.mode === 'brush') {
+            this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp)));
+            this.renderer.drawingsDirty = true;
+            this.sync();
         }
         else if(['grid_paint','rect_paint','circle_paint'].includes(this.drag.mode)) { 
             this.scene.drawings.push(JSON.parse(JSON.stringify(this.drag.temp))); 
             this.renderer.drawingsDirty = true;
             this.sync(); 
         }
-        else if(['move_player','obj','light','token','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.flushSync();
+        else if(['move_player','obj','light','resize','rotate','wall_move','wall_drag','column_move','resize_column'].includes(this.drag.mode)) this.flushSync();
         
         this.drag.mode = null; this.drag.temp = null;
         this.renderer.setToolSettings(this.toolSettings, this.drawColor, this.brushTexture, this.tilesPerAxis);
@@ -531,6 +502,41 @@ export const interactionMethods = {
 
     onKeyDown(e) {
         if(!this.isGM) return;
+        // STRG+C / STRG+V zum Kopieren von Objekten
+        if((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+            if(this.selectedObj) {
+                this._clipboard = JSON.parse(JSON.stringify(this.selectedObj));
+                e.preventDefault();
+            }
+            return;
+        }
+        if((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            if(this._clipboard) {
+                const c = this._clipboard;
+                const nid = Date.now();
+                const copy = {...c, id: nid, x: c.x + 50, y: c.y + 50};
+                if(c.x1 !== undefined) { copy.x1 = c.x1 + 50; copy.x2 = c.x2 + 50; copy.y1 = c.y1 + 50; copy.y2 = c.y2 + 50; }
+                if(this.selectedObjIsWall || (c.x1 !== undefined)) {
+                    this.scene.walls.push(copy);
+                    this.selectedObjIsWall = true; this.selectedObjIsColumn = false; this.selectedObjIsLight = false;
+                } else if(this.selectedObjIsColumn || (c.vertices !== undefined)) {
+                    this.scene.columns.push(copy);
+                    this.selectedObjIsColumn = true; this.selectedObjIsWall = false; this.selectedObjIsLight = false;
+                } else if(this.selectedObjIsLight || (c.radius !== undefined && c.color)) {
+                    this.scene.lights.push(copy);
+                    this.selectedObjIsLight = true; this.selectedObjIsWall = false; this.selectedObjIsColumn = false;
+                } else {
+                    this.scene.objects.push(copy);
+                    this.selectedObjIsWall = false; this.selectedObjIsColumn = false; this.selectedObjIsLight = false;
+                }
+                this.selObjId = nid;
+                if(this.renderer) this.renderer.selectedObjId = nid;
+                this.sync();
+                if(this.renderer) { this.renderer.mapDirty = true; this.renderer.requestRender(); }
+                e.preventDefault();
+            }
+            return;
+        }
         if(e.key === 'Escape') {
             if(this.showColorPicker) { this.showColorPicker=false; return; }
             this.setTool('select'); this.brushTexture = null; this.selObjId = null; 

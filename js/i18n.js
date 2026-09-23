@@ -1,4 +1,4 @@
-// i18n-Übersetzungen für LightTable Ultimate.
+// i18n-Übersetzungen für ScryTable.
 // Englisch ist die Standard-Sprache (en), Deutsch ist alternativ verfügbar (de).
 export const translations = {
   en: {
@@ -87,11 +87,7 @@ export const translations = {
     errLoad: "Error loading: ",
     confirmLoad: "Load map '%s'? Unsaved changes will be lost.",
     confirmFowReset: "Really reset the entire Fog of War?",
-    folderName: "Folder name:",
     confirmCamReset: "Really reset camera settings to default?",
-    // Player view / misc
-    gmView: "GM", playerViewTitle: "Player",
-    title: "LightTable Ultimate"
   },
 
   de: {
@@ -173,9 +169,6 @@ export const translations = {
     errLoad: "Fehler beim Laden: ",
     confirmLoad: "Karte '%s' laden? Ungespeicherte Änderungen gehen verloren.",
     confirmFowReset: "Wirklich den gesamten Fog of War zurücksetzen?",
-    folderName: "Ordnername:",
-    confirmCamReset: "Kamera-Einstellungen wirklich auf Standard zurücksetzen?",
-    gmView: "GM", playerViewTitle: "Spieler",
-    title: "LightTable Ultimate"
+    confirmCamReset: "Kamera-Einstellungen wirklich auf Standard zurücksetzen?"
   }
 };

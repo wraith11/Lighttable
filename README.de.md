@@ -1,8 +1,10 @@
-# LightTable Ultimate
+<p align="center">
+  <img src="docs/images/banner.svg" alt="ScryTable" width="100%" style="border-radius:8px;">
+</p>
 
 > 🌐 **Sprache / Language:** [Deutsch](README.de.md) · [English](README.md)
 
-**LightTable Ultimate** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
+**ScryTable** ist ein interaktives Virtual Tabletop (VTT) für Pen&Paper-Runden. Es wird per Beamer von oben auf den Spieltisch projiziert und verwandelt den physischen Tisch in eine lebendige Spielwelt.
 
 - **GM-Ansicht** zum Bauen und Steuern der Karte (im Browser des Spielleiters).
 - **Player-Ansichten**, die einfach über den Browser geöffnet werden – z.&nbsp;B. auf einem Android-TV-Stick am Beamer.
@@ -62,8 +64,8 @@
 ### 1. Projekt herunterladen
 
 ```bash
-git clone https://github.com/wraith11/Lighttable.git
-cd Lighttable
+git clone https://github.com/wraith11/ScryTable.git
+cd ScryTable
 ```
 
 > Möchtest du die neueste Entwicklungs-Version testen, wechsle auf den Branch `dev`:
@@ -105,7 +107,7 @@ Beim ersten Start werden automatisch die Ordner `assets/`, `maps/` und `media/` 
 ## Starten
 
 ```bash
-python lighttable.py
+python scrytable.py
 ```
 
 Oder mit einem der **Start-Skripte**:
@@ -127,13 +129,13 @@ Standardmäßig bindet der Server an `0.0.0.0` (alle Interfaces) auf Port `8080`
 
 ```bash
 # Anderen Port verwenden
-python lighttable.py --port 9090
+python scrytable.py --port 9090
 
 # Nur lokale Verbindungen zulassen
-python lighttable.py --host 127.0.0.1
+python scrytable.py --host 127.0.0.1
 
 # Beides
-python lighttable.py --host 0.0.0.0 --port 9090
+python scrytable.py --host 0.0.0.0 --port 9090
 ```
 
 Alternativ lässt sich Host/Port dauerhaft in **`config.json`** unter der Sektion `"server"` festlegen:
@@ -157,18 +159,25 @@ Die UI ist **mehrsprachig** (Englisch als Standard, Deutsch verfügbar):
 Das Tracking erkennt Figuren über **IR-Reflektorflächen** und eine **IR-Kamera**. So baust du es auf:
 
 ### Benötigte Hardware
-- **Kamera mit IR-Filter-Linse** – viele „IR-only“-oder „Webcam mit IR-Filter“-Modelle eignen sich. Ohne Filter sieht die Kamera sichtbares Licht, was das Tracking stört.
+- **Kamera mit IR-Filter-Linse** – eine „IR-only“- oder „Webcam mit IR-Filter“. 
 - **IR-Beleuchtung** – ein oder mehrere IR-Emitter (z.&nbsp;B. IR-LED-Scheinwerfer mit 850 nm), die den Tisch gleichmäßig ausleuchten. Die Reflektorflächen werfen das IR-Licht zur Kamera zurück.
-- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. von unten an den Base).
+- **Reflektoren** – kleine Reflektorflächen (z.&nbsp;B. retroreflektierendes Material, Katzenaugen-Folie oder kleine IR-Reflektorpunkte), die du den Miniaturen/Figuren anbringst (z.&nbsp;B. unten an der Base).
+
+Ich habe eine USB-Webcam-Platine mit Nachtsicht (inkl. IR-Emitter), einen günstigen IR850-Infrarotfilter für eine Kamera und ein passendes schwarzes Plastikgehäuse auf Amazon gekauft. Ich habe den Helligkeitssensor abgeklebt, sodass die Kamera immer im Nachtsicht-Modus ist. Dann habe ich eine Aussparung in das Gehäuse gemacht, die Linse davor geklebt und die Kamera im Gehäuse hinter der Linse platziert, sodass die IR-Emitter durch die Linse leuchten können.
+
+> 📷 **Siehe:** [IR-Sensor in „Bilder & Screenshots“](#bilder--screenshots)
 
 ### Aufbau
 1. **Kamera positionieren** – senkrecht über dem Spielfeld, z.&nbsp;B. an einem Stativ über dem Tisch oder am Beamer-Gestänge. Die Kamera sollte das gesamte Spielfeld erfassen.
 2. **IR-Beleuchtung** gleichmäßig über den Tisch richten – ohne grelle Hotspots.
-3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll.
+3. **Reflektoren anbringen** – an jeder Figur, die getrackt werden soll. Ich habe der Basis einen dünnen Streifen zwischen die Beine geklebt, sodass der Reflektor von allen Seiten zu sehen ist. 
 4. **Kamera im System einrichten:**
    - In der GM-Ansicht: **Settings → Camera Setup**.
    - Kamera auswählen und ggf. den Treiber-Dialog öffnen.
    - **Kalibrieren:** Die vier Eckpunkte auf die Ecken des Spielfelds ziehen, damit das Bild entzerrt wird.
+
+> 📷 **Siehe:** [Kamera-Einstellungen in „Bilder & Screenshots“](#bilder--screenshots)
+
 
 ### Kalibrierung & Korrekturoptionen
 Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Parameter ein:
@@ -210,8 +219,8 @@ Nach der Ausrichtung stellst du in **Settings → Camera Setup** die Tracking-Pa
 ## Projektstruktur
 
 ```
-Lighttable/
-├── lighttable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
+ScryTable/
+├── scrytable.py          # Python-Server (aiohttp + Socket.IO + OpenCV-Tracking)
 ├── index.html             # Vue-UI (GM- & Player-Ansicht, mehrsprachig)
 ├── css/style.css          # Styling
 ├── js/
@@ -243,13 +252,19 @@ Lighttable/
 
 ---
 
-## Screenshots
+## Bilder & Screenshots
 
-| GM-Ansicht | Player-Ansicht | Setup |
-|------------|----------------|-------|
-| ![GM-Ansicht](assets/screenshots/gm.png) | ![Player-Ansicht](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+| Spiel-Ansicht (GM + Player) |
+|-----------------------------|
+| ![Spiel-Ansicht](docs/images/PlayingView.png) |
 
-> Screenshots folgen in Kürze.
+| Map-Editor | Reales Setup |
+|------------|--------------|
+| ![Map-Editor](docs/images/MapEditor.png) | ![Reales Setup](docs/images/RealLife.jpg) |
+
+| Kamera-Einstellungen | IR-Sensor |
+|----------------------|-----------|
+| ![Kamera-Einstellungen](docs/images/CamSettings.png) | ![IR-Sensor](docs/images/IR-Sensor.jpg) |
 
 ---
 

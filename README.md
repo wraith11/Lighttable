@@ -1,8 +1,10 @@
-# LightTable Ultimate
+<p align="center">
+  <img src="docs/images/banner.svg" alt="ScryTable" width="100%" style="border-radius:8px;">
+</p>
 
 > 🌐 **Language / Sprache:** [English](README.md) · [Deutsch](README.de.md)
 
-**LightTable Ultimate** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
+**ScryTable** is an interactive Virtual Tabletop (VTT) for tabletop RPG sessions. It is projected from above onto the gaming table via a beamer, turning the physical table into a living game world.
 
 - **GM view** for building and controlling the map (in the game master's browser).
 - **Player views** that can simply be opened in a browser – e.g. on an Android TV stick connected to the beamer.
@@ -62,8 +64,8 @@
 ### 1. Download the project
 
 ```bash
-git clone https://github.com/wraith11/Lighttable.git
-cd Lighttable
+git clone https://github.com/wraith11/ScryTable.git
+cd ScryTable
 ```
 
 > To test the latest development version, switch to the `dev` branch:
@@ -105,7 +107,7 @@ On first start, the folders `assets/`, `maps/` and `media/` are created automati
 ## Start
 
 ```bash
-python lighttable.py
+python scrytable.py
 ```
 
 Or use one of the **start scripts**:
@@ -127,13 +129,13 @@ By default the server binds to `0.0.0.0` (all interfaces) on port `8080`. This c
 
 ```bash
 # Use a different port
-python lighttable.py --port 9090
+python scrytable.py --port 9090
 
 # Allow only local connections
-python lighttable.py --host 127.0.0.1
+python scrytable.py --host 127.0.0.1
 
 # Both
-python lighttable.py --host 0.0.0.0 --port 9090
+python scrytable.py --host 0.0.0.0 --port 9090
 ```
 
 Alternatively, set host/port permanently in **`config.json`** under the `"server"` section:
@@ -161,14 +163,20 @@ The tracking detects figures via **IR reflective surfaces** and an **IR camera**
 - **IR illumination** – one or more IR emitters (e.g. IR LED floodlights at 850 nm) that evenly light the table. The reflective surfaces bounce the IR light back to the camera.
 - **Reflectors** – small reflective surfaces (e.g. retroreflective material, cat-eye film or small IR reflector dots) attached to your miniatures/figures (e.g. on the bottom of the base).
 
+I bought a USB webcam board with night vision (incl. IR emitter), a cheap IR850 infrared filter for a camera, and a matching black plastic housing on Amazon. I taped over the light sensor so the camera is always in night-vision mode. Then I cut a hole in the housing, glued the lens in front of it, and placed the camera inside the housing behind the lens so the IR emitters can shine through the lens.
+
+> 📷 **See:** [IR sensor in "Images & Screenshots"](#images--screenshots)
+
 ### Setup
 1. **Position the camera** – vertically above the play area, e.g. on a tripod over the table or on the beamer rig. The camera should capture the whole play area.
 2. **Aim the IR light** evenly across the table – without harsh hotspots.
-3. **Attach reflectors** – to every figure you want tracked.
+3. **Attach reflectors** – to every figure you want tracked. I glued a thin strip between the legs of the base so the reflector is visible from all sides.
 4. **Set up the camera in the system:**
    - In the GM view: **Settings → Camera Setup**.
    - Select the camera and optionally open the driver dialog.
    - **Calibrate:** drag the four corner points onto the corners of the play area to warp the image.
+
+> 📷 **See:** [Camera settings in "Images & Screenshots"](#images--screenshots)
 
 ### Calibration & correction options
 After alignment, set the tracking parameters in **Settings → Camera Setup**:
@@ -210,8 +218,8 @@ After alignment, set the tracking parameters in **Settings → Camera Setup**:
 ## Project structure
 
 ```
-Lighttable/
-├── lighttable.py          # Python server (aiohttp + Socket.IO + OpenCV tracking)
+ScryTable/
+├── scrytable.py          # Python server (aiohttp + Socket.IO + OpenCV tracking)
 ├── index.html             # Vue UI (GM & Player view, multilingual)
 ├── css/style.css          # Styling
 ├── js/
@@ -244,13 +252,19 @@ Lighttable/
 
 ---
 
-## Screenshots
+## Images & Screenshots
 
-| GM view | Player view | Setup |
-|---------|-------------|-------|
-| ![GM view](assets/screenshots/gm.png) | ![Player view](assets/screenshots/player.png) | ![Setup](assets/screenshots/setup.png) |
+| Playing view (GM + Player) |
+|----------------------------|
+| ![Playing view](docs/images/PlayingView.png) |
 
-> Screenshots will be added here soon.
+| Map editor | Real-life setup |
+|------------|-----------------|
+| ![Map editor](docs/images/MapEditor.png) | ![Real-life setup](docs/images/RealLife.jpg) |
+
+| Camera settings | IR sensor |
+|-----------------|-----------|
+| ![Camera settings](docs/images/CamSettings.png) | ![IR sensor](docs/images/IR-Sensor.jpg) |
 
 ---
 

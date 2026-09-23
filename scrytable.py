@@ -1,5 +1,4 @@
 import os
-import sys
 
 # Versuch, Logging stummzuschalten (Fehlertolerant)
 try:
@@ -22,7 +21,7 @@ import webbrowser
 import socket
 
 import argparse
-print("LightTable Server starting...")
+print("ScryTable Server starting...")
 
 # --- KONFIGURATION ---
 DEFAULT_HOST = "0.0.0.0"
@@ -70,7 +69,7 @@ sio.attach(app)
 state = {
     'cam_params': {
         'camera_index': 0,
-        'threshold': 200, 'brightness': 0.5, 'contrast': 0.5, 
+        'threshold': 200, 
         'min_area': 15, 'max_area': 5000, 
         'corners': [[0, 0], [1280, 0], [1280, 720], [0, 720]], 
         'flip_x': False, 'flip_y': False, 
@@ -84,7 +83,7 @@ state = {
     'scene': {
         'grid_size': 50, 'show_grid': True, 'background_color': '#222222',
         'background_image': { 'url': None, 'x': 0, 'y': 0, 'scale': 1.0, 'repeat': False, 'opacity': 1.0 },
-        'fow_active': False, 'fow_mode': 'temporary', 'ambient_light': 0.1,
+        'fow_active': False, 'fow_mode': 'temporary',
         'objects_locked': False, 
         'show_blob_ids': True,
         'background_locked': False, 'show_light_icons': True,
@@ -267,6 +266,9 @@ class BlobTracker:
         assigned_tracks = set()
         assigned_points = set()
 
+        # --- Original-Greedy (bewährte 2025-Logik) ---
+        # Phase 1: Anker – Alle (Track, Punkt, Distanz)-Paare global nach Distanz sortieren
+        # und der Reihe nach zuordnen, wenn der Punkt innerhalb ANCHOR_RADIUS liegt.
         all_matches = []
         for t_id in all_track_ids:
             track = self.tracks[t_id]
@@ -297,7 +299,7 @@ class BlobTracker:
                     dist = math.hypot(g['x'] - pt['x'], g['y'] - pt['y'])
                     teleport_matches.append((gid, p_idx, dist))
             teleport_matches.sort(key=lambda x: x[2])
-            
+
             for gid, p_idx, dist in teleport_matches:
                 if gid in assigned_tracks or p_idx in assigned_points: continue
                 self._update_track(gid, detected_points[p_idx], now, smoothing=0.0)
@@ -474,7 +476,8 @@ async def update_cam_params(sid, data):
     for k, v in data.items():
         state['cam_params'][k] = v
     save_state_to_disk()
-    await sio.emit('cam_params_sync', state['cam_params'])
+    # Kamera-Parameter nur an den Sender (GM) – Player brauchen sie nicht
+    await sio.emit('cam_params_sync', state['cam_params'], to=sid)
 
 @sio.event
 async def change_camera(sid, index):
@@ -688,8 +691,11 @@ def run_cv_loop(loop_ref):
                 last_camera_success_time = time.time()
             camera_reset_requested = False
             
-        if camera_settings_requested and cap and cap.isOpened(): 
-            cap.set(37, 1); camera_settings_requested = False
+        if camera_settings_requested:
+            # Flag in jedem Fall zurücksetzen, auch wenn die Kamera gerade nicht offen ist
+            if cap and cap.isOpened():
+                cap.set(37, 1)
+            camera_settings_requested = False
 
         frame = None
         if cap and cap.isOpened():
@@ -851,7 +857,7 @@ async def start_background_tasks(app):
     threading.Thread(target=open_browser, daemon=True).start()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="LightTable Ultimate Server")
+    parser = argparse.ArgumentParser(description="ScryTable Server")
     parser.add_argument('--host', default=None, help='Host/IP to bind (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=None, help='Port to bind (default: 8080)')
     args = parser.parse_args()

@@ -54,10 +54,10 @@ export class GameRenderer {
         this.lightsDirty = true;
         this.flickerDirty = false;
         this.drawingsDirty = true; 
+        this.mapRebuilt = false;
         this.fowDirty = true; 
         this.fowBlurDirty = false;
         this.fowBlurredTexture = null;
-        this.fowMemoryScale = 0.5;
         this._fowSettleTimer = null;
         this._lastFoWRenderTime = 0;
         this._lastFoWViewHash = "";
@@ -139,8 +139,9 @@ export class GameRenderer {
         this.containers.bg.zIndex = ++z;       
         this.containers.draw.zIndex = ++z;     
         this.containers.preview.zIndex = ++z;  
-        this.containers.grid.zIndex = ++z;
+        // mapLow (Objekte unter Ebene 0) gehören zum Hintergrund → unter das Grid
         this.containers.mapLow.zIndex = ++z; 
+        this.containers.grid.zIndex = ++z;
         this.containers.shadows.zIndex = ++z;
         this.containers.mapOutline.zIndex = ++z; 
         this.containers.structure.zIndex = ++z; 
@@ -576,6 +577,7 @@ export class GameRenderer {
         if (this.mapDirty) {
             this.rebuildMap();
             this.mapDirty = false;
+            this.mapRebuilt = true;
             this.lightsDirty = true; 
             this.fowDirty = true; 
             this._cachedSegments = null; 
@@ -592,7 +594,7 @@ export class GameRenderer {
         this.renderFoW(); 
         this.renderOverlays(viewChanged);
 
-        if (this.drawingsDirty) { this.renderStaticDrawings(); this.drawingsDirty = false; }
+        if (this.drawingsDirty || this.mapRebuilt) { this.renderStaticDrawings(); this.drawingsDirty = false; this.mapRebuilt = false; }
         
         const isDrawing = this.dragState.active && ['brush','grid_paint','rect_paint','circle_paint'].includes(this.dragState.mode);
         if (isDrawing) { this.renderPreviewDrawing(); } 
@@ -729,7 +731,8 @@ export class GameRenderer {
             const cfg = this.scene.background_image;
             const tex = PIXI.Texture.from(cfg.url);
             let s; 
-            const actualScale = cfg.scale * 0.1;
+            // Skala 1:1 (kein 0.1-Faktor mehr) – scale=1.0 entspricht der Originalbildgröße.
+            const actualScale = cfg.scale;
             if(cfg.repeat) {
                 s = new PIXI.TilingSprite(tex, 100000, 100000); 
                 s.tileScale.set(actualScale); s.tilePosition.set(cfg.x, cfg.y); s.position.set(-50000, -50000);
@@ -1368,8 +1371,9 @@ export class GameRenderer {
         Object.values(this.scene.tokens).forEach(t => {
             // Token werden NUR angezeigt, wenn ein Blob zugewiesen UND aktuell sichtbar ist.
             // Ohne sichtbaren Blob (abandoned / verloren) verschwinden sie von der Karte.
+            // Altes Verhalten: Token mit blob_id werden gerendert, auch wenn der Blob
+            // kurz verdeckt ist – sie bleiben an ihrer gespeicherten Position.
             if (!t.blob_id) return;
-            if (!this.activeBlobs || !this.activeBlobs[String(t.blob_id)]) return;
             
             activeTokenIds.add(t.uuid);
             
@@ -1384,9 +1388,11 @@ export class GameRenderer {
 
             const isSelected = (this.isGM && this.scene.tokens[this.selectedObjId] === t);
             
-            // Bugfix: Sync Issue. Include vision range and robust ring text in cache string.
-            // Using a simple JSON stringify of rings is usually enough, but we ensure structure is captured.
-            const ringsHash = t.rings ? JSON.stringify(t.rings) : '';
+            // Grober Ring-Hash statt JSON.stringify (weniger Serialisierung pro Render)
+            let ringsHash = '';
+            if (t.rings && t.rings.length) {
+                ringsHash = t.rings.length + '|' + t.rings.map(r => (r.color||'') + ':' + (r.text||'').length).join(',');
+            }
             const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
 
             if (tc._cachedProps !== currentProps) {

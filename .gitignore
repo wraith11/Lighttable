@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Runtime / Zustandsdaten
+config.json
+maps/
+media/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nur lokale Doku-Bilder (Screenshots) – nicht beim Klonen mitliefern
+docs/

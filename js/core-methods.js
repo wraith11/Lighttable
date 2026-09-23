@@ -304,20 +304,22 @@ export const coreMethods = {
 
     addObjectAt(pos, src, type) {
         const id = Date.now();
-        const base = this.scene.grid_size * 2;
         const obj = {
             id: id, type: type || 'image', src: src, layer: 'object', z: 5,
-            x: pos.x, y: pos.y, scale: 1.0, width: base, height: base, rotation: 0
+            x: pos.x, y: pos.y, scale: 1.0, width: 100, height: 100, rotation: 0
         };
         this.scene.objects.push(obj);
         this.selObjId = id;
-        // Bildproportionen übernehmen, sobald das Asset geladen ist
+        // Relative Größe der Assets zueinander beibehalten, aber in den richtigen Maßstab
+        // zu Feldern/Figuren umgerechnet: Ein 400px-Asset entspricht ~1 Grid-Zelle.
         if ((type || 'image') === 'image') {
             const img = new Image();
             img.onload = () => {
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                    const ratio = img.naturalHeight / img.naturalWidth;
-                    obj.height = Math.max(1, Math.round(base * ratio));
+                    const gs = this.scene.grid_size || 50;
+                    const scaleFactor = gs / 400;
+                    obj.width = Math.max(1, Math.round(img.naturalWidth * scaleFactor));
+                    obj.height = Math.max(1, Math.round(img.naturalHeight * scaleFactor));
                     this.renderer.mapDirty = true;
                     this.sync();
                     this.renderer.requestRender();
@@ -429,10 +431,6 @@ export const coreMethods = {
 
     navigateAssets(path) { this.currentAssetPath = path; socket.emit('request_assets', {path: path}); },
     navigateUp() { if(!this.currentAssetPath) return; const parts = this.currentAssetPath.split('/'); parts.pop(); this.navigateAssets(parts.join('/')); },
-    createNewFolder() {
-        const name = prompt(this.t('folderName'));
-        if(name) socket.emit('create_folder', {path: this.currentAssetPath, name: name});
-    },
     clickAsset(a) {
         if(a.type === 'folder') { this.navigateAssets(a.path); }
         else { this.brushTexture = a.url; }
@@ -446,18 +444,14 @@ export const coreMethods = {
                      this.scene.background_image.url = res.url;
                      // Wiederholen standardmäßig aus (nur bei Bedarf aktivierbar)
                      this.scene.background_image.repeat = false;
-                     const pv = this.scene.player_view; const gs = this.scene.grid_size; const pvW = pv.width_cells * gs;
-                     const img = new Image(); img.src = res.url;
-                     img.onload = () => {
-                         let scale = 1.0; if(img.width > pvW) scale = pvW / img.width;
-                         this.scene.background_image.scale = scale; this.scene.background_image.x = pv.x; this.scene.background_image.y = pv.y; 
-                         this.sync();
-                         // BUGFIX: Force Render nach Upload
-                         if(this.renderer) {
-                             this.renderer.mapDirty = true;
-                             this.renderer.requestRender();
-                         }
-                     };
+                     const pv = this.scene.player_view;
+                     this.scene.background_image.scale = 1.0; this.scene.background_image.x = 0; this.scene.background_image.y = 0; 
+                     this.sync();
+                     // BUGFIX: Force Render nach Upload
+                     if(this.renderer) {
+                         this.renderer.mapDirty = true;
+                         this.renderer.requestRender();
+                     }
                  }
              });
         };
@@ -497,7 +491,6 @@ export const coreMethods = {
         if(!this.scene.background_image) this.scene.background_image = { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 };
         if(!this.scene.time_of_day) this.scene.time_of_day = 'day';
         if(!this.scene.fow_mode) this.scene.fow_mode = 'temporary';
-        if(this.scene.wall_collision === undefined) this.scene.wall_collision = false;
         if(this.scene.show_blob_ids === undefined) this.scene.show_blob_ids = true;
         if(this.scene.background_locked === undefined) this.scene.background_locked = false;
         if(this.scene.show_light_icons === undefined) this.scene.show_light_icons = true;
@@ -538,9 +531,6 @@ export const coreMethods = {
     },
     removeTokenRing(t, index) {
         if(t.rings && t.rings[index]) { t.rings.splice(index, 1); this.sync(); }
-    },
-    updateTokenRing(t, index, key, value) {
-        if(t.rings && t.rings[index]) { t.rings[index][key] = value; this.sync(); }
     },
     
     blinkToken(t) {
@@ -644,15 +634,18 @@ export const coreMethods = {
         }
 
         const visibleIds = Object.keys(data.blobs).map(String);
-        const ghostIds = (data.lost_ids || []).map(String);
         const tokensToDelete = [];
+        const ghostIds = (data.lost_ids || []).map(String);
         
         Object.values(this.scene.tokens).forEach(t => {
             if (t.blob_id) {
                 const bIdStr = String(t.blob_id);
                 const isVisible = visibleIds.includes(bIdStr);
                 const isGhost = ghostIds.includes(bIdStr);
-                
+
+                // Original-Logik: Token nur abmelden, wenn der Blob weder sichtbar noch im
+                // Ghost-Zustand (lost_ids) ist. Das Backend hält verdeckte Blobs bis zum
+                // Ghost-Timeout in lost_ids → Token bleiben bei kurzer Verdeckung erhalten.
                 if (!isVisible && !isGhost) {
                     if (t.modified) { 
                         t.blob_id = null; 
@@ -709,9 +702,22 @@ export const coreMethods = {
 
         Object.values(this.scene.tokens).forEach(t => {
             try {
-                // Kein hartes Verwerfen an der Player-View-Grenze mehr: Ein Token mit
-                // blob_id bleibt an seiner Position, auch wenn er außerhalb der View liegt.
-                // Das Abmelden übernimmt handleBlobs, wenn der Blob wirklich verschwindet.
+                // Original-Logik: Token außerhalb der Player-View werden abgemeldet
+                // (dort kann es keine Blobs geben).
+                const inView = (t.x >= viewX - margin && t.x <= viewX + w + margin && 
+                                t.y >= viewY - margin && t.y <= viewY + h + margin);
+                if (!inView && t.blob_id) {
+                    t.blob_id = null; 
+                    t.on_board = false;
+                    if (!t.modified) {
+                        delete this.scene.tokens[t.uuid];
+                        tokenListChanged = true;
+                    } else {
+                        changed = true;
+                    }
+                    return;
+                }
+
                 if (this.scene.tracking_paused) return;
 
                 if(t.blob_id && this.blobs[String(t.blob_id)]) {

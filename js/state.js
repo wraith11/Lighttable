@@ -22,7 +22,6 @@ export function getInitialState() {
         selectedMediaSlot: 0, // 0..3
 
         snapMode: true,
-        debugMode: false,
         rightClickStart: {x:0, y:0},
         isRightClickPan: false,
         rightClickDidMove: false,
@@ -37,8 +36,8 @@ export function getInitialState() {
             player_view: { x: 0, y: 0, width_cells: 28, aspect: 1.777 }, 
             objects:[], walls:[], lights:[], drawings:[], columns:[], tokens:{}, fow_shapes: [],
             fow_visited: [],
-            fow_active: false, fow_mode: 'temporary', ambient_light: 0.1, grid_size: 50, objects_locked: false,
-            movement_mode: 'free', wall_collision: false, show_blob_ids: true,
+            fow_active: false, fow_mode: 'temporary', grid_size: 50, objects_locked: false,
+            show_blob_ids: true,
             background_locked: false, show_light_icons: true, lights_active: true, 
             background_color: '#222222', 
             background_image: { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 },
@@ -60,7 +59,7 @@ export function getInitialState() {
         
         camParams: { 
             camera_index: 0,
-            threshold: 200, brightness: 0.5, contrast: 0.5, 
+            threshold: 200, 
             corners: [[0,0],[1280,0],[1280,720],[0,720]], flip_x:false, flip_y:false,
             min_area: 10, max_area: 5000, smoothing: 0.2, hotspot_compensation: 0.0,
             merge_distance: 25, parallax_strength: 0.0, cam_pos_x: 0.5, cam_pos_y: 0.5
@@ -68,11 +67,12 @@ export function getInitialState() {
         
         blobs: {}, 
         selObjId: null, selectedObjIsWall: false, selectedObjIsLight: false, selectedObjIsColumn: false,
-        drawColor: '#ffffff', drawSize: 15, brushTexture: null, tilesPerAxis: 2, 
+        drawColor: '#ffffff', brushTexture: null, tilesPerAxis: 2, 
         drag: { active: false, start: {x:0,y:0}, mode: null, temp: null, worldStart: {x:0,y:0}, handle: null, offset: {x:0, y:0}, initialDist: 0, initialWidth: 0, initialHeight: 0 },
         camW: 1280, camH: 720, imgW: 2000, imgH: 720, cornerDragIdx: -1, tempCorners: [],
         colorPicker: null, openTokenId: null, lightColorPicker: null, tokenColorPicker: null,
         _lastSyncTime: 0, _syncTimer: null,
-        currentMapName: ""
+        currentMapName: "",
+        _clipboard: null
     };
 }
