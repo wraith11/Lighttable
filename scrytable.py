@@ -411,7 +411,6 @@ class TurnCorrectionLayer:
 
         # Falls IDs permutiert wurden, Blobs mit den korrigierten IDs neu exportieren.
         if correction and correction.get('swapped'):
-            did_swap = True
             blobs = self._recompute_blobs(tracker)
 
         return blobs, correction
