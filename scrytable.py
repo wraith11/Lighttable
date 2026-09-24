@@ -387,7 +387,6 @@ class TurnCorrectionLayer:
     def update(self, tracker, blobs, new_ids, lost_ids):
         now = time.time()
         correction = None
-        did_swap = False
 
         if not self.disrupted:
             self._maintain_snapshot(tracker, now)
