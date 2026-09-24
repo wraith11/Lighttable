@@ -40,6 +40,27 @@
 - **Blob tracking** with anchor/teleport logic, ID assignment, loss and re-find handling.
 - **Tokens** with size, color/spotlight, name, rings with text, vision range and blink function.
 
+### Turn-based Correction (stabilizing blob assignment)
+The base tracking works well when a single figure moves while others are briefly occluded.
+When more than one figure moves while blobs are occluded, the greedy teleport logic can swap
+blob IDs (the camera sees no identity). A **conservative correction layer** sits on top of
+the tracking:
+
+- It continuously records the positions of visible blobs (a "snapshot").
+- When a disturbance is detected (a blob disappears), the snapshot is frozen.
+- As soon as **all** blobs are visible again, "before" is compared with "after":
+  - A blob at the same position → unchanged, still belongs to the same token.
+  - A blob at a new position → belongs to the token whose old blob vanished (that figure moved).
+- Only **blob IDs are permuted** (never created or deleted) → the ID set stays stable, so the
+  client does not create/delete tokens (no jumping back and forth).
+- Unmoved / never-occluded figures are never touched.
+- In **ambiguous** cases (e.g. figures swapping positions crosswise while all are occluded) the
+  most likely state (minimum total movement) is assumed and the GM is shown a
+  "Token assignment uncertain" notice – then please check/correct manually.
+
+The behavior can be tuned via the constants in `TurnCorrectionLayer.__init__` (in
+`scrytable.py`): `anchor_radius`, `moved_threshold` and `max_disruption`.
+
 ### Player View / Blackout / Media
 - **Blackout function:** instantly darken the player view so the GM can prepare unnoticed.
 - **Media system:** play images and videos through the blackout function in **Full**, **Split** or **Quad** layout – including flip and loop per slot.
