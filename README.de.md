@@ -270,7 +270,7 @@ ScryTable/
 
 ## Lizenz
 
-Dieses Projekt ist unter der **MIT-Lizenz** lizenziert. Siehe die Datei [LICENSE](LICENSE).
+Dieses Projekt ist unter der **GNU General Public License v3.0 (GPLv3)** lizenziert. Details finden sich in der [LICENSE](LICENSE) Datei.
 
 ---
 
