@@ -167,6 +167,13 @@ createApp({
         socket.on('blob_update', (data) => { 
             if(this.scene.tracking_paused) return;
             this.blobs = data.blobs; 
+
+            // Turn-basierte Korrekturschicht: GM informieren, wenn eine Korrektur
+            // (oder eine unsichere Zuordnung) stattgefunden hat.
+            if (this.isGM && data.correction) {
+                this.showCorrectionNotice(data.correction);
+            }
+
             const newKeys = Object.keys(data.blobs).sort();
             const oldKeys = this.blobListKeys.sort(); 
             let changed = newKeys.length !== oldKeys.length;
