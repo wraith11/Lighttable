@@ -153,6 +153,8 @@ export const translations = {
     trackingPaused: "Tracking PAUSIERT", trackingActive: "Tracking Aktiv",
     settings: "Einstellungen",
     blobIds: "Blob IDs (GM)",
+    corrUncertain: "⚠ Token-Zuordnung unsicher – bitte prüfen (manuelle Korrektur nötig)",
+    corrSwapped: "Blob-Zuordnung nach Bewegung korrigiert.",
     atmosphere: "Atmosphäre & FOW",
     fogOfWar: "Fog of War:",
     mode: "Modus:", modeTemp: "Modus 2 (Temporär)", modePerm: "Modus 1 (Permanent)",
