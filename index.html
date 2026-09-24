@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <title>ScryTable</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <div id="pixi-container"></div>
+
+        <!-- Turn-basierte Korrektur: GM-Hinweis bei unsicherer/angewandter Blob-Korrektur -->
+        <transition name="fade">
+            <div v-if="isGM && correctionNotice" class="correction-notice" :class="{ 'is-uncertain': correctionNotice.uncertain }">
+                <i class="fas" :class="correctionNotice.uncertain ? 'fa-exclamation-triangle' : 'fa-check'"></i>
+                <span>{{ correctionNotice.text }}</span>
+            </div>
+        </transition>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
