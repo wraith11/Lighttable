@@ -1043,11 +1043,26 @@ def run_cv_loop(loop_ref):
 
             blobs, new_ids, lost_ids = tracker.update(merged_points, smoothing=params.get('smoothing', 0.2))
 
+            # Turn-basierte Korrekturschicht (konservativ, zusätztlich): prüft nach einer
+            # Störung (alle Blobs wieder sichtbar) die Blob-IDs und permutiert sie nur bei
+            # eindeutiger (bzw. wahrscheinlichster) Zuordnung. ID-Menge bleibt stabil.
+            blobs, correction = turn_corrector.update(tracker, blobs, new_ids, lost_ids)
+
             has_content = (len(blobs) > 0 or len(lost_ids) > 0)
+            
+            emit_payload = {'blobs': blobs, 'new_ids': new_ids, 'lost_ids': lost_ids}
+            if correction:
+                # GM-Hinweis: Bei unsicherer Zuordnung soll der GM die Tokens prüfen.
+                emit_payload['correction'] = {
+                    'swapped': bool(correction.get('swapped')),
+                    'uncertain': bool(correction.get('uncertain')),
+                    'reason': correction.get('reason', ''),
+                    'movers': [str(m) for m in (correction.get('movers') or [])]
+                }
             
             if has_content or (not has_content and had_active_blobs):
                  asyncio.run_coroutine_threadsafe(
-                    sio.emit('blob_update', {'blobs': blobs, 'new_ids': new_ids, 'lost_ids': lost_ids}), loop_ref
+                    sio.emit('blob_update', emit_payload), loop_ref
                 )
             
             had_active_blobs = has_content
