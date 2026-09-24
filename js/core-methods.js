@@ -606,6 +606,30 @@ export const coreMethods = {
         if (!t.modified) { t.modified = true; }
         this.sync();
     },
+    // Turn-basierte Korrekturschicht: GM über eine stattgefundene Blob-Korrektur
+    // informieren. Insbesondere bei "uncertain" soll der GM die Token-Zuordnung prüfen
+    // (z.B. bei Figuren-Tausch über Kreuz ist das nicht eindeutig lösbar).
+    showCorrectionNotice(correction) {
+        if (!correction) return;
+        const swapped = !!correction.swapped;
+        const uncertain = !!correction.uncertain;
+        const reason = correction.reason || '';
+
+        let text = '';
+        if (uncertain) {
+            text = this.t('corrUncertain');
+        } else if (swapped) {
+            text = this.t('corrSwapped');
+        } else {
+            return; // nichts passiert -> kein Hinweis
+        }
+
+        this.correctionNotice = { text, uncertain, time: Date.now() };
+        clearTimeout(this._correctionNoticeTimer);
+        this._correctionNoticeTimer = setTimeout(() => { this.correctionNotice = null; }, 6000);
+        if (this.renderer) this.renderer.requestRender();
+    },
+    
     
     handleBlobs(data) {
         let changes = false;
