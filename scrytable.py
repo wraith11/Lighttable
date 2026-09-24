@@ -349,6 +349,239 @@ class BlobTracker:
 
 tracker = BlobTracker()
 
+
+# ============================================================================
+# TURN-BASIERTE KORREKTURSCHICHT (konservativ, zusätztlich zum Basis-Tracking)
+# ============================================================================
+# Problem: Wenn mehrere Figuren gleichzeitig verdeckt UND bewegt werden, kann der
+# Basis-Tracker (Phase-2-Teleport) die Blob-IDs vertauschen – die Kamera sieht keine
+# Identität. Diese Schicht legt sich KONSERVATIV über das funktionierende Basis-Tracking:
+#
+#   * Sie erfasst kontinuierlich einen "Snapshot" der sichtbaren Blob-Positionen.
+#   * Wird eine Störung erkannt (ein Blob verschwindet = lost), wird der Snapshot
+#     eingefroren (Zustand "vor der Störung").
+#   * Sobald ALLE verdeckten Blobs wieder sichtbar sind, wird "vorher" mit "nachher"
+#     verglichen:
+#       - Blob an derselben Position  -> unverändert, gehört weiter zum selben Token.
+#       - Blob an einer NEUEN Position -> gehört zu dem Token, dessen alter Blob
+#         verschwunden ist (diese Figur wurde bewegt).
+#   * Es werden nur Blob-IDs PERMUTIERT (nie neue erzeugt, nie gelöscht) -> die ID-Menge
+#     bleibt stabil, der Client erzeugt/löscht dadurch KEINE Tokens (kein Hüpfen).
+#   * Unbewegte / nie verdeckte Figuren werden NIE angefasst.
+#   * Bei Mehrdeutigkeit (z.B. Figuren tauschen über Kreuz) wird der WAHRSCHEINLICHSTE
+#     Zustand (minimale Gesamtbewegung) angenommen und als "uncertain" markiert, damit
+#     der GM die Zuordnung manuell prüfen/korrigieren kann.
+# ============================================================================
+class TurnCorrectionLayer:
+    def __init__(self, anchor_radius=0.15, moved_threshold=None, max_disruption=6.0):
+        self.anchor_radius = anchor_radius          # wie BlobTracker.ANCHOR_RADIUS
+        self.moved_threshold = moved_threshold or (anchor_radius * 1.5)
+        self.max_disruption = max_disruption        # Timeout: Störung verwerfen (Figuren-Entfernung)
+        self.snapshot = {}       # track_id(str) -> (x, y)  eingefrorener Zustand vor der Störung
+        self.disrupted = False
+        self.disrupted_at = 0.0
+        self.occluded_ids = set()
+        self.last_resolution = None
+
+    # --- Einstiegspunkt: wird nach jedem tracker.update() aufgerufen ---
+    def update(self, tracker, blobs, new_ids, lost_ids):
+        now = time.time()
+        correction = None
+        did_swap = False
+
+        if not self.disrupted:
+            self._maintain_snapshot(tracker, now)
+            if lost_ids:
+                self._begin_disruption(lost_ids, now)
+        else:
+            # Während der Störung: weitere Verluste sammeln
+            for lid in lost_ids:
+                self.occluded_ids.add(str(lid))
+
+            # Störung zu lange offen? (Figur wurde evtl. entfernt) -> verwerfen
+            if now - self.disrupted_at > self.max_disruption:
+                self.disrupted = False
+                self.occluded_ids = set()
+                self._maintain_snapshot(tracker, now)
+            elif self._can_resolve(tracker, lost_ids):
+                correction = self._resolve(tracker, now)
+                self.disrupted = False
+                self.occluded_ids = set()
+                # Snapshot nach der Korrektur aus dem aktuellen (korrigierten) Zustand neu aufbauen
+                self._maintain_snapshot(tracker, now)
+
+        # Falls IDs permutiert wurden, Blobs mit den korrigierten IDs neu exportieren.
+        if correction and correction.get('swapped'):
+            did_swap = True
+            blobs = self._recompute_blobs(tracker)
+
+        return blobs, correction
+
+    # --- Snapshot während der Ruhephase aktuell halten ---
+    def _maintain_snapshot(self, tracker, now):
+        for tid, trk in tracker.tracks.items():
+            if trk['visible'] and (now - trk['creation_time'] >= tracker.MIN_LIFETIME):
+                self.snapshot[str(tid)] = (trk['x'], trk['y'])
+        # Nicht mehr existierende Tracks entfernen
+        for tid in list(self.snapshot.keys()):
+            if tid not in tracker.tracks:
+                del self.snapshot[tid]
+
+    def _begin_disruption(self, lost_ids, now):
+        self.disrupted = True
+        self.disrupted_at = now
+        self.occluded_ids = set(str(l) for l in lost_ids)
+        # Snapshot ist an dieser Stelle bereits eingefroren (letzter Zustand vor dem Verlust)
+
+    def _can_resolve(self, tracker, lost_ids):
+        if lost_ids:
+            return False                     # es gibt noch aktive Verluste
+        if not self.occluded_ids:
+            return False
+        for oid in self.occluded_ids:
+            trk = tracker.tracks.get(oid)
+            if trk is None or not trk['visible']:
+                return False                 # noch nicht alle wieder da
+        return True
+
+    # --- Korrektur beim Auflösen der Störung ---
+    def _resolve(self, tracker, now):
+        cur = {str(tid): (t['x'], t['y']) for tid, t in tracker.tracks.items()}
+        snap = dict(self.snapshot)
+
+        involved = [oid for oid in self.occluded_ids if oid in cur and oid in snap]
+        if not involved:
+            return None
+
+        # 1) Occluded Blobs: zurückgekehrt an die alte Position? -> nicht bewegt
+        movers = []
+        for oid in involved:
+            d = math.hypot(cur[oid][0] - snap[oid][0], cur[oid][1] - snap[oid][1])
+            if d > self.anchor_radius:
+                movers.append(oid)
+
+        # 2) Sicherheits-Gate: Ein nie verdeckter Track darf sich nicht weit bewegt haben.
+        #    (passiert nur bei aktivem Ziehen während der Störung -> dann konservativ NICHT eingreifen)
+        for tid, pos in snap.items():
+            if tid in self.occluded_ids:
+                continue
+            if tid not in cur:
+                continue
+            d = math.hypot(cur[tid][0] - pos[0], cur[tid][1] - pos[1])
+            if d > self.anchor_radius:
+                self.last_resolution = {'swapped': False, 'uncertain': True,
+                                        'reason': 'untracked_motion', 'timestamp': now}
+                return self.last_resolution
+
+        if not movers:
+            return None                      # alle wieder an Ort und Stelle -> nichts zu tun
+
+        # 3) Zuordnung: alte (vacated) Positionen <-> neue (arrived) Positionen
+        arrived_positions = [cur[m] for m in movers]
+        old_positions = [snap[m] for m in movers]
+
+        assignment = self._optimal_assignment(arrived_positions, old_positions)
+        uncertain = self._is_uncertain(arrived_positions, old_positions, assignment)
+
+        # 4) ID-Permutation anwenden: die Identität (Original-Track-ID) bleibt bei der Figur.
+        swapped = self._apply_permutation(tracker, movers, assignment)
+
+        self.last_resolution = {
+            'swapped': swapped, 'uncertain': uncertain,
+            'movers': movers, 'timestamp': now
+        }
+        return self.last_resolution
+
+    # --- Minimale Gesamtbewegung (assignment: arrived[i] -> old[assignment[i]]) ---
+    def _optimal_assignment(self, arrived, old):
+        n = len(arrived)
+        if n == 0:
+            return []
+        if n == 1:
+            return [0]
+        # n ist in der Praxis klein (1..4). Für n<=7 Brute-Force über alle Permutationen,
+        # darüber ein gieriger Nearest-Neighbor-Fallback (reicht als Heuristik).
+        if n <= 7:
+            best = None
+            best_cost = float('inf')
+            for perm in itertools.permutations(range(n)):
+                cost = 0.0
+                for i in range(n):
+                    cost += math.hypot(arrived[i][0] - old[perm[i]][0],
+                                       arrived[i][1] - old[perm[i]][1])
+                if cost < best_cost:
+                    best_cost = cost
+                    best = list(perm)
+            return best or list(range(n))
+
+        # Fallback Greedy (selten nötig)
+        used = [False] * n
+        res = [0] * n
+        for i in range(n):
+            best_j, best_d = -1, float('inf')
+            for j in range(n):
+                if used[j]:
+                    continue
+                d = math.hypot(arrived[i][0] - old[j][0], arrived[i][1] - old[j][1])
+                if d < best_d:
+                    best_d, best_j = d, j
+            res[i] = best_j
+            used[best_j] = True
+        return res
+
+    # --- Mehrdeutigkeit erkennen (2. beste Alternative fast gleich gut) ---
+    def _is_uncertain(self, arrived, old, assignment):
+        n = len(arrived)
+        if n <= 1:
+            return False
+        for i in range(n):
+            best_d = math.hypot(arrived[i][0] - old[assignment[i]][0],
+                                arrived[i][1] - old[assignment[i]][1])
+            second = float('inf')
+            for j in range(n):
+                if j == assignment[i]:
+                    continue
+                d = math.hypot(arrived[i][0] - old[j][0], arrived[i][1] - old[j][1])
+                if d < second:
+                    second = d
+            if second < best_d * 1.3 + 0.02:
+                return True
+        return False
+
+    # --- IDs unter den Mover-Tracks permutieren (ID-Menge bleibt identisch) ---
+    def _apply_permutation(self, tracker, movers, assignment):
+        # assignment[i] gibt an, dass arrived[i] (=cur[movers[i]]) zur Figur von old[assignment[i]]
+        # (= snap[movers[assignment[i]]]) gehört. Der Track an arrived[i] soll also die ID
+        # movers[assignment[i]] tragen.
+        rename = {}
+        for i in range(len(movers)):
+            src = str(movers[i])
+            dst = str(movers[assignment[i]])
+            if src != dst:
+                rename[src] = dst
+
+        if not rename:
+            return False
+
+        new_tracks = {}
+        for tid, trk in tracker.tracks.items():
+            new_tid = rename.get(str(tid), str(tid))
+            new_tracks[new_tid] = trk
+        tracker.tracks = new_tracks
+        return True
+
+    # --- Blobs mit korrigierten IDs neu exportieren (gleiche Filter wie Basis-Tracker) ---
+    def _recompute_blobs(self, tracker):
+        now = time.time()
+        export = {}
+        for t_id, trk in tracker.tracks.items():
+            if now - trk['creation_time'] >= tracker.MIN_LIFETIME and trk['visible']:
+                export[t_id] = {'x': trk['x'], 'y': trk['y'], 'lost_frames': 0}
+        return export
+
+
+turn_corrector = TurnCorrectionLayer()
+
 # --- ROUTES ---
 routes = web.RouteTableDef()
 
