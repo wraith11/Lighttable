@@ -15,6 +15,7 @@ import json
 import threading
 import time
 import math
+import itertools
 import uuid
 import base64
 import webbrowser
