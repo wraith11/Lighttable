@@ -40,6 +40,28 @@
 - **Blob-Verfolgung** mit Anker-/Teleport-Logik, ID-Zuordnung, Verlust- und Wiederfinden-Handling.
 - **Token** mit Größe, Farbe/Spotlight, Namen, Ringen mit Text, Vision-Reichweite und Blink-Funktion.
 
+### Turn-basierte Korrektur (Stabilisierung der Blob-Zuordnung)
+Das Basis-Tracking funktioniert gut, wenn sich eine Figur bewegt und andere dabei kurz verdeckt
+werden. Bewegt sich jedoch mehr als eine Figur, während Blobs verdeckt sind, kann die
+Greedy-Teleport-Logik des Trackers Blob-IDs vertauschen (die Kamera sieht keine Identität).
+Dafür liegt eine **konservative Korrekturschicht** über dem Tracking:
+
+- Sie erfasst kontinuierlich die Positionen der sichtbaren Blobs („Snapshot“).
+- Wird eine Störung erkannt (ein Blob verschwindet), wird der Snapshot eingefroren.
+- Sobald **alle** Blobs wieder sichtbar sind, wird „vorher“ mit „nachher“ verglichen:
+  - Blob an derselben Position → unverändert, gehört weiter zum selben Token.
+  - Blob an einer neuen Position → gehört zu dem Token, dessen alter Blob verschwunden ist
+    (diese Figur wurde bewegt).
+- Es werden **nur Blob-IDs permutiert** (nie neue erzeugt, nie gelöscht) → die ID-Menge bleibt
+  stabil, der Client erzeugt/löscht dadurch **keine** Tokens (kein Hin- und Herspringen).
+- Unbewegte / nie verdeckte Figuren werden nie angefasst.
+- Bei **mehrdeutigen** Fällen (z.&nbsp;B. Figuren tauschen über Kreuz, während alle verdeckt sind)
+  wird der wahrscheinlichste Zustand (minimale Gesamtbewegung) angenommen und dem GM ein
+  Hinweis „Token-Zuordnung unsicher“ angezeigt – dann bitte manuell prüfen/korrigieren.
+
+Das Verhalten lässt sich über die Konstanten in `TurnCorrectionLayer.__init__` (in
+`scrytable.py`) feinjustieren: `anchor_radius`, `moved_threshold` und `max_disruption`.
+
 ### Player-Ansicht / Blackout / Medien
 - **Blackout-Funktion:** sofortiges Abdunkeln der Player-Sicht, damit der GM unbemerkt vorbereiten kann.
 - **Media-System:** Bilder und Videos über die Blackout-Funktion in **Full**, **Split** oder **Quad**-Aufteilung abspielen – inkl. Flip und Loop pro Slot.
