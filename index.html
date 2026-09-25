@@ -370,7 +370,7 @@
                                     <div class="token-status-head">
                                         <span class="token-status-head-label">{{ t('ring') }} {{ ringIdx + 1 }}</span>
                                         <span class="token-status-head-count">{{ (ring.segments || []).length }}</span>
-                                        <button class="btn btn-add-status" @click="addTokenSegment(tok, ringIdx)" :disabled="(ring.segments||[]).length >= 8" :title="t('addStatus')"><i class="fas fa-plus"></i></button>
+                                        <button class="btn btn-add-status" style="margin-left:auto;" @click="addTokenSegment(tok, ringIdx)" :disabled="(ring.segments||[]).length >= 8" :title="t('addStatus')"><i class="fas fa-plus"></i></button>
                                     </div>
                                     <div v-for="(seg, segIdx) in ring.segments" :key="segIdx" class="row token-status-row" :class="{'single': (ring.segments||[]).length === 1}">
                                         <div class="texture-preview" :style="{backgroundColor: seg.color, width:'30px', height:'30px'}" @click="openRingColorPicker(tok, ringIdx, segIdx)" :title="t('chooseColor')"></div>
