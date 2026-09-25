@@ -1358,6 +1358,35 @@ export class GameRenderer {
         const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
         const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
         return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    // Canvas-Textur für einen plastischen Ringabschnitt (radialer Wölbungs-Gradient).
+    getRingTexture(color, thickness, w) {
+        const key = `ringtex_${color}_${thickness}`;
+        if (this.ringTexCache && this.ringTexCache[key]) return this.ringTexCache[key];
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = Math.max(2, Math.ceil(thickness) + 6);
+        const ctx = canvas.getContext('2d');
+        const pad = 3;
+        const mid = canvas.height / 2;
+        const half = (canvas.height - pad * 2) / 2;
+        const col = color || '#000000';
+        const light = this.shadeColor(col, 45);
+        const dark = this.shadeColor(col, -50);
+        // Radialer Verlauf über die Ringdicke: oben hell, Mitte Basis, unten dunkel → Wölbung
+        const grad = ctx.createLinearGradient(0, mid - half, 0, mid + half);
+        grad.addColorStop(0, light);
+        grad.addColorStop(0.4, col);
+        grad.addColorStop(0.8, col);
+        grad.addColorStop(1, dark);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, mid - half, w, half * 2);
+        // Obere Glanzkante
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(0, mid - half, w, Math.max(1, half * 0.2));
+        const tex = PIXI.Texture.from(canvas);
+        if (!this.ringTexCache) this.ringTexCache = {};
+        this.ringTexCache[key] = tex;
+        return tex;
+    }
     }
 
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Bevel (Tiefe) + Outline.
