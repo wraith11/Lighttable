@@ -1380,9 +1380,8 @@ export class GameRenderer {
         return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
     }
 
-    // Zeichnet einen Ring (Kreis oder Bogensegment) mit fein abgestuftem Bevel + Outline.
-    // Bevel: 9 feine Helligkeitsstufen über die Ringbreite, mittig flaches Plateau.
-    // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
+    // Zeichnet einen Ring (Kreis oder Bogensegment) mit kompaktem Bevel.
+    // Basis-Plateau + schmale helle Innen-/dunkle Außenrampe. Kurzseiten bleiben glatt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
         const steps = 64;
         const col = color || '#2a2a2a';
@@ -1401,21 +1400,32 @@ export class GameRenderer {
         const thickness = outerR - innerR;
         const colInt = parseInt(col.replace('#',''), 16);
 
-        // Kompakter Bevel: schmale Rampen direkt an Innen/Außenkante, dazwischen breites Plateau.
-        const BANDS = 7;
-        const bri = [45, 18, 5, 0, 0, -12, -40];
-        for(let b=0; b<BANDS; b++) {
-            const t0 = b / BANDS;
-            const t1 = (b+1) / BANDS;
-            const ri = innerR + thickness * t0;
-            const ro = innerR + thickness * t1;
-            const bc = parseInt(this.shadeColor(col, bri[b]).replace('#',''), 16);
-            const g = new PIXI.Graphics();
-            g.beginFill(bc, 1.0);
-            g.drawPolygon(buildPoly(ri, ro, startAngle, endAngle));
-            g.endFill();
-            container.addChild(g);
-        }
+        // Kompakter Bevel: breites Plateau in Ringfarbe + schmale Rampen an den Kanten.
+        const rimFrac = 0.22; // Anteil der Ringbreite für Innen-/Außenrampe
+        // 1) Basis-Plateau (Mitte)
+        const plateauIn = innerR + thickness * rimFrac;
+        const plateauOut = outerR - thickness * rimFrac;
+        const plateau = new PIXI.Graphics();
+        plateau.beginFill(colInt, 1.0);
+        plateau.drawPolygon(buildPoly(plateauIn, plateauOut, startAngle, endAngle));
+        plateau.endFill();
+        container.addChild(plateau);
+
+        // 2) Helle Innenrampe (Glanz)
+        const lightCol = parseInt(this.shadeColor(col, 42).replace('#',''), 16);
+        const innerRim = new PIXI.Graphics();
+        innerRim.beginFill(lightCol, 1.0);
+        innerRim.drawPolygon(buildPoly(innerR, plateauIn, startAngle, endAngle));
+        innerRim.endFill();
+        container.addChild(innerRim);
+
+        // 3) Dunkle Außenrampe (Schatten)
+        const darkCol = parseInt(this.shadeColor(col, -38).replace('#',''), 16);
+        const outerRim = new PIXI.Graphics();
+        outerRim.beginFill(darkCol, 1.0);
+        outerRim.drawPolygon(buildPoly(plateauOut, outerR, startAngle, endAngle));
+        outerRim.endFill();
+        container.addChild(outerRim);
     }
 
     drawTokenRings(container, token) {
