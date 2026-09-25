@@ -373,10 +373,12 @@ tracker = BlobTracker()
 #     der GM die Zuordnung manuell prüfen/korrigieren kann.
 # ============================================================================
 class TurnCorrectionLayer:
-    def __init__(self, anchor_radius=0.15, moved_threshold=None, max_disruption=6.0):
+    def __init__(self, anchor_radius=0.15, moved_threshold=None, max_disruption=6.0,
+                 uncertainty_gap=0.1):
         self.anchor_radius = anchor_radius          # wie BlobTracker.ANCHOR_RADIUS
         self.moved_threshold = moved_threshold or (anchor_radius * 1.5)
         self.max_disruption = max_disruption        # Timeout: Störung verwerfen (Figuren-Entfernung)
+        self.uncertainty_gap = uncertainty_gap      # Verwechslungsgefahr: räuml. Nähe der bewegten Blobs
         self.snapshot = {}       # track_id(str) -> (x, y)  eingefrorener Zustand vor der Störung
         self.disrupted = False
         self.disrupted_at = 0.0
