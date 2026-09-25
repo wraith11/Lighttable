@@ -57,11 +57,15 @@ Dafür liegt eine **konservative Korrekturschicht** über dem Tracking:
 - Unbewegte / nie verdeckte Figuren werden nie angefasst.
 - **Mehrdeutigkeit (Verwechslungsgefahr):** Wenn sich mehrere Blobs in einem **engen Bereich**
   bewegt haben (dichtes Figuren-Cluster), ist die Zuordnung unklar. Dann wird die wahrscheinlichste
-  Variante (minimale Gesamtbewegung) angenommen, dem GM ein Hinweis „unsicher“ angezeigt und ein
-  Button **„Alternative anwenden“** angeboten – der bei genau 2 bewegten Blobs die einzig andere
-  Verteilung (Tausch der beiden Tokens) sofort anwendet. Bewegungen in **weit getrennten**
-  Figuren-Gruppen gelten dagegen als zuverlässig (Kreuz-Bewegung über größere Distanz ist sehr
-  unwahrscheinlich) und lösen **keine** Meldung aus.
+  Variante (minimale Gesamtbewegung) angenommen und dem GM ein Hinweis mit den betroffenen
+  Figuren angezeigt (Token-Name, sonst Blob-ID). Ein Button **„Alternative anwenden“** wendet bei
+  genau 2 bewegten Blobs die einzig andere Verteilung (Tausch der beiden Tokens) sofort an.
+  Bewegungen in **weit getrennten** Figuren-Gruppen gelten dagegen als zuverlässig
+  (Kreuz-Bewegung über größere Distanz ist sehr unwahrscheinlich) und lösen **keine** Meldung aus.
+- **Mehrere Meldungen:** Neue Unsicherheits-Hinweise **überschreiben** nicht, sondern landen in
+  einer **Warteschlange**, die der GM nacheinander abarbeitet (Zähler zeigt, wie viele offen sind).
+  Es gibt **keinen Auto-Timeout** – der GM kann erst am projizierten Spielfeld nachsehen und die
+  Meldung dann per „Alternative anwenden“ oder „Verwerfen“ (X) behandeln.
 
 Das Verhalten lässt sich über die Konstanten in `TurnCorrectionLayer.__init__` (in
 `scrytable.py`) feinjustieren: `anchor_radius`, `moved_threshold`, `max_disruption` und
