@@ -99,15 +99,21 @@ input[type="range"] { padding: 0; height: 10px; width: 100%; }
     padding: 0 !important;
     margin: 0 !important;
     font-size: 1em !important;
-    line-height: 26px !important;
     background: #2c7a2c !important;
     border-color: #3fa03f !important;
     color: #fff !important;
     border-radius: 4px !important;
     cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
 }
+.btn-add-status i { margin: 0 !important; }
 .btn-add-status:hover { background: #3fa03f !important; }
 .btn-add-status:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(100%); }
+/* Segment-+ im Gruppenkopf wieder ganz rechts ausrichten */
+.token-status-head .btn-add-status { margin-left: auto !important; }
 
 /* Token-Größe-Wert neben Slider */
 .token-size-val { font-size: 0.8em; color: var(--accent); font-family: monospace; min-width: 28px; text-align: right; }
