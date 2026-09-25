@@ -167,6 +167,15 @@ export const coreMethods = {
         }
     },
 
+    // Öffnet den Colorpicker für die Default-Token-Farbe (Settings).
+    openDefaultColorPicker() {
+        this.activeColorMode = 'default';
+        this.activeRingIndex = null;
+        this.activeSegmentIndex = null;
+        this.tokenColorPicker.color.hexString = this.scene.token_color_default || '#aaaaaa';
+        this.showTokenColorPopup = true;
+    },
+
     toggleLightsActive() {
         this.scene.lights_active = !this.scene.lights_active;
         this.sync();
