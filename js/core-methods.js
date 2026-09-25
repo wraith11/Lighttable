@@ -514,7 +514,7 @@ export const coreMethods = {
                     t.rings = t.rings.map(r => ({ segments: [{ color: r.color || '#2a2a2a', text: r.text || '' }] }));
                 } else if(t.rings) {
                     // Sicherstellen, dass jedes Segment-Objekt existiert
-                    t.rings.forEach(g => { if(!g.segments) g.segments = [{ color: '#333333', text: '' }]; });
+                    t.rings.forEach(g => { if(!g.segments) g.segments = [{ color: '#2a2a2a', text: '' }]; });
                 }
             });
         }
