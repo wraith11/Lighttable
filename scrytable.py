@@ -451,7 +451,9 @@ async def update_scene(sid, data):
         else: state['scene'][key] = value
 
     if config_changed: save_state_to_disk()
-    await sio.emit('update_scene', data, skip_sid=sid)
+    if changed_keys:
+        delta = {k: data[k] for k in changed_keys}
+        await sio.emit('update_scene', delta, skip_sid=sid)
 
 @sio.event
 async def fow_visited_delta(sid, data):
