@@ -154,6 +154,7 @@ def save_state_to_disk():
                 'time_of_day': state['scene'].get('time_of_day', 'day'),
                 'token_size_default': state['scene'].get('token_size_default', 45),
                 'ring_thickness': state['scene'].get('ring_thickness', 10),
+                'token_name_size': state['scene'].get('token_name_size', 12),
                 'blackout_config': state['scene'].get('blackout_config')
             }
         }
