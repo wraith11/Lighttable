@@ -548,7 +548,7 @@ export const coreMethods = {
     // Ein neuer Ring (= Gruppe mit einem Segment) anlegen.
     addTokenRing(t) {
         if(!t.rings) t.rings = [];
-        t.rings.push({ segments: [{ color: '#333333', text: '' }] });
+        t.rings.push({ segments: [{ color: '#2a2a2a', text: '' }] });
         this.sync();
     },
     // Wendet die geänderte Standard-Token-Größe auf alle Tokens mit der bisherigen
