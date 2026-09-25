@@ -478,6 +478,12 @@
                 <div class="panel-content" v-if="tab=='settings'">
                     <button class="btn full active" @click="openCalibration" style="padding:20px; margin-bottom:20px;"><i class="fas fa-camera"></i> {{ t('camSetupBtn') }}</button>
                     
+                    <div class="section-title">{{ t('defaults') }}</div>
+                    <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
+                        <div class="row"><label>{{ t('defTokenSize') }}</label><input type="number" min="20" max="200" v-model.number="scene.token_size_default" @change="sync" style="width:80px; margin:0"></div>
+                        <div class="row"><label>{{ t('ringThickness') }}</label><input type="number" min="4" max="30" v-model.number="scene.ring_thickness" @change="sync" style="width:80px; margin:0"></div>
+                    </div>
+                    
                     <div class="section-title">{{ t('mapMgmt') }}</div>
                     <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
