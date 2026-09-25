@@ -507,10 +507,10 @@ export const coreMethods = {
         if(this.scene.tokens) {
             Object.values(this.scene.tokens).forEach(t => {
                 if(t.rings && Array.isArray(t.rings) && t.rings.length > 0 && t.rings[0].segments === undefined) {
-                    t.rings = t.rings.map(r => ({ segments: [{ color: r.color || '#000000', text: r.text || '' }] }));
+                    t.rings = t.rings.map(r => ({ segments: [{ color: r.color || '#333333', text: r.text || '' }] }));
                 } else if(t.rings) {
                     // Sicherstellen, dass jedes Segment-Objekt existiert
-                    t.rings.forEach(g => { if(!g.segments) g.segments = [{ color: '#000000', text: '' }]; });
+                    t.rings.forEach(g => { if(!g.segments) g.segments = [{ color: '#333333', text: '' }]; });
                 }
             });
         }
