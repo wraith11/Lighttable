@@ -1403,10 +1403,10 @@ export class GameRenderer {
         const colInt = parseInt(col.replace('#',''), 16);
         const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
 
-        // Bevel über die Ringbreite: viele feine Stufen, in der Mitte flaches Plateau.
-        // Helligkeitsprofil: innen hell → weich abfallend → Plateau (Ringfarbe) → weich dunkler außen.
+        // Bevel über die Ringbreite: feine Stufen, in der Mitte breites Plateau.
+        // Schmälere Rampen → bevel wirkt dünner, Plateau bleibt flach.
         const BANDS = 9;
-        const bri = [48, 26, 10, 2, 0, 0, -6, -28, -55];
+        const bri = [32, 15, 5, 1, 0, 0, 0, -10, -32];
         for(let b=0; b<BANDS; b++) {
             const t0 = b / BANDS;
             const t1 = (b+1) / BANDS;
