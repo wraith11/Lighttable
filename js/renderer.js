@@ -1437,7 +1437,7 @@ export class GameRenderer {
         const baseRadius = (token.size / 2) + 6;
         token.rings.forEach((ring, idx) => {
              const centerR = baseRadius + idx * (ringWidth + gap) + ringWidth/2;
-             const segments = ring.segments || [{ color: '#000000', text: '' }];
+             const segments = ring.segments || [{ color: '#333333', text: '' }];
              const innerR = centerR - ringWidth/2;
              const outerR = centerR + ringWidth/2;
              if(segments.length === 1) {
