@@ -1418,34 +1418,6 @@ export class GameRenderer {
             g.endFill();
             container.addChild(g);
         }
-
-        // Outline als saubere Striche entlang der Bogenkanten (außen + innen).
-        // Deutlich dunklere Ringfarbe + voll opak → klarer Kontrast zum Bevel.
-        const outlineColor = parseInt(this.shadeColor(col, -70).replace('#',''), 16);
-        const outline = new PIXI.Graphics();
-        outline.lineStyle(1.6, outlineColor, 1.0);
-        const arcStroke = (r, a0, a1) => {
-            const pts = [];
-            for(let i=0; i<=steps; i++) {
-                const a = a0 + (a1-a0) * (i/steps);
-                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
-            }
-            return pts;
-        };
-        const drawStroke = (pts) => {
-            outline.moveTo(pts[0][0], pts[0][1]);
-            for(let i=1; i<pts.length; i++) outline.lineTo(pts[i][0], pts[i][1]);
-        };
-        drawStroke(arcStroke(outerR, startAngle, endAngle)); // Außenbogen
-        drawStroke(arcStroke(innerR, startAngle, endAngle)); // Innenbogen
-        if (!isFull) {
-            // radiale Schnittkanten bei echten Segmenten
-            outline.moveTo(cx+Math.cos(startAngle)*innerR, cy+Math.sin(startAngle)*innerR);
-            outline.lineTo(cx+Math.cos(startAngle)*outerR, cy+Math.sin(startAngle)*outerR);
-            outline.moveTo(cx+Math.cos(endAngle)*innerR, cy+Math.sin(endAngle)*innerR);
-            outline.lineTo(cx+Math.cos(endAngle)*outerR, cy+Math.sin(endAngle)*outerR);
-        }
-        container.addChild(outline);
     }
 
     drawTokenRings(container, token) {
