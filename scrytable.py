@@ -413,6 +413,7 @@ async def create_folder(sid, data):
 @sio.event
 async def update_scene(sid, data):
     config_changed = False
+    changed_keys = set()
     
     if 'player_view' in data and isinstance(data['player_view'], dict):
         new_pv = data['player_view']
@@ -421,16 +422,20 @@ async def update_scene(sid, data):
             if curr_pv.get(k) != v:
                 curr_pv[k] = v
                 config_changed = True
+                changed_keys.add('player_view')
     
     simple_config_keys = ['show_blob_ids', 'show_player_frame', 'grid_size', 'show_grid', 'time_of_day']
     for key in simple_config_keys:
         if key in data and state['scene'].get(key) != data[key]:
             state['scene'][key] = data[key]
             config_changed = True
+            changed_keys.add(key)
     
     if 'blackout_config' in data:
-        state['scene']['blackout_config'] = data['blackout_config']
-        config_changed = True
+        if state['scene'].get('blackout_config') != data['blackout_config']:
+            state['scene']['blackout_config'] = data['blackout_config']
+            config_changed = True
+            changed_keys.add('blackout_config')
 
     if 'view' in data and isinstance(data['view'], dict):
         new_view = data['view']
@@ -439,16 +444,24 @@ async def update_scene(sid, data):
             if curr_view.get(k) != v:
                 curr_view[k] = v
                 config_changed = True
+                changed_keys.add('view')
 
     for key, value in data.items():
         if key in ['player_view', 'view', 'blackout_config'] or key in simple_config_keys: continue 
         
         if key == 'background_image' and isinstance(value, dict):
             # Komplett ersetzen (kein .update), damit url:null den Hintergrund zuverlässig leert
-            state['scene']['background_image'] = dict(value)
+            if state['scene']['background_image'] != value:
+                state['scene']['background_image'] = dict(value)
+                changed_keys.add('background_image')
         elif key == 'fow_visited' and isinstance(value, list):
-             state['scene']['fow_visited'] = value
-        else: state['scene'][key] = value
+             if state['scene']['fow_visited'] != value:
+                 state['scene']['fow_visited'] = value
+                 changed_keys.add('fow_visited')
+        else:
+            if state['scene'].get(key) != value:
+                state['scene'][key] = value
+                changed_keys.add(key)
 
     if config_changed: save_state_to_disk()
     if changed_keys:
