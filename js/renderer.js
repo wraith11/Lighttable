@@ -1401,10 +1401,9 @@ export class GameRenderer {
         const thickness = outerR - innerR;
         const colInt = parseInt(col.replace('#',''), 16);
 
-        // Bevel über die Ringbreite: feine Stufen, in der Mitte breites Plateau.
-        // Schmälere Rampen → bevel wirkt dünner, Plateau bleibt flach.
-        const BANDS = 9;
-        const bri = [32, 15, 5, 1, 0, 0, 0, -10, -32];
+        // Kompakter Bevel: schmale Rampen direkt an Innen/Außenkante, dazwischen breites Plateau.
+        const BANDS = 7;
+        const bri = [45, 18, 5, 0, 0, -12, -40];
         for(let b=0; b<BANDS; b++) {
             const t0 = b / BANDS;
             const t1 = (b+1) / BANDS;
