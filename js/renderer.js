@@ -1480,7 +1480,8 @@ export class GameRenderer {
                      this.drawRingSegment(container, 0, 0, innerR, outerR, a0, a1, seg.color || '#000000');
                      if(seg.text) {
                          const midA = (a0 + a1) / 2;
-                         this.drawCurvedText(container, seg.text, centerR, midA, 0xffffff, ringWidth);
+                         // maxAngle = Segmentwinkel → Text wird an die verfügbare Fläche gefittet
+                         this.drawCurvedText(container, seg.text, centerR, midA, 0xffffff, ringWidth, true, segAngle);
                      }
                  });
              }
