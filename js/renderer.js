@@ -1388,7 +1388,6 @@ export class GameRenderer {
         ctx.fillRect(0, mid - half, w, Math.max(1, half * 0.2));
         const tex = PIXI.Texture.from(canvas);
         if (!this.ringTexCache) this.ringTexCache = {};
-        this.ringTexCache[key] = tex;
         return tex;
     }
     }
