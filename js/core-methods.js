@@ -562,9 +562,11 @@ export const coreMethods = {
         if(this.renderer) this.renderer.requestRender();
     },
     // Ein neues Segment (Status) an einen bestehenden Ring anhängen.
+    // Max. 8 Segmente pro Ring (24 Stati pro Token).
     addTokenSegment(t, ringIdx) {
         if(!t.rings) t.rings = [];
         if(ringIdx === undefined || ringIdx === null || !t.rings[ringIdx]) return;
+        if(t.rings[ringIdx].segments.length >= 8) return;
         t.rings[ringIdx].segments.push({ color: '#333333', text: '' });
         this.sync();
     },
