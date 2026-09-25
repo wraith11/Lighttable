@@ -615,8 +615,9 @@ export const coreMethods = {
     // Bewegungen (z.B. getrennte Figuren-Gruppen) ist die Zuordnung mit hoher
     // Wahrscheinlichkeit korrekt und es wird NICHT gemeldet.
     // Meldungen werden in einer QUEUE gesammelt (ältere nicht überschreiben), damit der
-    // GM sie nach und nach abarbeiten kann. Es gibt KEINEN Auto-Timeout – die Meldung
-    // bleibt, bis der GM sie anwendet oder verwirft.
+    // GM sie nach und nach abarbeiten kann. Jede Meldung hat einen Auto-Timeout
+    // (CORRECTION_TIMEOUT_MS = 30 s): wird sie nicht rechtzeitig behandelt, verschwindet
+    // sie automatisch (ohne die Zuordnung zu ändern).
     showCorrectionNotice(correction) {
         if (!correction) return;
         const movers = (correction.movers || []).map(String);
@@ -633,18 +634,33 @@ export const coreMethods = {
             text: this.t('corrUncertain', labels.join(', ')),
             uncertain: true,
             canSwap: movers.length === 2,
-            time: Date.now()
+            time: Date.now(),
+            timer: null
         };
 
         // Dedupe: ist dieselbe Blob-Menge bereits offen, aktualisieren statt duplizieren.
         const dup = this.correctionQueue.find(q =>
             q.movers.length === movers.length && movers.every(m => q.movers.includes(m)));
         if (dup) {
+            clearTimeout(dup.timer);
             Object.assign(dup, notice);
+            dup.timer = this._scheduleDismiss(dup);
         } else {
             this.correctionQueue.push(notice);
+            notice.timer = this._scheduleDismiss(notice);
         }
         if (this.renderer) this.renderer.requestRender();
+    },
+
+    // Plant den Auto-Timeout für eine Meldung (entfernt sie ohne Korrektur aus der Queue).
+    _scheduleDismiss(notice) {
+        return setTimeout(() => {
+            const idx = this.correctionQueue.indexOf(notice);
+            if (idx !== -1) {
+                this.correctionQueue.splice(idx, 1);
+                if (this.renderer) this.renderer.requestRender();
+            }
+        }, CORRECTION_TIMEOUT_MS);
     },
 
     // GM: Wendet die alternative (zweitwahrscheinlichste) Zuordnung an. Bei 2 bewegten
@@ -652,6 +668,7 @@ export const coreMethods = {
     applyAlternativeCorrection() {
         const notice = this.correctionQueue[0];
         if (!notice || notice.movers.length !== 2) return;
+        clearTimeout(notice.timer);
         const [m1, m2] = notice.movers;
         const tokens = Object.values(this.scene.tokens);
         const t1 = tokens.find(t => String(t.blob_id) === m1);
@@ -671,6 +688,8 @@ export const coreMethods = {
 
     // GM: Verwirft die älteste offene Korrektur-Meldung (ohne die Zuordnung zu ändern).
     dismissCorrection() {
+        const notice = this.correctionQueue[0];
+        if (notice && notice.timer) clearTimeout(notice.timer);
         this.correctionQueue.shift();
         if (this.renderer) this.renderer.requestRender();
     },
