@@ -547,6 +547,20 @@ export const coreMethods = {
         t.rings.push({ segments: [{ color: '#333333', text: '' }] });
         this.sync();
     },
+    // Wendet die geänderte Standard-Token-Größe auf alle Tokens mit der bisherigen
+    // Standardgröße an (damit bestehende Tokens sofort mit aktualisiert werden).
+    applyTokenSizeDefault() {
+        const newDefault = this.scene.token_size_default || 45;
+        Object.values(this.scene.tokens).forEach(t => {
+            // Nur Tokens anpassen, die (noch) die alte Standardgröße tragen
+            if (t.size === this._prevTokenSizeDefault || t.size === 45) {
+                t.size = newDefault;
+            }
+        });
+        this._prevTokenSizeDefault = newDefault;
+        this.sync();
+        if(this.renderer) this.renderer.requestRender();
+    },
     // Ein neues Segment (Status) an einen bestehenden Ring anhängen.
     addTokenSegment(t, ringIdx) {
         if(!t.rings) t.rings = [];
