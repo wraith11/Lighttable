@@ -134,9 +134,6 @@ export const coreMethods = {
         this.$nextTick(() => {
             const container = document.getElementById('light-cp');
             if(container && (this.selectedObjIsLight || this.tool === 'light')) {
-                if(this.lightColorPicker) {
-                    try { container.innerHTML = ''; } catch(e){}
-                    this.lightColorPicker = null;
                 }
                 const settings = this.activeLightSettings;
                 const currentColor = settings.color || '#ffaa00';
