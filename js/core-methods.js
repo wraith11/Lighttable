@@ -584,7 +584,7 @@ export const coreMethods = {
         if(!t.rings) t.rings = [];
         if(ringIdx === undefined || ringIdx === null || !t.rings[ringIdx]) return;
         if(t.rings[ringIdx].segments.length >= 8) return;
-        t.rings[ringIdx].segments.push({ color: '#333333', text: '' });
+        t.rings[ringIdx].segments.push({ color: '#2a2a2a', text: '' });
         this.sync();
     },
     // Ein Segment aus einem Ring entfernen; leere Ringe werden entfernt.
