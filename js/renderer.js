@@ -1420,13 +1420,30 @@ export class GameRenderer {
         g.endFill();
         container.addChild(g);
 
-        // Basis-Füllung mit plastischer Wölbungs-Textur
-        const tex = this.getRingTexture(color, outerR - innerR, Math.max(64, Math.ceil((outerR-innerR) * 4)));
-        const colFill = new PIXI.Graphics();
-        colFill.beginTextureFill({ texture: tex });
-        colFill.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 0));
-        colFill.endFill();
-        container.addChild(colFill);
+        // Basis-Füllung in der Ringfarbe
+        const col = parseInt(color.replace('#',''), 16);
+        const gFill = new PIXI.Graphics();
+        gFill.beginFill(col, 1.0);
+        gFill.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 0));
+        gFill.endFill();
+        container.addChild(gFill);
+
+        // Plastischer Rand: schmales helles Bogenstück oben (Glanz), dunkles unten (Schatten)
+        const thickness = outerR - innerR;
+        const highlightW = Math.max(1, thickness * 0.18);
+        const shadowW = Math.max(1, thickness * 0.18);
+        // Glanz am Innenrand (Licht von oben links)
+        const gl = new PIXI.Graphics();
+        gl.beginFill(0xFFFFFF, 0.30);
+        gl.drawPolygon(buildPoly(innerR, innerR + highlightW, startAngle, endAngle, 0));
+        gl.endFill();
+        container.addChild(gl);
+        // Schatten am Außenrand (abgewandte Seite)
+        const sh = new PIXI.Graphics();
+        sh.beginFill(0x000000, 0.35);
+        sh.drawPolygon(buildPoly(outerR - shadowW, outerR, startAngle, endAngle, 0));
+        sh.endFill();
+        container.addChild(sh);
     }
 
     drawTokenRings(container, token) {
