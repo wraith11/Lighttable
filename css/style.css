@@ -188,5 +188,18 @@ input[type="range"] { padding: 0; height: 10px; width: 100%; }
     color: #ffe0b0;
 }
 .correction-notice i { font-size: 1.2em; }
+.correction-swap-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9em;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+.correction-swap-btn:hover { filter: brightness(1.2); }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
