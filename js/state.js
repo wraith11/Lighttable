@@ -43,6 +43,8 @@ export function getInitialState() {
             background_image: { url:null, x:0, y:0, scale:1.0, repeat:false, opacity:1.0 },
             show_grid: true, time_of_day: 'day',
             player_view_blackout: true, tracking_paused: false, show_player_frame: true,
+            // Defaults für neue Tokens
+            token_size_default: 45, ring_thickness: 10,
             
             // NEU: Blackout Config
             blackout_config: {
