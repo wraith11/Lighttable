@@ -55,12 +55,17 @@ Dafür liegt eine **konservative Korrekturschicht** über dem Tracking:
 - Es werden **nur Blob-IDs permutiert** (nie neue erzeugt, nie gelöscht) → die ID-Menge bleibt
   stabil, der Client erzeugt/löscht dadurch **keine** Tokens (kein Hin- und Herspringen).
 - Unbewegte / nie verdeckte Figuren werden nie angefasst.
-- Bei **mehrdeutigen** Fällen (z.&nbsp;B. Figuren tauschen über Kreuz, während alle verdeckt sind)
-  wird der wahrscheinlichste Zustand (minimale Gesamtbewegung) angenommen und dem GM ein
-  Hinweis „Token-Zuordnung unsicher“ angezeigt – dann bitte manuell prüfen/korrigieren.
+- **Mehrdeutigkeit (Verwechslungsgefahr):** Wenn sich mehrere Blobs in einem **engen Bereich**
+  bewegt haben (dichtes Figuren-Cluster), ist die Zuordnung unklar. Dann wird die wahrscheinlichste
+  Variante (minimale Gesamtbewegung) angenommen, dem GM ein Hinweis „unsicher“ angezeigt und ein
+  Button **„Alternative anwenden“** angeboten – der bei genau 2 bewegten Blobs die einzig andere
+  Verteilung (Tausch der beiden Tokens) sofort anwendet. Bewegungen in **weit getrennten**
+  Figuren-Gruppen gelten dagegen als zuverlässig (Kreuz-Bewegung über größere Distanz ist sehr
+  unwahrscheinlich) und lösen **keine** Meldung aus.
 
 Das Verhalten lässt sich über die Konstanten in `TurnCorrectionLayer.__init__` (in
-`scrytable.py`) feinjustieren: `anchor_radius`, `moved_threshold` und `max_disruption`.
+`scrytable.py`) feinjustieren: `anchor_radius`, `moved_threshold`, `max_disruption` und
+`uncertainty_gap` (Schwelle für die räumliche Nähe der bewegten Blobs).
 
 ### Player-Ansicht / Blackout / Medien
 - **Blackout-Funktion:** sofortiges Abdunkeln der Player-Sicht, damit der GM unbemerkt vorbereiten kann.
