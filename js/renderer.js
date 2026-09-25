@@ -1346,8 +1346,8 @@ export class GameRenderer {
             const t = new PIXI.Text(char, textStyle); t.resolution = 4; t.anchor.set(0.5, 0.5);
             const angle = startArc + i * charSpacing;
             t.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            t.rotation = angle + Math.PI/2;
             t.scale.set(0.8); container.addChild(t);
-        }
         }
     }
 
