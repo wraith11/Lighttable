@@ -1,5 +1,9 @@
 import { socket } from './socket-client.js';
 
+// Auto-Timeout: Eine unbehandelte Korrektur-Meldung wird nach 30 s automatisch
+// verworfen (ohne die Zuordnung zu ändern), damit sie nicht ewig stehen bleibt.
+const CORRECTION_TIMEOUT_MS = 30000;
+
 export const coreMethods = {
     // --- NEU: MEDIA METHODS ---
     refreshMedia() { socket.emit('request_media'); },
