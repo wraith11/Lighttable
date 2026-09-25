@@ -152,10 +152,10 @@ export const coreMethods = {
         const group = t.rings && t.rings[ringIdx];
         const seg = group && group.segments && group.segments[segIdx];
         if (seg) {
-            const c = seg.color || '#333333';
+            const c = seg.color || '#2a2a2a';
             // Initialen grauen Zustand ignorieren: Picker auf 100% Helligkeit öffnen,
             // damit man nicht erst aufhellen muss, bevor man eine Farbe wählt.
-            if (c === '#333333') this.tokenColorPicker.color.hexString = '#c0392b';
+            if (c === '#2a2a2a') this.tokenColorPicker.color.hexString = '#c0392b';
             else this.tokenColorPicker.color.hexString = c;
             this.showTokenColorPopup = true;
         }
