@@ -1399,34 +1399,25 @@ export class GameRenderer {
             return pts;
         };
         const thickness = outerR - innerR;
-        // Plateau-Fläche: 55% der Breite, mittig. Ränder je ~22.5%.
-        const plateauOuter = outerR - thickness * 0.20;
-        const plateauInner = innerR + thickness * 0.20;
         const colInt = parseInt(col.replace('#',''), 16);
         const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
 
-        // 1. Basis-/Plateau-Fläche (mittlere Ringfarbe)
-        const fill = new PIXI.Graphics();
-        fill.beginFill(colInt, 1.0);
-        fill.drawPolygon(buildPoly(plateauInner, plateauOuter, startAngle, endAngle));
-        fill.endFill();
-        container.addChild(fill);
-
-        // 2. Heller Innenrand (Glanz-Plateau-Kante, oben)
-        const lightCol = parseInt(this.shadeColor(col, 48).replace('#',''), 16);
-        const lightRim = new PIXI.Graphics();
-        lightRim.beginFill(lightCol, 1.0);
-        lightRim.drawPolygon(buildPoly(innerR, plateauInner, startAngle, endAngle));
-        lightRim.endFill();
-        container.addChild(lightRim);
-
-        // 3. Dunkler Außenrand (Schatten-Plateau-Kante, unten)
-        const darkCol = parseInt(this.shadeColor(col, -50).replace('#',''), 16);
-        const darkRim = new PIXI.Graphics();
-        darkRim.beginFill(darkCol, 1.0);
-        darkRim.drawPolygon(buildPoly(plateauOuter, outerR, startAngle, endAngle));
-        darkRim.endFill();
-        container.addChild(darkRim);
+        // Bevel über die Ringbreite: viele feine Stufen, in der Mitte flaches Plateau.
+        // Helligkeitsprofil: innen hell → weich abfallend → Plateau (Ringfarbe) → weich dunkler außen.
+        const BANDS = 9;
+        const bri = [48, 26, 10, 2, 0, 0, -6, -28, -55];
+        for(let b=0; b<BANDS; b++) {
+            const t0 = b / BANDS;
+            const t1 = (b+1) / BANDS;
+            const ri = innerR + thickness * t0;
+            const ro = innerR + thickness * t1;
+            const bc = parseInt(this.shadeColor(col, bri[b]).replace('#',''), 16);
+            const g = new PIXI.Graphics();
+            g.beginFill(bc, 1.0);
+            g.drawPolygon(buildPoly(ri, ro, startAngle, endAngle));
+            g.endFill();
+            container.addChild(g);
+        }
 
         // 4. Saubere Outline als dünne Linie um das gesamte Segment
         const outline = new PIXI.Graphics();
