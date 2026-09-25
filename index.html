@@ -487,7 +487,7 @@
                             <label>{{ t('ringThickness') }}</label><input type="number" min="4" max="30" v-model.number="scene.ring_thickness" @change="sync">
                             <label>{{ t('tokenNameSize') }}</label><input type="number" min="6" max="40" v-model.number="scene.token_name_size" @change="sync">
                             <label>{{ t('defTokenColor') }}</label>
-                            <input type="color" :value="scene.token_color_default" @input="scene.token_color_default = $event.target.value" @change="applyTokenColorDefault" class="default-color-input">
+                            <div class="texture-preview default-color-swatch" :style="{backgroundColor: scene.token_color_default || '#aaaaaa'}" @click="openDefaultColorPicker" :title="t('chooseColor')"></div>
                         </div>
                     </div>
                     
