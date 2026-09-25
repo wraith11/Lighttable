@@ -1330,25 +1330,54 @@ export class GameRenderer {
         }
     }
 
-    drawCurvedText(container, text, radius, centerAngle, color, ringWidth = 10, centered = true) {
+    drawCurvedText(container, text, radius, centerAngle, color, ringWidth = 10, centered = true, maxAngle = null) {
         if(!text) return;
-        const fontSize = 14 * (ringWidth / 10);
+        let fontSize = 14 * (ringWidth / 10);
+        let t = text;
+        // Fitting für Segmente: Text so skalieren/kürzen, dass er in den verfügbaren Bogen passt.
+        if (centered && maxAngle) {
+            const availablePx = maxAngle * radius * 0.82; // Sicherheitsabstand zu den Segmentkanten
+            let charW = fontSize * 0.62;
+            const needed = t.length * charW;
+            if (needed > availablePx) {
+                fontSize = Math.max(7, fontSize * (availablePx / needed));
+            }
+            charW = fontSize * 0.62;
+            const maxChars = Math.floor(availablePx / charW);
+            if (t.length > maxChars) {
+                t = t.slice(0, Math.max(1, maxChars - 1)) + '…';
+            }
+        }
         const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
-        const charWidthApprox = fontSize * 0.64; 
+        const charWidthApprox = fontSize * 0.62; 
         const charSpacing = charWidthApprox / radius; 
-        const totalArc = text.length * charSpacing;
+        // Zeichen belegen (n-1) Abstände – mit n Abständen wäre der Text um eine halbe
+        // Zeichenbreite nach links verschoben (Zentrierungsfehler).
+        const spanCount = Math.max(1, t.length - 1);
+        const totalArc = spanCount * charSpacing;
         // centered=true: Kurve ist um centerAngle zentriert (für Segmente).
         // centered=false: startet oben (-PI/2) – für Einzelring, damit er von beiden Seiten lesbar bleibt.
         const startArc = centered ? (centerAngle - totalArc / 2) : (startAngleFromOffset(centerAngle) - totalArc / 2);
 
-        for(let i=0; i<text.length; i++) {
-            const char = text[i];
-            const t = new PIXI.Text(char, textStyle); t.resolution = 4; t.anchor.set(0.5, 0.5);
+        for(let i=0; i<t.length; i++) {
+            const char = t[i];
+            const txt = new PIXI.Text(char, textStyle); txt.resolution = 4; txt.anchor.set(0.5, 0.5);
             const angle = startArc + i * charSpacing;
-            t.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
-            t.rotation = angle + Math.PI/2;
-            t.scale.set(0.8); container.addChild(t);
+            txt.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            txt.rotation = angle + Math.PI/2;
+            txt.scale.set(0.8); container.addChild(txt);
         }
+    }
+
+    // Hilfsfunktion: Helligkeit eines Hex-Farbwerts anpassen (+ = heller, - = dunkler)
+    shadeColor(hex, percent) {
+        const c = hex.replace('#','');
+        const num = parseInt(c.length === 3 ? c.split('').map(x=>x+x).join('') : c, 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+        const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+        const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+        return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
     }
 
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Outline + plastischem Rand.
