@@ -20,6 +20,7 @@ export class GameRenderer {
         this.entityCache = {};
         this.textureCache = {};
         this.tokenCache = {};
+        this.ringTexCache = {};
         this.drawingCache = {};
 
         // --- FoW Internals ---
