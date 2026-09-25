@@ -162,7 +162,7 @@ export const translations = {
     uploadImage: "Bild hochladen",
     scale: "Skalierung:", remove: "Entfernen", repeat: "Wiederholen",
     camSetupBtn: "Kamera Setup",
-    defaults: "Standards", defTokenSize: "Standard Token-Größe:", ringThickness: "Status Ringdicke:", tokenNameSize: "Token-Namensgröße:",
+    defaults: "Standards", defTokenSize: "Standard Token-Größe:", ringThickness: "Status Ringdicke:", tokenNameSize: "Token-Namensgröße:", defTokenColor: "Standard Token-Farbe:",
     mapMgmt: "Karten Management",
     mapName: "Kartenname", save: "Speichern", saveAs: "Speichern unter", newMap: "Neue Karte", confirmNewMap: "Neue leere Karte erstellen? Ungespeicherte Änderungen gehen verloren.", deleteMap: "Karte löschen", confirmDeleteMap: "Karte '%s' löschen?", errDeleteMap: "Fehler beim Löschen: ",
     system: "System",
