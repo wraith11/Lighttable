@@ -1498,7 +1498,7 @@ export class GameRenderer {
                     return segs.map(s => (s.color||'') + ':' + (s.text||'').length).join(',');
                 }).join('|');
             }
-            const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}`;
+            const currentProps = `${t.name}_${t.spotlight_color}_${t.size}_${isSelected}_${this.isGM}_${t.blob_id || ''}_${this.scene.show_blob_ids}_${ringsHash}_${t.vision_range}_${this.scene.ring_thickness}_${this.scene.token_name_size}`;
 
             if (tc._cachedProps !== currentProps) {
                 while (tc.children.length > 0) tc.removeChildAt(0).destroy();
@@ -1519,14 +1519,15 @@ export class GameRenderer {
                 }
 
                 if (t.name) {
-                     const ringOffset = (t.rings ? t.rings.length * 12 : 0);
-                     const txt = new PIXI.Text(t.name, {fontSize:12, fill:0xffffff, stroke:0x000000, strokeThickness:3});
+                     const ringOffset = (t.rings ? t.rings.length * (this.scene.ring_thickness || 10) : 0);
+                     const nameSize = this.scene.token_name_size || 12;
+                     const txt = new PIXI.Text(t.name, {fontSize:nameSize, fill:0xffffff, stroke:0x000000, strokeThickness:3});
                      txt.anchor.set(0, 0.5); txt.x = (t.size/2) + 5 + ringOffset; 
                      tc.addChild(txt);
                 }
                 
                 if (this.isGM && t.blob_id && this.scene.show_blob_ids) {
-                     const ringOffset = (t.rings ? t.rings.length * 12 : 0);
+                     const ringOffset = (t.rings ? t.rings.length * (this.scene.ring_thickness || 10) : 0);
                      const idTxt = new PIXI.Text(t.blob_id, {fontSize:10, fill:0x00ff00, fontWeight:'bold'});
                      idTxt.anchor.set(0, 1); idTxt.position.set((t.size/2) + ringOffset, -((t.size/2) + 5));
                      tc.addChild(idTxt);
