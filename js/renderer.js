@@ -1420,9 +1420,11 @@ export class GameRenderer {
         }
 
         // Outline als saubere Striche entlang der Bogenkanten (außen + innen).
-        // Beim vollen Ring keine radiale Naht; bei Segmenten werden die Schnittkanten mitgezeichnet.
+        // Farbe = abgedunkelte Ringfarbe, damit der Bevel zwischen den Segmenten
+        // mit eingefärbt ist (nicht hartes Schwarz).
+        const outlineColor = parseInt(this.shadeColor(col, -55).replace('#',''), 16);
         const outline = new PIXI.Graphics();
-        outline.lineStyle(1.2, 0x000000, 0.7);
+        outline.lineStyle(1.2, outlineColor, 0.9);
         const arcStroke = (r, a0, a1) => {
             const pts = [];
             for(let i=0; i<=steps; i++) {
