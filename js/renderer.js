@@ -1381,7 +1381,8 @@ export class GameRenderer {
     }
 
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Outline + plastischem Rand.
-    // Bevel-Plateau: heller Innenrand + flache Basisfläche + dunkler Außenrand.
+    // Zeichnet einen Ring (Kreis oder Bogensegment) mit fein abgestuftem Bevel + Outline.
+    // Bevel: 9 feine Helligkeitsstufen über die Ringbreite, mittig flaches Plateau.
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
         const steps = 64;
