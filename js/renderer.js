@@ -1381,73 +1381,72 @@ export class GameRenderer {
     }
 
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Outline + plastischem Rand.
+    // Bevel-Plateau: heller Innenrand + flache Basisfläche + dunkler Außenrand.
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
         const steps = 64;
         const col = color || '#333333';
-        const buildPoly = (ri, ro, a0, a1, extraOuter) => {
+        const buildPoly = (ri, ro, a0, a1) => {
             const pts = [];
-            const eo = extraOuter || 0;
             for(let i=0; i<=steps; i++) {
                 const a = a0 + (a1-a0) * (i/steps);
-                pts.push(cx + Math.cos(a)*(ro+eo), cy + Math.sin(a)*(ro+eo));
+                pts.push(cx + Math.cos(a)*ro, cy + Math.sin(a)*ro);
             }
             for(let i=steps; i>=0; i--) {
                 const a = a0 + (a1-a0) * (i/steps);
-                pts.push(cx + Math.cos(a)*(ri-eo), cy + Math.sin(a)*(ri-eo));
+                pts.push(cx + Math.cos(a)*ri, cy + Math.sin(a)*ri);
             }
             return pts;
         };
         const thickness = outerR - innerR;
-        const midR = (innerR + outerR) / 2;
-        const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
+        // Plateau-Fläche: 55% der Breite, mittig. Ränder je ~22.5%.
+        const plateauOuter = outerR - thickness * 0.20;
+        const plateauInner = innerR + thickness * 0.20;
+        const colInt = parseInt(col.replace('#',''), 16);
 
-        // Outline (dunkler Rand, leicht vergrößert)
+        // 1. Basis-/Plateau-Fläche (mittlere Ringfarbe)
+        const fill = new PIXI.Graphics();
+        fill.beginFill(colInt, 1.0);
+        fill.drawPolygon(buildPoly(plateauInner, plateauOuter, startAngle, endAngle));
+        fill.endFill();
+        container.addChild(fill);
+
+        // 2. Heller Innenrand (Glanz-Plateau-Kante, oben)
+        const lightCol = parseInt(this.shadeColor(col, 48).replace('#',''), 16);
+        const lightRim = new PIXI.Graphics();
+        lightRim.beginFill(lightCol, 1.0);
+        lightRim.drawPolygon(buildPoly(innerR, plateauInner, startAngle, endAngle));
+        lightRim.endFill();
+        container.addChild(lightRim);
+
+        // 3. Dunkler Außenrand (Schatten-Plateau-Kante, unten)
+        const darkCol = parseInt(this.shadeColor(col, -50).replace('#',''), 16);
+        const darkRim = new PIXI.Graphics();
+        darkRim.beginFill(darkCol, 1.0);
+        darkRim.drawPolygon(buildPoly(plateauOuter, outerR, startAngle, endAngle));
+        darkRim.endFill();
+        container.addChild(darkRim);
+
+        // 4. Saubere Outline als dünne Linie um das gesamte Segment
         const outline = new PIXI.Graphics();
-        outline.beginFill(0x000000, 0.9);
-        outline.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 1.5));
-        outline.endFill();
+        outline.lineStyle(1.2, 0x000000, 0.7);
+        const po = buildPoly(innerR, outerR, startAngle, endAngle);
+        outline.moveTo(po[0], po[1]);
+        for(let i=2; i<po.length; i+=2) outline.lineTo(po[i], po[i+1]);
+        outline.closePath();
         container.addChild(outline);
 
-        // Abgestufte Wölbung: mehrere Bänder von innen (hell) nach außen (dunkel)
-        const BANDS = 7;
-        for(let b=0; b<BANDS; b++) {
-            const t0 = b / BANDS;
-            const t1 = (b+1) / BANDS;
-            const ri = innerR + thickness * t0;
-            const ro = innerR + thickness * t1;
-            const pct = 52 - (b / (BANDS-1)) * 107; // innen hell → außen dunkel
-            const bandColor = parseInt(this.shadeColor(col, pct).replace('#',''), 16);
-            const g = new PIXI.Graphics();
-            g.beginFill(bandColor, 1.0);
-            g.drawPolygon(buildPoly(ri, ro, startAngle, endAngle, 0));
-            g.endFill();
-            container.addChild(g);
-        }
-
-        // Kanten-Bevel nur bei echten Segmenten (nicht bei vollem Ring): 
-        // helle Startkante + dunkle Endkante → Segmente wirken sauber getrennt statt abgeschnitten.
+        // 5. Kanten-Bevel an den radialen Schnittkanten (nur bei echten Segmenten):
+        //    helle Kante am Start, dunkle am Ende → Segmente wirken sauber getrennt.
         if (!isFull) {
-            const edgeW = Math.max(1.5, thickness * 0.14);
-            const edgeA = edgeW / midR;
-            // helle Startkante (Lichtseite)
-            const lightEdge = new PIXI.Graphics();
-            lightEdge.beginFill(0xFFFFFF, 0.45);
-            lightEdge.moveTo(cx+Math.cos(startAngle-edgeA)*innerR, cy+Math.sin(startAngle-edgeA)*innerR);
-            lightEdge.lineTo(cx+Math.cos(startAngle+edgeA)*innerR, cy+Math.sin(startAngle+edgeA)*innerR);
-            lightEdge.lineTo(cx+Math.cos(startAngle+edgeA)*outerR, cy+Math.sin(startAngle+edgeA)*outerR);
-            lightEdge.lineTo(cx+Math.cos(startAngle-edgeA)*outerR, cy+Math.sin(startAngle-edgeA)*outerR);
-            lightEdge.closePath(); lightEdge.endFill();
-            container.addChild(lightEdge);
-            // dunkle Endkante (Schattenseite)
-            const darkEdge = new PIXI.Graphics();
-            darkEdge.beginFill(0x000000, 0.5);
-            darkEdge.moveTo(cx+Math.cos(endAngle-edgeA)*innerR, cy+Math.sin(endAngle-edgeA)*innerR);
-            darkEdge.lineTo(cx+Math.cos(endAngle+edgeA)*innerR, cy+Math.sin(endAngle+edgeA)*innerR);
-            darkEdge.lineTo(cx+Math.cos(endAngle+edgeA)*outerR, cy+Math.sin(endAngle+edgeA)*outerR);
-            darkEdge.lineTo(cx+Math.cos(endAngle-edgeA)*outerR, cy+Math.sin(endAngle-edgeA)*outerR);
-            darkEdge.closePath(); darkEdge.endFill();
-            container.addChild(darkEdge);
+            const edgeG = new PIXI.Graphics();
+            edgeG.lineStyle(1.2, 0xFFFFFF, 0.35);
+            edgeG.moveTo(cx+Math.cos(startAngle)*innerR, cy+Math.sin(startAngle)*innerR);
+            edgeG.lineTo(cx+Math.cos(startAngle)*outerR, cy+Math.sin(startAngle)*outerR);
+            edgeG.lineStyle(1.2, 0x000000, 0.5);
+            edgeG.moveTo(cx+Math.cos(endAngle)*innerR, cy+Math.sin(endAngle)*innerR);
+            edgeG.lineTo(cx+Math.cos(endAngle)*outerR, cy+Math.sin(endAngle)*outerR);
+            container.addChild(edgeG);
         }
     }
 
