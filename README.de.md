@@ -64,8 +64,9 @@ Dafür liegt eine **konservative Korrekturschicht** über dem Tracking:
   (Kreuz-Bewegung über größere Distanz ist sehr unwahrscheinlich) und lösen **keine** Meldung aus.
 - **Mehrere Meldungen:** Neue Unsicherheits-Hinweise **überschreiben** nicht, sondern landen in
   einer **Warteschlange**, die der GM nacheinander abarbeitet (Zähler zeigt, wie viele offen sind).
-  Es gibt **keinen Auto-Timeout** – der GM kann erst am projizierten Spielfeld nachsehen und die
-  Meldung dann per „Alternative anwenden“ oder „Verwerfen“ (X) behandeln.
+  Jede Meldung hat einen **Auto-Timeout von 30 Sekunden**: wird sie nicht rechtzeitig behandelt
+  (per „Alternative anwenden“ oder „Verwerfen“), verschwindet sie von selbst, ohne die Zuordnung
+  zu ändern. Die 30 s geben dem GM Zeit, erst am projizierten Spielfeld nachzusehen.
 
 Das Verhalten lässt sich über die Konstanten in `TurnCorrectionLayer.__init__` (in
 `scrytable.py`) feinjustieren: `anchor_radius`, `moved_threshold`, `max_disruption` und
