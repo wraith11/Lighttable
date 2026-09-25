@@ -1363,6 +1363,7 @@ export class GameRenderer {
         const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
         return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 
+    }
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Bevel (Tiefe) + Outline.
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
