@@ -141,7 +141,7 @@ export const coreMethods = {
     resetTokenColor() {
         if (!this.openTokenId) return;
         const t = this.scene.tokens[this.openTokenId];
-        t.spotlight_color = '#aaaaaa';
+        t.spotlight_color = (this.scene.token_color_default || '#aaaaaa');
         this.sync();
     },
 
