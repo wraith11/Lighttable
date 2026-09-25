@@ -502,6 +502,18 @@ export const coreMethods = {
         if(this.scene.lights_active === undefined) this.scene.lights_active = true;
         if(!this.scene.fow_visited) this.scene.fow_visited = [];
         if(this.scene.show_player_frame === undefined) this.scene.show_player_frame = true;
+        // Migration: Altes Ring-Format (flaches Array von {color,text}) → Gruppenmodell
+        // {segments:[{color,text}]}. Jeder alte Ring wird zu einer Gruppe mit einem Segment.
+        if(this.scene.tokens) {
+            Object.values(this.scene.tokens).forEach(t => {
+                if(t.rings && Array.isArray(t.rings) && t.rings.length > 0 && t.rings[0].segments === undefined) {
+                    t.rings = t.rings.map(r => ({ segments: [{ color: r.color || '#000000', text: r.text || '' }] }));
+                } else if(t.rings) {
+                    // Sicherstellen, dass jedes Segment-Objekt existiert
+                    t.rings.forEach(g => { if(!g.segments) g.segments = [{ color: '#000000', text: '' }]; });
+                }
+            });
+        }
         
         if(!this.scene.blackout_config) {
             this.scene.blackout_config = {
