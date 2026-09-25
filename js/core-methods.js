@@ -145,11 +145,14 @@ export const coreMethods = {
         this.sync();
     },
 
-    openRingColorPicker(t, index) {
+    openRingColorPicker(t, ringIdx, segIdx) {
         this.activeColorMode = 'ring';
-        this.activeRingIndex = index;
-        if (t.rings && t.rings[index]) {
-            this.tokenColorPicker.color.hexString = t.rings[index].color || '#000000';
+        this.activeRingIndex = ringIdx;
+        this.activeSegmentIndex = segIdx;
+        const group = t.rings && t.rings[ringIdx];
+        const seg = group && group.segments && group.segments[segIdx];
+        if (seg) {
+            this.tokenColorPicker.color.hexString = seg.color || '#000000';
             this.showTokenColorPopup = true;
         }
     },
