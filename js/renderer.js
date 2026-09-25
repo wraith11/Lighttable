@@ -1380,7 +1380,6 @@ export class GameRenderer {
         return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
     }
 
-    // Zeichnet einen Ring (Kreis oder Bogensegment) mit Outline + plastischem Rand.
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit fein abgestuftem Bevel + Outline.
     // Bevel: 9 feine Helligkeitsstufen über die Ringbreite, mittig flaches Plateau.
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
