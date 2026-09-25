@@ -1384,54 +1384,71 @@ export class GameRenderer {
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
         const steps = 64;
-        const outlineW = 1.6;
+        const col = color || '#333333';
         const buildPoly = (ri, ro, a0, a1, extraOuter) => {
             const pts = [];
+            const eo = extraOuter || 0;
             for(let i=0; i<=steps; i++) {
                 const a = a0 + (a1-a0) * (i/steps);
-                const r = ro + (extraOuter||0);
-                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                pts.push(cx + Math.cos(a)*(ro+eo), cy + Math.sin(a)*(ro+eo));
             }
             for(let i=steps; i>=0; i--) {
                 const a = a0 + (a1-a0) * (i/steps);
-                const r = ri - (extraOuter||0);
-                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+                pts.push(cx + Math.cos(a)*(ri-eo), cy + Math.sin(a)*(ri-eo));
             }
             return pts;
         };
+        const thickness = outerR - innerR;
+        const midR = (innerR + outerR) / 2;
+        const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
 
         // Outline (dunkler Rand, leicht vergrößert)
-        const g = new PIXI.Graphics();
-        g.lineStyle(0);
-        g.beginFill(0x000000, 0.95);
-        g.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, outlineW));
-        g.endFill();
-        container.addChild(g);
+        const outline = new PIXI.Graphics();
+        outline.beginFill(0x000000, 0.9);
+        outline.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 1.5));
+        outline.endFill();
+        container.addChild(outline);
 
-        // Basis-Füllung in der Ringfarbe
-        const col = parseInt(color.replace('#',''), 16);
-        const gFill = new PIXI.Graphics();
-        gFill.beginFill(col, 1.0);
-        gFill.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 0));
-        gFill.endFill();
-        container.addChild(gFill);
+        // Abgestufte Wölbung: mehrere Bänder von innen (hell) nach außen (dunkel)
+        const BANDS = 7;
+        for(let b=0; b<BANDS; b++) {
+            const t0 = b / BANDS;
+            const t1 = (b+1) / BANDS;
+            const ri = innerR + thickness * t0;
+            const ro = innerR + thickness * t1;
+            const pct = 52 - (b / (BANDS-1)) * 107; // innen hell → außen dunkel
+            const bandColor = parseInt(this.shadeColor(col, pct).replace('#',''), 16);
+            const g = new PIXI.Graphics();
+            g.beginFill(bandColor, 1.0);
+            g.drawPolygon(buildPoly(ri, ro, startAngle, endAngle, 0));
+            g.endFill();
+            container.addChild(g);
+        }
 
-        // Plastischer Rand: schmales helles Bogenstück oben (Glanz), dunkles unten (Schatten)
-        const thickness = outerR - innerR;
-        const highlightW = Math.max(1, thickness * 0.18);
-        const shadowW = Math.max(1, thickness * 0.18);
-        // Glanz am Innenrand (Licht von oben links)
-        const gl = new PIXI.Graphics();
-        gl.beginFill(0xFFFFFF, 0.30);
-        gl.drawPolygon(buildPoly(innerR, innerR + highlightW, startAngle, endAngle, 0));
-        gl.endFill();
-        container.addChild(gl);
-        // Schatten am Außenrand (abgewandte Seite)
-        const sh = new PIXI.Graphics();
-        sh.beginFill(0x000000, 0.35);
-        sh.drawPolygon(buildPoly(outerR - shadowW, outerR, startAngle, endAngle, 0));
-        sh.endFill();
-        container.addChild(sh);
+        // Kanten-Bevel nur bei echten Segmenten (nicht bei vollem Ring): 
+        // helle Startkante + dunkle Endkante → Segmente wirken sauber getrennt statt abgeschnitten.
+        if (!isFull) {
+            const edgeW = Math.max(1.5, thickness * 0.14);
+            const edgeA = edgeW / midR;
+            // helle Startkante (Lichtseite)
+            const lightEdge = new PIXI.Graphics();
+            lightEdge.beginFill(0xFFFFFF, 0.45);
+            lightEdge.moveTo(cx+Math.cos(startAngle-edgeA)*innerR, cy+Math.sin(startAngle-edgeA)*innerR);
+            lightEdge.lineTo(cx+Math.cos(startAngle+edgeA)*innerR, cy+Math.sin(startAngle+edgeA)*innerR);
+            lightEdge.lineTo(cx+Math.cos(startAngle+edgeA)*outerR, cy+Math.sin(startAngle+edgeA)*outerR);
+            lightEdge.lineTo(cx+Math.cos(startAngle-edgeA)*outerR, cy+Math.sin(startAngle-edgeA)*outerR);
+            lightEdge.closePath(); lightEdge.endFill();
+            container.addChild(lightEdge);
+            // dunkle Endkante (Schattenseite)
+            const darkEdge = new PIXI.Graphics();
+            darkEdge.beginFill(0x000000, 0.5);
+            darkEdge.moveTo(cx+Math.cos(endAngle-edgeA)*innerR, cy+Math.sin(endAngle-edgeA)*innerR);
+            darkEdge.lineTo(cx+Math.cos(endAngle+edgeA)*innerR, cy+Math.sin(endAngle+edgeA)*innerR);
+            darkEdge.lineTo(cx+Math.cos(endAngle+edgeA)*outerR, cy+Math.sin(endAngle+edgeA)*outerR);
+            darkEdge.lineTo(cx+Math.cos(endAngle-edgeA)*outerR, cy+Math.sin(endAngle-edgeA)*outerR);
+            darkEdge.closePath(); darkEdge.endFill();
+            container.addChild(darkEdge);
+        }
     }
 
     drawTokenRings(container, token) {
