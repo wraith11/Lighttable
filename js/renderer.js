@@ -1348,7 +1348,7 @@ export class GameRenderer {
                 t = t.slice(0, Math.max(1, maxChars - 1)) + '.';
             }
         }
-        const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 1, dropShadowDistance: 0, padding: 5 });
+        const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowAlpha: 1, dropShadowBlur: 1.5, dropShadowDistance: 1.5, dropShadowColor: '#000000', padding: 5 });
         const charWidthApprox = fontSize * 0.62; 
         const charSpacing = charWidthApprox / radius; 
         // Zeichen belegen (n-1) Abstände – mit n Abständen wäre der Text um eine halbe
