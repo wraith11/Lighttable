@@ -71,6 +71,7 @@ export function getInitialState() {
         drag: { active: false, start: {x:0,y:0}, mode: null, temp: null, worldStart: {x:0,y:0}, handle: null, offset: {x:0, y:0}, initialDist: 0, initialWidth: 0, initialHeight: 0 },
         camW: 1280, camH: 720, imgW: 2000, imgH: 720, cornerDragIdx: -1, tempCorners: [],
         colorPicker: null, openTokenId: null, lightColorPicker: null, tokenColorPicker: null,
+        activeSegmentIndex: null,
         _lastSyncTime: 0, _syncTimer: null,
         currentMapName: "",
         _clipboard: null
