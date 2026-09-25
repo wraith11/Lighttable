@@ -54,12 +54,16 @@ the tracking:
 - Only **blob IDs are permuted** (never created or deleted) → the ID set stays stable, so the
   client does not create/delete tokens (no jumping back and forth).
 - Unmoved / never-occluded figures are never touched.
-- In **ambiguous** cases (e.g. figures swapping positions crosswise while all are occluded) the
-  most likely state (minimum total movement) is assumed and the GM is shown a
-  "Token assignment uncertain" notice – then please check/correct manually.
+- **Ambiguity (confusion risk):** When several blobs move within a **tight area** (dense figure
+  cluster), the assignment is unclear. Then the most likely variant (minimum total movement) is
+  assumed, the GM is shown an "uncertain" notice, and an **"Apply alternative"** button is offered –
+  with exactly 2 moved blobs it immediately applies the only other distribution (swapping the two
+  tokens). Movements in **widely separated** figure groups are considered reliable (cross movement
+  over a large distance is very unlikely) and trigger **no** notice.
 
 The behavior can be tuned via the constants in `TurnCorrectionLayer.__init__` (in
-`scrytable.py`): `anchor_radius`, `moved_threshold` and `max_disruption`.
+`scrytable.py`): `anchor_radius`, `moved_threshold`, `max_disruption` and
+`uncertainty_gap` (threshold for the spatial closeness of the moved blobs).
 
 ### Player View / Blackout / Media
 - **Blackout function:** instantly darken the player view so the GM can prepare unnoticed.
