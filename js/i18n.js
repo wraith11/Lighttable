@@ -49,6 +49,7 @@ export const translations = {
     name: "Name:", blob: "Blob:", size: "Size:", color: "Color:",
     rings: "Rings", none: "-- None --",
     addRing: "+ Ring",
+    statuses: "Statuses", ring: "Ring", addStatus: "Add status",
     vision: "Vision", visionRange: "Range:",
     tokenDelete: "Delete",
     chooseColor: "Choose color", resetColor: "Reset color",
