@@ -538,7 +538,7 @@ export const coreMethods = {
             uuid: id, name: 'Neu', x: (this.renderer.pixiApp.screen.width/2 - this.scene.view.x) / this.scene.view.scale, 
             y: (this.renderer.pixiApp.screen.height/2 - this.scene.view.y) / this.scene.view.scale,
             on_board: false, blob_id: null, has_vision: false, vision_range: 400, 
-            spotlight_color: '#aaaaaa', size: (this.scene.token_size_default || 45), style: 'ring', hp: 10, max_hp: 10, show_hp: false,
+            spotlight_color: (this.scene.token_color_default || '#aaaaaa'), size: (this.scene.token_size_default || 45), style: 'ring', hp: 10, max_hp: 10, show_hp: false,
             markers: [{},{},{},{},{}], rings: [], modified: true 
         }; 
         this.sync(); 
