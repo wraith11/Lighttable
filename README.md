@@ -62,9 +62,10 @@ the tracking:
   are considered reliable (cross movement over a large distance is very unlikely) and trigger
   **no** notice.
 - **Multiple notices:** New uncertainty notices do **not** overwrite each other – they queue up and
-  the GM works through them one by one (a counter shows how many are pending). There is **no
-  auto-timeout** – the GM can first check the projected table and then handle the notice via
-  "Apply alternative" or "Dismiss" (X).
+  the GM works through them one by one (a counter shows how many are pending). Each notice has an
+  **auto-timeout of 30 seconds**: if it is not handled in time (via "Apply alternative" or
+  "Dismiss"), it disappears by itself without changing the assignment. The 30 s give the GM time
+  to first check the projected table.
 
 The behavior can be tuned via the constants in `TurnCorrectionLayer.__init__` (in
 `scrytable.py`): `anchor_radius`, `moved_threshold`, `max_disruption` and
