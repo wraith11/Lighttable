@@ -135,6 +135,7 @@ export const translations = {
     name: "Name:", blob: "Blob:", size: "Größe:", color: "Farbe:",
     rings: "Ringe", none: "-- Keine --",
     addRing: "+ Ring",
+    statuses: "Status", ring: "Ring", addStatus: "Status hinzufügen",
     vision: "Vision", visionRange: "Reichweite:",
     tokenDelete: "Löschen",
     chooseColor: "Farbe wählen", resetColor: "Farbe zurücksetzen",
