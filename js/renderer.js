@@ -1330,10 +1330,11 @@ export class GameRenderer {
         }
     }
 
-    drawCurvedText(container, text, radius, angleOffset, color) {
+    drawCurvedText(container, text, radius, angleOffset, color, ringWidth = 10) {
         if(!text) return;
-        const textStyle = new PIXI.TextStyle({ fontSize: 14, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
-        const charWidthApprox = 9; 
+        const fontSize = 14 * (ringWidth / 10);
+        const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
+        const charWidthApprox = fontSize * 0.64; 
         const charSpacing = charWidthApprox / radius; 
         const totalArc = text.length * charSpacing;
         const startArc = startAngleFromOffset(angleOffset) - totalArc / 2;
@@ -1348,18 +1349,99 @@ export class GameRenderer {
         }
     }
 
+    // Hilfsfunktion: Helligkeit eines Hex-Farbwerts anpassen (+ = heller, - = dunkler)
+    shadeColor(hex, percent) {
+        const c = hex.replace('#','');
+        const num = parseInt(c.length === 3 ? c.split('').map(x=>x+x).join('') : c, 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+        const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+        const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+        return (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    // Zeichnet einen Ring (Kreis oder Bogensegment) mit Bevel (Tiefe) + Outline.
+    // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
+    drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
+        const col = parseInt(color.replace('#',''), 16);
+        const g = new PIXI.Graphics();
+        // Outline (dunkler Außenrand)
+        g.lineStyle(0);
+        g.beginFill(0x000000, 0.9);
+        g.moveTo(cx + Math.cos(startAngle) * (outerR + 1.5), cy + Math.sin(startAngle) * (outerR + 1.5));
+        g.lineTo(cx + Math.cos(endAngle) * (outerR + 1.5), cy + Math.sin(endAngle) * (outerR + 1.5));
+        g.arc(cx, cy, outerR + 1.5, endAngle, startAngle, true);
+        g.lineTo(cx + Math.cos(startAngle) * (innerR - 1.5), cy + Math.sin(startAngle) * (innerR - 1.5));
+        g.arc(cx, cy, innerR - 1.5, startAngle, endAngle, false);
+        g.closePath();
+        g.endFill();
+        // Basis-Füllung
+        g.beginFill(col, 1.0);
+        g.moveTo(cx + Math.cos(startAngle) * outerR, cy + Math.sin(startAngle) * outerR);
+        g.lineTo(cx + Math.cos(endAngle) * outerR, cy + Math.sin(endAngle) * outerR);
+        g.arc(cx, cy, outerR, endAngle, startAngle, true);
+        g.lineTo(cx + Math.cos(startAngle) * innerR, cy + Math.sin(startAngle) * innerR);
+        g.arc(cx, cy, innerR, startAngle, endAngle, false);
+        g.closePath();
+        g.endFill();
+        // Bevel: heller Streifen innen (oben) + dunkler Streifen außen (unten)
+        const light = parseInt(this.shadeColor(color, 55).replace('#',''), 16);
+        const dark = parseInt(this.shadeColor(color, -45).replace('#',''), 16);
+        const midR = (innerR + outerR) / 2;
+        const band = (outerR - innerR) * 0.28;
+        // Bevel-Highlight auf der inneren Hälfte
+        g.beginFill(light, 0.7);
+        g.moveTo(cx + Math.cos(startAngle) * (midR), cy + Math.sin(startAngle) * (midR));
+        g.lineTo(cx + Math.cos(endAngle) * (midR), cy + Math.sin(endAngle) * (midR));
+        g.arc(cx, cy, midR, endAngle, startAngle, true);
+        g.lineTo(cx + Math.cos(startAngle) * (midR - band), cy + Math.sin(startAngle) * (midR - band));
+        g.arc(cx, cy, midR - band, startAngle, endAngle, false);
+        g.closePath();
+        g.endFill();
+        // Bevel-Schatten auf der äußeren Hälfte
+        g.beginFill(dark, 0.6);
+        g.moveTo(cx + Math.cos(startAngle) * (midR + band), cy + Math.sin(startAngle) * (midR + band));
+        g.lineTo(cx + Math.cos(endAngle) * (midR + band), cy + Math.sin(endAngle) * (midR + band));
+        g.arc(cx, cy, midR + band, endAngle, startAngle, true);
+        g.lineTo(cx + Math.cos(startAngle) * (midR), cy + Math.sin(startAngle) * (midR));
+        g.arc(cx, cy, midR, startAngle, endAngle, false);
+        g.closePath();
+        g.endFill();
+        container.addChild(g);
+    }
+
     drawTokenRings(container, token) {
         if(!token.rings || token.rings.length === 0) return;
-        const baseRadius = (token.size / 2) + 8;
-        const ringWidth = 10; const gap = 2;
+        const ringWidth = this.scene.ring_thickness || 10;
+        const gap = 2;
+        const baseRadius = (token.size / 2) + 6;
         token.rings.forEach((ring, idx) => {
              const centerR = baseRadius + idx * (ringWidth + gap) + ringWidth/2;
-             const rG = new PIXI.Graphics();
-             rG.lineStyle(ringWidth, parseInt(ring.color.replace('#',''), 16), 1); rG.drawCircle(0, 0, centerR);
-             container.addChild(rG);
-             if(ring.text) {
-                 this.drawCurvedText(container, ring.text, centerR, 0, 0xffffff);
-                 this.drawCurvedText(container, ring.text, centerR, Math.PI, 0xffffff);
+             const segments = ring.segments || [{ color: '#000000', text: '' }];
+             const innerR = centerR - ringWidth/2;
+             const outerR = centerR + ringWidth/2;
+             if(segments.length === 1) {
+                 // Einzelner Status → voller Ring mit doppeltem Text (von beiden Seiten lesbar)
+                 this.drawRingSegment(container, 0, 0, innerR, outerR, 0, Math.PI*2, segments[0].color || '#000000');
+                 if(segments[0].text) {
+                     this.drawCurvedText(container, segments[0].text, centerR, 0, 0xffffff, ringWidth);
+                     this.drawCurvedText(container, segments[0].text, centerR, Math.PI, 0xffffff, ringWidth);
+                 }
+             } else {
+                 // Segmentierter Ring: N Bogenstücke mit Abstand, Text einmal pro Segment
+                 const segGap = 0.06; // radiale Lücke zwischen Segmenten
+                 const totalAngle = Math.PI * 2;
+                 const segAngle = (totalAngle - segments.length * segGap) / segments.length;
+                 let startA = -Math.PI / 2; // oben starten
+                 segments.forEach((seg, si) => {
+                     const a0 = startA + si * (segAngle + segGap);
+                     const a1 = a0 + segAngle;
+                     this.drawRingSegment(container, 0, 0, innerR, outerR, a0, a1, seg.color || '#000000');
+                     if(seg.text) {
+                         const midA = (a0 + a1) / 2;
+                         this.drawCurvedText(container, seg.text, centerR, midA, 0xffffff, ringWidth);
+                     }
+                 });
              }
         });
     }
