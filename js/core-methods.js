@@ -544,14 +544,14 @@ export const coreMethods = {
     // Ein neuer Ring (= Gruppe mit einem Segment) anlegen.
     addTokenRing(t) {
         if(!t.rings) t.rings = [];
-        t.rings.push({ segments: [{ color: '#000000', text: '' }] });
+        t.rings.push({ segments: [{ color: '#333333', text: '' }] });
         this.sync();
     },
     // Ein neues Segment (Status) an einen bestehenden Ring anhängen.
     addTokenSegment(t, ringIdx) {
         if(!t.rings) t.rings = [];
         if(ringIdx === undefined || ringIdx === null || !t.rings[ringIdx]) return;
-        t.rings[ringIdx].segments.push({ color: '#000000', text: '' });
+        t.rings[ringIdx].segments.push({ color: '#333333', text: '' });
         this.sync();
     },
     // Ein Segment aus einem Ring entfernen; leere Ringe werden entfernt.
