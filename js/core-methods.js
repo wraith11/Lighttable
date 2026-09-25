@@ -565,6 +565,19 @@ export const coreMethods = {
         this.sync();
         if(this.renderer) this.renderer.requestRender();
     },
+    // Wendet die geänderte Standard-Token-Farbe auf alle Tokens mit der bisherigen
+    // Standardfarbe an (damit bestehende Tokens sofort mit aktualisiert werden).
+    applyTokenColorDefault() {
+        const newDefault = this.scene.token_color_default || '#aaaaaa';
+        Object.values(this.scene.tokens).forEach(t => {
+            if (t.spotlight_color === this._prevTokenColorDefault || t.spotlight_color === '#aaaaaa') {
+                t.spotlight_color = newDefault;
+            }
+        });
+        this._prevTokenColorDefault = newDefault;
+        this.sync();
+        if(this.renderer) this.renderer.requestRender();
+    },
     // Ein neues Segment (Status) an einen bestehenden Ring anhängen.
     // Max. 8 Segmente pro Ring (24 Stati pro Token).
     addTokenSegment(t, ringIdx) {
