@@ -6,13 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <div id="pixi-container"></div>
 
-        <!-- Turn-basierte Korrektur: GM-Hinweis bei Verwechslungsgefahr + Alternative-Button -->
+        <!-- Turn-basierte Korrektur: GM-Hinweis bei Verwechslungsgefahr (Queue) + Buttons -->
         <transition name="fade">
-            <div v-if="isGM && correctionNotice" class="correction-notice" :class="{ 'is-uncertain': correctionNotice.uncertain }">
-                <i class="fas" :class="correctionNotice.uncertain ? 'fa-exclamation-triangle' : 'fa-check'"></i>
-                <span>{{ correctionNotice.text }}</span>
-                <button v-if="correctionNotice.canSwap" class="btn correction-swap-btn" @click="applyAlternativeCorrection">
+            <div v-if="isGM && correctionQueue.length" class="correction-notice" :class="{ 'is-uncertain': correctionQueue[0].uncertain }">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="correction-text">{{ correctionQueue[0].text }}</span>
+                <span v-if="correctionQueue.length > 1" class="correction-counter">{{ correctionQueue.length }}</span>
+                <button v-if="correctionQueue[0].canSwap" class="btn correction-swap-btn" @click="applyAlternativeCorrection">
                     {{ t('corrSwapBtn') }}
+                </button>
+                <button class="correction-dismiss" @click="dismissCorrection" :title="t('corrDismiss')">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
         </transition>
