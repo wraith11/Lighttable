@@ -606,23 +606,49 @@ export const coreMethods = {
         if (!t.modified) { t.modified = true; }
         this.sync();
     },
-    // Turn-basierte Korrekturschicht: GM informieren, wenn die Schicht tatsächlich
-    // Blob-IDs umgeordnet hat UND die Zuordnung dabei mehrdeutig war (d.h. unsere
-    // Korrektur könnte falsch geraten haben). In allen anderen Fällen – Einzelbewegung,
-    // sicheres Umsortieren, keine Aktion – keine Meldung, damit der GM nicht bei jeder
-    // Bewegung gestört wird.
+    // Turn-basierte Korrekturschicht: GM informieren, wenn sich mehrere bewegte Blobs
+    // in einem ENGEN Bereich befanden (hohe Verwechslungsgefahr). Bei weit getrennten
+    // Bewegungen (z.B. getrennte Figuren-Gruppen) ist die Zuordnung mit hoher
+    // Wahrscheinlichkeit korrekt und es wird NICHT gemeldet.
+    // Der GM kann über einen Button die alternative (zweitwahrscheinlichste) Zuordnung
+    // anwenden – bei genau 2 bewegten Blobs ist das die einzige andere Option.
     showCorrectionNotice(correction) {
         if (!correction) return;
-        const swapped = !!correction.swapped;
-        const uncertain = !!correction.uncertain;
+        const movers = correction.movers || [];
 
-        // Nur warnen, wenn wir tatsächlich IDs getauscht haben UND es mehrdeutig war.
-        if (!(swapped && uncertain)) return;
+        // Nur warnen bei Verwechslungsgefahr (eng stehende, mehrfach bewegte Blobs).
+        if (!correction.uncertain || movers.length < 2) return;
 
-        this.correctionNotice = { text: this.t('corrUncertain'), uncertain: true, time: Date.now() };
+        this._lastCorrection = correction;
+        this.correctionNotice = {
+            text: this.t('corrUncertain'),
+            uncertain: true,
+            time: Date.now(),
+            canSwap: movers.length === 2
+        };
         clearTimeout(this._correctionNoticeTimer);
-        this._correctionNoticeTimer = setTimeout(() => { this.correctionNotice = null; }, 6000);
+        this._correctionNoticeTimer = setTimeout(() => { this.correctionNotice = null; }, 8000);
         if (this.renderer) this.renderer.requestRender();
+    },
+
+    // GM: Wendet die alternative (zweitwahrscheinlichste) Zuordnung an. Bei 2 bewegten
+    // Blobs werden deren Tokens getauscht – die einzige andere mögliche Verteilung.
+    applyAlternativeCorrection() {
+        const corr = this._lastCorrection;
+        const movers = (corr && corr.movers) || [];
+        if (movers.length !== 2) return;
+        const [m1, m2] = [String(movers[0]), String(movers[1])];
+        const tokens = Object.values(this.scene.tokens);
+        const t1 = tokens.find(t => String(t.blob_id) === m1);
+        const t2 = tokens.find(t => String(t.blob_id) === m2);
+        if (!t1 || !t2 || t1 === t2) return;
+
+        // Tokens vertauschen, damit sie den jeweils anderen Blob verfolgen.
+        t1.blob_id = m2;
+        t2.blob_id = m1;
+        this.updateTokenPos();
+        this.sync();
+        this.correctionNotice = null;
     },
     
     
