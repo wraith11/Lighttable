@@ -66,7 +66,7 @@ export function getInitialState() {
         },
         
         blobs: {}, 
-        correctionNotice: null,   // {text, uncertain, time} – GM-Hinweis nach turn-basierter Korrektur
+        correctionQueue: [],   // Warteschlange von GM-Korrektur-Hinweisen (nacheinander abarbeitbar)
         selObjId: null, selectedObjIsWall: false, selectedObjIsLight: false, selectedObjIsColumn: false,
         drawColor: '#ffffff', brushTexture: null, tilesPerAxis: 2, 
         drag: { active: false, start: {x:0,y:0}, mode: null, temp: null, worldStart: {x:0,y:0}, handle: null, offset: {x:0, y:0}, initialDist: 0, initialWidth: 0, initialHeight: 0 },
