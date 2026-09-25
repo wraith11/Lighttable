@@ -102,30 +102,6 @@ export const coreMethods = {
                 }
             });
         }
-        this.injectIroStyles();
-    },
-    // iro.js injiziert sein Stylesheet zur Laufzeit nach unserem CSS – deshalb werden die
-    // störenden Ränder hier per JS-Nachladung zuverlässig entfernt (kein weißer Rand).
-    injectIroStyles() {
-        const styleId = 'scrytable-iro-override';
-        if (document.getElementById(styleId)) return;
-        const css = `
-            .iro__colorPicker { border: none !important; box-shadow: none !important; }
-            .iro__wheel { border: none !important; box-shadow: none !important; outline: none !important; }
-            .iro__slider { border: none !important; box-shadow: none !important; outline: none !important; background: #111 !important; }
-            .iro__picker { border: none !important; box-shadow: none !important; outline: none !important; }
-            .iro__slider .iro__sliderSlider { background: transparent !important; border: none !important; }
-            .iro__slider .iro__sliderHandle {
-                border: none !important;
-                box-shadow: 0 0 0 1px #000, 0 0 0 2px #888 !important;
-                background: transparent !important;
-                outline: none !important;
-            }
-        `;
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.textContent = css;
-        document.head.appendChild(style);
     },
     updateLightColorPicker() {
         this.$nextTick(() => {
