@@ -1403,6 +1403,7 @@ export class GameRenderer {
         const plateauOuter = outerR - thickness * 0.20;
         const plateauInner = innerR + thickness * 0.20;
         const colInt = parseInt(col.replace('#',''), 16);
+        const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
 
         // 1. Basis-/Plateau-Fläche (mittlere Ringfarbe)
         const fill = new PIXI.Graphics();
