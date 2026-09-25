@@ -1444,8 +1444,8 @@ export class GameRenderer {
                  // Einzelner Status → voller Ring mit doppeltem Text (von beiden Seiten lesbar)
                  this.drawRingSegment(container, 0, 0, innerR, outerR, 0, Math.PI*2, segments[0].color || '#000000');
                  if(segments[0].text) {
-                     this.drawCurvedText(container, segments[0].text, centerR, 0, 0xffffff, ringWidth);
-                     this.drawCurvedText(container, segments[0].text, centerR, Math.PI, 0xffffff, ringWidth);
+                     this.drawCurvedText(container, segments[0].text, centerR, 0, 0xffffff, ringWidth, false);
+                     this.drawCurvedText(container, segments[0].text, centerR, Math.PI, 0xffffff, ringWidth, false);
                  }
              } else {
                  // Segmentierter Ring: N Bogenstücke mit Abstand, Text einmal pro Segment
