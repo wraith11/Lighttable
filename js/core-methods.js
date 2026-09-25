@@ -529,9 +529,24 @@ export const coreMethods = {
         this.openTokenId = id;
     },
     
+    // Ein neuer Ring (= Gruppe mit einem Segment) anlegen.
     addTokenRing(t) {
         if(!t.rings) t.rings = [];
-        t.rings.push({ color: '#000000', text: '' });
+        t.rings.push({ segments: [{ color: '#000000', text: '' }] });
+        this.sync();
+    },
+    // Ein neues Segment (Status) an einen bestehenden Ring anhängen.
+    addTokenSegment(t, ringIdx) {
+        if(!t.rings) t.rings = [];
+        if(ringIdx === undefined || ringIdx === null || !t.rings[ringIdx]) return;
+        t.rings[ringIdx].segments.push({ color: '#000000', text: '' });
+        this.sync();
+    },
+    // Ein Segment aus einem Ring entfernen; leere Ringe werden entfernt.
+    removeTokenSegment(t, ringIdx, segIdx) {
+        if(!t.rings || !t.rings[ringIdx] || !t.rings[ringIdx].segments) return;
+        t.rings[ringIdx].segments.splice(segIdx, 1);
+        if(t.rings[ringIdx].segments.length === 0) t.rings.splice(ringIdx, 1);
         this.sync();
     },
     removeTokenRing(t, index) {
