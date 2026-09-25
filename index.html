@@ -361,15 +361,15 @@
                                     <button class="btn" style="flex:0; padding:5px 8px; margin-left:5px" @click="resetTokenColor()" :title="t('resetColor')"><i class="fas fa-undo"></i></button>
                                 </div>
                                 
-                                <div class="section-title" style="margin-top:10px; font-size:0.7em">{{ t('statuses') }}
-                                    <button class="btn" style="padding:0 8px; font-size:0.8em; float:right; margin-top:-2px; width:auto;" @click="addTokenRing(tok)" :disabled="(tok.rings||[]).length >= 4" :title="t('addRing')"><i class="fas fa-plus"></i></button>
+                                <div class="section-title token-status-title">{{ t('statuses') }}
+                                    <button class="btn btn-add-status" @click="addTokenRing(tok)" :disabled="(tok.rings||[]).length >= 4" :title="t('addRing')"><i class="fas fa-plus"></i></button>
                                 </div>
                                 <div v-for="(ring, ringIdx) in tok.rings" :key="ringIdx" class="token-status-group">
                                     <!-- Gruppenkopf: bei 1 Segment zeigt er den Status direkt an -->
                                     <div class="token-status-head">
                                         <span class="token-status-head-label">{{ t('ring') }} {{ ringIdx + 1 }}</span>
                                         <span class="token-status-head-count">{{ (ring.segments || []).length }}</span>
-                                        <button class="btn" style="padding:1px 6px; font-size:0.75em; flex:0; width:auto; margin-left:auto;" @click="addTokenSegment(tok, ringIdx)" :title="t('addStatus')"><i class="fas fa-plus"></i></button>
+                                        <button class="btn btn-add-status" @click="addTokenSegment(tok, ringIdx)" :disabled="(ring.segments||[]).length >= 8" :title="t('addStatus')"><i class="fas fa-plus"></i></button>
                                     </div>
                                     <div v-for="(seg, segIdx) in ring.segments" :key="segIdx" class="row token-status-row" :class="{'single': (ring.segments||[]).length === 1}">
                                         <div class="texture-preview" :style="{backgroundColor: seg.color, width:'30px', height:'30px'}" @click="openRingColorPicker(tok, ringIdx, segIdx)" :title="t('chooseColor')"></div>
