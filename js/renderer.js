@@ -1331,14 +1331,16 @@ export class GameRenderer {
         }
     }
 
-    drawCurvedText(container, text, radius, angleOffset, color, ringWidth = 10) {
+    drawCurvedText(container, text, radius, centerAngle, color, ringWidth = 10, centered = true) {
         if(!text) return;
         const fontSize = 14 * (ringWidth / 10);
         const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
         const charWidthApprox = fontSize * 0.64; 
         const charSpacing = charWidthApprox / radius; 
         const totalArc = text.length * charSpacing;
-        const startArc = startAngleFromOffset(angleOffset) - totalArc / 2;
+        // centered=true: Kurve ist um centerAngle zentriert (für Segmente).
+        // centered=false: startet oben (-PI/2) – für Einzelring, damit er von beiden Seiten lesbar bleibt.
+        const startArc = centered ? (centerAngle - totalArc / 2) : (startAngleFromOffset(centerAngle) - totalArc / 2);
 
         for(let i=0; i<text.length; i++) {
             const char = text[i];
@@ -1347,6 +1349,7 @@ export class GameRenderer {
             t.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
             t.rotation = angle + Math.PI/2;
             t.scale.set(0.8); container.addChild(t);
+        }
         }
     }
 
