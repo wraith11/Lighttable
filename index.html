@@ -353,7 +353,8 @@
                                     <option v-if="tok.blob_id && !availableBlobs.includes(tok.blob_id)" :value="tok.blob_id">Blob {{tok.blob_id}}</option>
                                 </select>
                                 <div class="row" style="margin-top:5px">
-                                    <label>{{ t('size') }}</label> <input type="range" min="20" max="200" v-model.number="tok.size" @input="markTokenModified(tok)">
+                                    <label>{{ t('size') }}</label> <input type="range" min="20" max="200" v-model.number="tok.size" @input="markTokenModified(tok)" style="flex:1">
+                                    <span class="token-size-val">{{ tok.size }}</span>
                                 </div>
                                 <div class="row">
                                     <label>{{ t('color') }}</label>
