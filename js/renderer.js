@@ -1363,51 +1363,38 @@ export class GameRenderer {
     // Zeichnet einen Ring (Kreis oder Bogensegment) mit Bevel (Tiefe) + Outline.
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
-        const col = parseInt(color.replace('#',''), 16);
+        const steps = 64;
+        const outlineW = 1.6;
+        const buildPoly = (ri, ro, a0, a1, extraOuter) => {
+            const pts = [];
+            for(let i=0; i<=steps; i++) {
+                const a = a0 + (a1-a0) * (i/steps);
+                const r = ro + (extraOuter||0);
+                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+            }
+            for(let i=steps; i>=0; i--) {
+                const a = a0 + (a1-a0) * (i/steps);
+                const r = ri - (extraOuter||0);
+                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+            }
+            return pts;
+        };
+
+        // Outline (dunkler Rand, leicht vergrößert)
         const g = new PIXI.Graphics();
-        // Outline (dunkler Außenrand)
         g.lineStyle(0);
-        g.beginFill(0x000000, 0.9);
-        g.moveTo(cx + Math.cos(startAngle) * (outerR + 1.5), cy + Math.sin(startAngle) * (outerR + 1.5));
-        g.lineTo(cx + Math.cos(endAngle) * (outerR + 1.5), cy + Math.sin(endAngle) * (outerR + 1.5));
-        g.arc(cx, cy, outerR + 1.5, endAngle, startAngle, true);
-        g.lineTo(cx + Math.cos(startAngle) * (innerR - 1.5), cy + Math.sin(startAngle) * (innerR - 1.5));
-        g.arc(cx, cy, innerR - 1.5, startAngle, endAngle, false);
-        g.closePath();
-        g.endFill();
-        // Basis-Füllung
-        g.beginFill(col, 1.0);
-        g.moveTo(cx + Math.cos(startAngle) * outerR, cy + Math.sin(startAngle) * outerR);
-        g.lineTo(cx + Math.cos(endAngle) * outerR, cy + Math.sin(endAngle) * outerR);
-        g.arc(cx, cy, outerR, endAngle, startAngle, true);
-        g.lineTo(cx + Math.cos(startAngle) * innerR, cy + Math.sin(startAngle) * innerR);
-        g.arc(cx, cy, innerR, startAngle, endAngle, false);
-        g.closePath();
-        g.endFill();
-        // Bevel: heller Streifen innen (oben) + dunkler Streifen außen (unten)
-        const light = parseInt(this.shadeColor(color, 55).replace('#',''), 16);
-        const dark = parseInt(this.shadeColor(color, -45).replace('#',''), 16);
-        const midR = (innerR + outerR) / 2;
-        const band = (outerR - innerR) * 0.28;
-        // Bevel-Highlight auf der inneren Hälfte
-        g.beginFill(light, 0.7);
-        g.moveTo(cx + Math.cos(startAngle) * (midR), cy + Math.sin(startAngle) * (midR));
-        g.lineTo(cx + Math.cos(endAngle) * (midR), cy + Math.sin(endAngle) * (midR));
-        g.arc(cx, cy, midR, endAngle, startAngle, true);
-        g.lineTo(cx + Math.cos(startAngle) * (midR - band), cy + Math.sin(startAngle) * (midR - band));
-        g.arc(cx, cy, midR - band, startAngle, endAngle, false);
-        g.closePath();
-        g.endFill();
-        // Bevel-Schatten auf der äußeren Hälfte
-        g.beginFill(dark, 0.6);
-        g.moveTo(cx + Math.cos(startAngle) * (midR + band), cy + Math.sin(startAngle) * (midR + band));
-        g.lineTo(cx + Math.cos(endAngle) * (midR + band), cy + Math.sin(endAngle) * (midR + band));
-        g.arc(cx, cy, midR + band, endAngle, startAngle, true);
-        g.lineTo(cx + Math.cos(startAngle) * (midR), cy + Math.sin(startAngle) * (midR));
-        g.arc(cx, cy, midR, startAngle, endAngle, false);
-        g.closePath();
+        g.beginFill(0x000000, 0.95);
+        g.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, outlineW));
         g.endFill();
         container.addChild(g);
+
+        // Basis-Füllung mit plastischer Wölbungs-Textur
+        const tex = this.getRingTexture(color, outerR - innerR, Math.max(64, Math.ceil((outerR-innerR) * 4)));
+        const colFill = new PIXI.Graphics();
+        colFill.beginTextureFill({ texture: tex });
+        colFill.drawPolygon(buildPoly(innerR, outerR, startAngle, endAngle, 0));
+        colFill.endFill();
+        container.addChild(colFill);
     }
 
     drawTokenRings(container, token) {
