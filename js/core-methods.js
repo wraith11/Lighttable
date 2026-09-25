@@ -79,6 +79,12 @@ export const coreMethods = {
             });
             
             this.tokenColorPicker.on('color:change', (color) => {
+                // Modus "Default-Token-Farbe" braucht keinen offenen Token
+                if (this.activeColorMode === 'default') {
+                    this.scene.token_color_default = color.hexString;
+                    this.applyTokenColorDefault();
+                    return;
+                }
                 if(!this.openTokenId) return;
                 const t = this.scene.tokens[this.openTokenId];
                 if(!t) return;
