@@ -606,25 +606,20 @@ export const coreMethods = {
         if (!t.modified) { t.modified = true; }
         this.sync();
     },
-    // Turn-basierte Korrekturschicht: GM über eine stattgefundene Blob-Korrektur
-    // informieren. Insbesondere bei "uncertain" soll der GM die Token-Zuordnung prüfen
-    // (z.B. bei Figuren-Tausch über Kreuz ist das nicht eindeutig lösbar).
+    // Turn-basierte Korrekturschicht: GM informieren, wenn die Schicht tatsächlich
+    // Blob-IDs umgeordnet hat UND die Zuordnung dabei mehrdeutig war (d.h. unsere
+    // Korrektur könnte falsch geraten haben). In allen anderen Fällen – Einzelbewegung,
+    // sicheres Umsortieren, keine Aktion – keine Meldung, damit der GM nicht bei jeder
+    // Bewegung gestört wird.
     showCorrectionNotice(correction) {
         if (!correction) return;
         const swapped = !!correction.swapped;
         const uncertain = !!correction.uncertain;
-        const reason = correction.reason || '';
 
-        let text = '';
-        if (uncertain) {
-            text = this.t('corrUncertain');
-        } else if (swapped) {
-            text = this.t('corrSwapped');
-        } else {
-            return; // nichts passiert -> kein Hinweis
-        }
+        // Nur warnen, wenn wir tatsächlich IDs getauscht haben UND es mehrdeutig war.
+        if (!(swapped && uncertain)) return;
 
-        this.correctionNotice = { text, uncertain, time: Date.now() };
+        this.correctionNotice = { text: this.t('corrUncertain'), uncertain: true, time: Date.now() };
         clearTimeout(this._correctionNoticeTimer);
         this._correctionNoticeTimer = setTimeout(() => { this.correctionNotice = null; }, 6000);
         if (this.renderer) this.renderer.requestRender();
