@@ -1429,7 +1429,7 @@ export class GameRenderer {
     drawTokenRings(container, token) {
         if(!token.rings || token.rings.length === 0) return;
         const ringWidth = this.scene.ring_thickness || 10;
-        const gap = 2;
+        const gap = Math.max(3, ringWidth * 0.5); // Freiraum zwischen Ringen
         const baseRadius = (token.size / 2) + 6;
         token.rings.forEach((ring, idx) => {
              const centerR = baseRadius + idx * (ringWidth + gap) + ringWidth/2;
