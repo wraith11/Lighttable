@@ -1400,7 +1400,6 @@ export class GameRenderer {
         };
         const thickness = outerR - innerR;
         const colInt = parseInt(col.replace('#',''), 16);
-        const isFull = (endAngle - startAngle) >= (Math.PI*2 - 0.001);
 
         // Bevel über die Ringbreite: feine Stufen, in der Mitte breites Plateau.
         // Schmälere Rampen → bevel wirkt dünner, Plateau bleibt flach.
