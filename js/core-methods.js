@@ -127,9 +127,6 @@ export const coreMethods = {
         style.textContent = css;
         document.head.appendChild(style);
     },
-            });
-        }
-    },
     updateLightColorPicker() {
         this.$nextTick(() => {
             const container = document.getElementById('light-cp');
