@@ -97,7 +97,9 @@ input[type="range"] { padding: 0; height: 10px; width: 100%; }
     width: 26px !important;
     height: 26px !important;
     padding: 0 !important;
+    margin: 0 !important;
     font-size: 1em !important;
+    line-height: 26px !important;
     background: #2c7a2c !important;
     border-color: #3fa03f !important;
     color: #fff !important;
