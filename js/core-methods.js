@@ -94,6 +94,10 @@ export const coreMethods = {
                     this.sync();
                 } else if (this.activeColorMode === 'ring' && this.activeRingIndex !== null && this.activeSegmentIndex !== null) {
                     const group = t.rings && t.rings[this.activeRingIndex];
+                }
+            });
+        }
+    },
                     const seg = group && group.segments && group.segments[this.activeSegmentIndex];
                     if (seg) {
                         seg.color = color.hexString;
