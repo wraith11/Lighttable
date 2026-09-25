@@ -1385,7 +1385,7 @@ export class GameRenderer {
     // segmentiert: Array von {color, text} → Ring wird in N Bogenstücke geteilt.
     drawRingSegment(container, cx, cy, innerR, outerR, startAngle, endAngle, color) {
         const steps = 64;
-        const col = color || '#333333';
+        const col = color || '#2a2a2a';
         const buildPoly = (ri, ro, a0, a1) => {
             const pts = [];
             for(let i=0; i<=steps; i++) {
