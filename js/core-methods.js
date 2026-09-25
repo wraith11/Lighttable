@@ -86,9 +86,11 @@ export const coreMethods = {
                 if (this.activeColorMode === 'spotlight') {
                     t.spotlight_color = color.hexString;
                     this.sync();
-                } else if (this.activeColorMode === 'ring' && this.activeRingIndex !== null) {
-                    if (t.rings && t.rings[this.activeRingIndex]) {
-                        t.rings[this.activeRingIndex].color = color.hexString;
+                } else if (this.activeColorMode === 'ring' && this.activeRingIndex !== null && this.activeSegmentIndex !== null) {
+                    const group = t.rings && t.rings[this.activeRingIndex];
+                    const seg = group && group.segments && group.segments[this.activeSegmentIndex];
+                    if (seg) {
+                        seg.color = color.hexString;
                         this.sync();
                     }
                 }
