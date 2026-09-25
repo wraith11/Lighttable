@@ -1332,7 +1332,7 @@ export class GameRenderer {
 
     drawCurvedText(container, text, radius, centerAngle, color, ringWidth = 10, centered = true, maxAngle = null) {
         if(!text) return;
-        let fontSize = 14 * (ringWidth / 10);
+        let fontSize = 12 * (ringWidth / 10);
         let t = text;
         // Fitting für Segmente: Text so skalieren/kürzen, dass er in den verfügbaren Bogen passt.
         if (centered && maxAngle) {
