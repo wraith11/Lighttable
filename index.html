@@ -481,9 +481,11 @@
                     
                     <div class="section-title">{{ t('defaults') }}</div>
                     <div style="background:#222; padding:10px; border-radius:4px; margin-bottom:10px;">
-                        <div class="row"><label>{{ t('defTokenSize') }}</label><input type="number" min="20" max="200" v-model.number="scene.token_size_default" @change="applyTokenSizeDefault" style="width:80px; margin:0"></div>
-                        <div class="row"><label>{{ t('ringThickness') }}</label><input type="number" min="4" max="30" v-model.number="scene.ring_thickness" @change="sync" style="width:80px; margin:0"></div>
-                        <div class="row"><label>{{ t('tokenNameSize') }}</label><input type="number" min="6" max="40" v-model.number="scene.token_name_size" @change="sync" style="width:80px; margin:0"></div>
+                        <div class="defaults-grid">
+                            <label>{{ t('defTokenSize') }}</label><input type="number" min="20" max="200" v-model.number="scene.token_size_default" @change="applyTokenSizeDefault">
+                            <label>{{ t('ringThickness') }}</label><input type="number" min="4" max="30" v-model.number="scene.ring_thickness" @change="sync">
+                            <label>{{ t('tokenNameSize') }}</label><input type="number" min="6" max="40" v-model.number="scene.token_name_size" @change="sync">
+                        </div>
                     </div>
                     
                     <div class="section-title">{{ t('mapMgmt') }}</div>
