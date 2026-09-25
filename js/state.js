@@ -76,6 +76,7 @@ export function getInitialState() {
         activeSegmentIndex: null,
         _lastSyncTime: 0, _syncTimer: null,
         currentMapName: "",
-        _clipboard: null
+        _clipboard: null,
+        _prevTokenSizeDefault: 45
     };
 }
