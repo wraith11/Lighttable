@@ -610,45 +610,65 @@ export const coreMethods = {
     // in einem ENGEN Bereich befanden (hohe Verwechslungsgefahr). Bei weit getrennten
     // Bewegungen (z.B. getrennte Figuren-Gruppen) ist die Zuordnung mit hoher
     // Wahrscheinlichkeit korrekt und es wird NICHT gemeldet.
-    // Der GM kann über einen Button die alternative (zweitwahrscheinlichste) Zuordnung
-    // anwenden – bei genau 2 bewegten Blobs ist das die einzige andere Option.
+    // Meldungen werden in einer QUEUE gesammelt (ältere nicht überschreiben), damit der
+    // GM sie nach und nach abarbeiten kann. Es gibt KEINEN Auto-Timeout – die Meldung
+    // bleibt, bis der GM sie anwendet oder verwirft.
     showCorrectionNotice(correction) {
         if (!correction) return;
-        const movers = correction.movers || [];
-
-        // Nur warnen bei Verwechslungsgefahr (eng stehende, mehrfach bewegte Blobs).
+        const movers = (correction.movers || []).map(String);
         if (!correction.uncertain || movers.length < 2) return;
 
-        this._lastCorrection = correction;
-        this.correctionNotice = {
-            text: this.t('corrUncertain'),
+        // Namen der betroffenen Blobs: Token-Name falls vorhanden, sonst Blob-ID.
+        const labels = movers.map(bid => {
+            const tok = Object.values(this.scene.tokens).find(t => String(t.blob_id) === bid);
+            return tok && tok.name ? tok.name : `Blob ${bid}`;
+        });
+
+        const notice = {
+            movers,
+            text: this.t('corrUncertain', labels.join(', ')),
             uncertain: true,
-            time: Date.now(),
-            canSwap: movers.length === 2
+            canSwap: movers.length === 2,
+            time: Date.now()
         };
-        clearTimeout(this._correctionNoticeTimer);
-        this._correctionNoticeTimer = setTimeout(() => { this.correctionNotice = null; }, 8000);
+
+        // Dedupe: ist dieselbe Blob-Menge bereits offen, aktualisieren statt duplizieren.
+        const dup = this.correctionQueue.find(q =>
+            q.movers.length === movers.length && movers.every(m => q.movers.includes(m)));
+        if (dup) {
+            Object.assign(dup, notice);
+        } else {
+            this.correctionQueue.push(notice);
+        }
         if (this.renderer) this.renderer.requestRender();
     },
 
     // GM: Wendet die alternative (zweitwahrscheinlichste) Zuordnung an. Bei 2 bewegten
     // Blobs werden deren Tokens getauscht – die einzige andere mögliche Verteilung.
     applyAlternativeCorrection() {
-        const corr = this._lastCorrection;
-        const movers = (corr && corr.movers) || [];
-        if (movers.length !== 2) return;
-        const [m1, m2] = [String(movers[0]), String(movers[1])];
+        const notice = this.correctionQueue[0];
+        if (!notice || notice.movers.length !== 2) return;
+        const [m1, m2] = notice.movers;
         const tokens = Object.values(this.scene.tokens);
         const t1 = tokens.find(t => String(t.blob_id) === m1);
         const t2 = tokens.find(t => String(t.blob_id) === m2);
-        if (!t1 || !t2 || t1 === t2) return;
+        if (!t1 || !t2 || t1 === t2) {
+            this.dismissCorrection();
+            return;
+        }
 
         // Tokens vertauschen, damit sie den jeweils anderen Blob verfolgen.
         t1.blob_id = m2;
         t2.blob_id = m1;
         this.updateTokenPos();
         this.sync();
-        this.correctionNotice = null;
+        this.dismissCorrection();
+    },
+
+    // GM: Verwirft die älteste offene Korrektur-Meldung (ohne die Zuordnung zu ändern).
+    dismissCorrection() {
+        this.correctionQueue.shift();
+        if (this.renderer) this.renderer.requestRender();
     },
     
     
