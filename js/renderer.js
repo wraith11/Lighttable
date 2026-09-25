@@ -1420,27 +1420,32 @@ export class GameRenderer {
             container.addChild(g);
         }
 
-        // 4. Saubere Outline als dünne Linie um das gesamte Segment
+        // Outline als saubere Striche entlang der Bogenkanten (außen + innen).
+        // Beim vollen Ring keine radiale Naht; bei Segmenten werden die Schnittkanten mitgezeichnet.
         const outline = new PIXI.Graphics();
         outline.lineStyle(1.2, 0x000000, 0.7);
-        const po = buildPoly(innerR, outerR, startAngle, endAngle);
-        outline.moveTo(po[0], po[1]);
-        for(let i=2; i<po.length; i+=2) outline.lineTo(po[i], po[i+1]);
-        outline.closePath();
-        container.addChild(outline);
-
-        // 5. Kanten-Bevel an den radialen Schnittkanten (nur bei echten Segmenten):
-        //    helle Kante am Start, dunkle am Ende → Segmente wirken sauber getrennt.
+        const arcStroke = (r, a0, a1) => {
+            const pts = [];
+            for(let i=0; i<=steps; i++) {
+                const a = a0 + (a1-a0) * (i/steps);
+                pts.push(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+            }
+            return pts;
+        };
+        const drawStroke = (pts) => {
+            outline.moveTo(pts[0][0], pts[0][1]);
+            for(let i=1; i<pts.length; i++) outline.lineTo(pts[i][0], pts[i][1]);
+        };
+        drawStroke(arcStroke(outerR, startAngle, endAngle)); // Außenbogen
+        drawStroke(arcStroke(innerR, startAngle, endAngle)); // Innenbogen
         if (!isFull) {
-            const edgeG = new PIXI.Graphics();
-            edgeG.lineStyle(1.2, 0xFFFFFF, 0.35);
-            edgeG.moveTo(cx+Math.cos(startAngle)*innerR, cy+Math.sin(startAngle)*innerR);
-            edgeG.lineTo(cx+Math.cos(startAngle)*outerR, cy+Math.sin(startAngle)*outerR);
-            edgeG.lineStyle(1.2, 0x000000, 0.5);
-            edgeG.moveTo(cx+Math.cos(endAngle)*innerR, cy+Math.sin(endAngle)*innerR);
-            edgeG.lineTo(cx+Math.cos(endAngle)*outerR, cy+Math.sin(endAngle)*outerR);
-            container.addChild(edgeG);
+            // radiale Schnittkanten bei echten Segmenten
+            outline.moveTo(cx+Math.cos(startAngle)*innerR, cy+Math.sin(startAngle)*innerR);
+            outline.lineTo(cx+Math.cos(startAngle)*outerR, cy+Math.sin(startAngle)*outerR);
+            outline.moveTo(cx+Math.cos(endAngle)*innerR, cy+Math.sin(endAngle)*innerR);
+            outline.lineTo(cx+Math.cos(endAngle)*outerR, cy+Math.sin(endAngle)*outerR);
         }
+        container.addChild(outline);
     }
 
     drawTokenRings(container, token) {
