@@ -1528,7 +1528,7 @@ export class GameRenderer {
                 
                 if (this.isGM && t.blob_id && this.scene.show_blob_ids) {
                      const ringOffset = (t.rings ? t.rings.length * (this.scene.ring_thickness || 10) : 0);
-                     const idTxt = new PIXI.Text(t.blob_id, {fontSize:10, fill:0x00ff00, fontWeight:'bold'});
+                     const idTxt = new PIXI.Text(t.blob_id, {fontSize:13, fill:0x00ff00, fontWeight:'bold', stroke:0x000000, strokeThickness:2});
                      idTxt.anchor.set(0, 1); idTxt.position.set((t.size/2) + ringOffset, -((t.size/2) + 5));
                      tc.addChild(idTxt);
                 }
