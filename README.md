@@ -56,10 +56,15 @@ the tracking:
 - Unmoved / never-occluded figures are never touched.
 - **Ambiguity (confusion risk):** When several blobs move within a **tight area** (dense figure
   cluster), the assignment is unclear. Then the most likely variant (minimum total movement) is
-  assumed, the GM is shown an "uncertain" notice, and an **"Apply alternative"** button is offered –
-  with exactly 2 moved blobs it immediately applies the only other distribution (swapping the two
-  tokens). Movements in **widely separated** figure groups are considered reliable (cross movement
-  over a large distance is very unlikely) and trigger **no** notice.
+  assumed and the GM is shown a notice listing the affected figures (token name, otherwise blob
+  ID). An **"Apply alternative"** button, with exactly 2 moved blobs, immediately applies the only
+  other distribution (swapping the two tokens). Movements in **widely separated** figure groups
+  are considered reliable (cross movement over a large distance is very unlikely) and trigger
+  **no** notice.
+- **Multiple notices:** New uncertainty notices do **not** overwrite each other – they queue up and
+  the GM works through them one by one (a counter shows how many are pending). There is **no
+  auto-timeout** – the GM can first check the projected table and then handle the notice via
+  "Apply alternative" or "Dismiss" (X).
 
 The behavior can be tuned via the constants in `TurnCorrectionLayer.__init__` (in
 `scrytable.py`): `anchor_radius`, `moved_threshold`, `max_disruption` and
