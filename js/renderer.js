@@ -1345,7 +1345,7 @@ export class GameRenderer {
             charW = fontSize * 0.62;
             const maxChars = Math.floor(availablePx / charW);
             if (t.length > maxChars) {
-                t = t.slice(0, Math.max(1, maxChars - 1)) + '…';
+                t = t.slice(0, Math.max(1, maxChars - 1)) + '.';
             }
         }
         const textStyle = new PIXI.TextStyle({ fontSize, fill: 0xffffff, fontWeight: 'bold', dropShadow: true, dropShadowBlur: 2, padding: 5 });
