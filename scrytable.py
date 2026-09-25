@@ -529,24 +529,29 @@ class TurnCorrectionLayer:
             used[best_j] = True
         return res
 
-    # --- Mehrdeutigkeit erkennen (2. beste Alternative fast gleich gut) ---
+    # --- Verwechslungsgefahr (räumliche Nähe der bewegten Blobs) ---
+    # Wir sind prinzipbedingt nie sicher, welche Figur sich wohin bewegt hat, wenn sich
+    # mehrere Blobs bewegt haben – die Annahme ist immer die geringste Gesamtbewegung.
+    # Ein Fehler ist dabei umso UNWAHRSCHEINLICHER, je weiter die Bewegungen räumlich
+    # auseinanderliegen (z.B. in getrennten Figuren-Gruppen). Unsicherheit wird daher
+    # nur gemeldet, wenn sich mehrere Blobs in ENG beieinanderliegenden Bereichen
+    # bewegt haben (hohe Verwechslungsgefahr). Getrennte Gruppen gelten als sicher.
     def _is_uncertain(self, arrived, old, assignment):
         n = len(arrived)
-        if n <= 1:
+        if n < 2:
             return False
+        # Geringste Distanz zwischen zwei bewegten Blobs – über Ausgangs- ODER
+        # Zielposition, damit auch Kreuzläufe zwischen nahen Bereichen erfasst werden.
+        min_gap = float('inf')
         for i in range(n):
-            best_d = math.hypot(arrived[i][0] - old[assignment[i]][0],
-                                arrived[i][1] - old[assignment[i]][1])
-            second = float('inf')
-            for j in range(n):
-                if j == assignment[i]:
-                    continue
-                d = math.hypot(arrived[i][0] - old[j][0], arrived[i][1] - old[j][1])
-                if d < second:
-                    second = d
-            if second < best_d * 1.3 + 0.02:
-                return True
-        return False
+            for j in range(i + 1, n):
+                d_old = math.hypot(old[i][0] - old[j][0], old[i][1] - old[j][1])
+                d_new = math.hypot(arrived[i][0] - arrived[j][0], arrived[i][1] - arrived[j][1])
+                if d_old < min_gap:
+                    min_gap = d_old
+                if d_new < min_gap:
+                    min_gap = d_new
+        return min_gap < self.uncertainty_gap
 
     # --- IDs unter den Mover-Tracks permutieren (ID-Menge bleibt identisch) ---
     def _apply_permutation(self, tracker, movers, assignment):
